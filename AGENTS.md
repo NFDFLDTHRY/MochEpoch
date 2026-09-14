@@ -38,19 +38,35 @@ Granite only processes the supplied packet and returns JSON. It does not own wor
 
 Before modifying Granite integration, Witness, NPC processing, or natural-language communication machinery, read `docs/MODEL_ROLE.md` and preserve its operational framing. Do not design Witness functions against an imagined model interface; establish the concrete Granite WebApp call machinery first, then make the class functions feed that proven interface.
 
+Before modifying world-state handling, rendering state, assets, persistence, inventory, NPC state, or any other game-state machinery, read `docs/CSV_BACKING_STATE.md` and preserve it as a hard architectural boundary.
+
 Deterministic code decides what actually happens. The next interaction must operate from the changed CSV-backed state without hidden model memory or hidden game state.
 
 Store facts and attributed events, not designer interpretations. Trust, morality, friendship, loyalty, resentment, civilization scores, and similar social abstractions are outside this experiment unless the user explicitly changes the research question. A failed emergence experiment is evidence, not permission to add a trust meter.
 
 System prompts are data in CSV state. They may be character-specific or shared by reference; do not centralize them in executable code merely for convenience.
 
-## Runtime state boundary
+## CSV backing-state boundary
 
-The CSV files under `world/` are the inspectable seed/default world. A Chrome WebApp cannot rewrite repository files directly.
+CSV files are the backing state of MochEpoch. There is no second game-state representation.
 
-At runtime, the game may parse those CSVs into memory and maintain a mutable active copy. When persistence is needed, store that active copy in the simplest browser storage that works. This storage is only persistence for the CSV-backed world, not a second hidden world model.
+Do not create or maintain an active in-memory world model, ECS, state store, object graph, inventory store, relationship graph, NPC state cache, renderer-owned gameplay state, or other parallel gameplay state. CSV is not merely an import/export format.
 
-The active state must remain serializable back to the same inspectable CSV shape. Witness and the runner read the active CSV-backed state. Renderer objects, DOM state, caches, and model context are not independent game authority.
+The allowed game-code shape is:
+
+1. a first-person 3D client that reads the CSV-described world and renders it;
+2. CSV files that describe world, system, entity, asset, and other game-relevant backing state; and
+3. classes that contain functions which read, resolve, or transform that CSV backing state.
+
+Function classes do not own game state. Any game-relevant result that must survive an operation belongs back in CSV-backed state.
+
+Game assets are discovered through CSV manifests. Referenced asset files may use whatever format the renderer or backend requires, but the game's knowledge that an asset exists, where it is located, and any game-relevant metadata about it belongs in CSV. Do not create an independent hard-coded asset registry.
+
+Transient state is permitted only when specifically required by third-party backend machinery such as the browser, Three.js/WebGPU, model inference, decoding, or another explicitly used backend. Backend-required transient machinery must never become authoritative gameplay state and must not contain a game fact that exists nowhere in CSV.
+
+A Chrome WebApp cannot directly rewrite repository files. That limitation does not authorize a non-CSV runtime world model. The eventual browser persistence mechanism is a storage substrate for CSV-backed documents. Repository CSV files may be seed/default state; runtime-mutated state must still remain CSV-backed.
+
+If renderer internals, model-runtime internals, caches, workers, and function-class instances are discarded, the continuing world must still be reconstructable from the CSV backing state plus referenced resource files.
 
 Do not build a backend merely to make static repository CSV files writable.
 
