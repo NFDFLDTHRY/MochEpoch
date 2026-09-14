@@ -38,7 +38,7 @@ Granite only processes the supplied packet and returns JSON. It does not own wor
 
 Before modifying Granite integration, Witness, NPC processing, or natural-language communication machinery, read `docs/MODEL_ROLE.md` and preserve its operational framing. Do not design Witness functions against an imagined model interface; establish the concrete Granite WebApp call machinery first, then make the class functions feed that proven interface.
 
-Before modifying world-state handling, rendering state, assets, persistence, inventory, NPC state, or any other game-state machinery, read `docs/CSV_BACKING_STATE.md` and preserve it as a hard architectural boundary.
+Before modifying world-state handling, rendering state, assets, persistence, inventory, NPC state, JSON handling, or any other game-state machinery, read `docs/CSV_BACKING_STATE.md` and preserve it as a hard architectural boundary.
 
 Deterministic code decides what actually happens. The next interaction must operate from the changed CSV-backed state without hidden model memory or hidden game state.
 
@@ -60,13 +60,15 @@ The allowed game-code shape is:
 
 Function classes do not own game state. Any game-relevant result that must survive an operation belongs back in CSV-backed state.
 
+JSON is transient operational structure, not backing state. The project's DNA/RNA analogy is mechanical only: CSV is the durable backing state; JSON is temporary expression or transport for a particular operation. A JSON package may be created from CSV, passed through Granite or another function, compared or validated against CSV, and then discarded. If a JSON result affects the continuing world, deterministic functions resolve it against the relevant CSV backing and write the accepted consequence into CSV-backed state. Do not literalize the analogy into biological mechanics.
+
 Game assets are discovered through CSV manifests. Referenced asset files may use whatever format the renderer or backend requires, but the game's knowledge that an asset exists, where it is located, and any game-relevant metadata about it belongs in CSV. Do not create an independent hard-coded asset registry.
 
 Transient state is permitted only when specifically required by third-party backend machinery such as the browser, Three.js/WebGPU, model inference, decoding, or another explicitly used backend. Backend-required transient machinery must never become authoritative gameplay state and must not contain a game fact that exists nowhere in CSV.
 
 A Chrome WebApp cannot directly rewrite repository files. That limitation does not authorize a non-CSV runtime world model. The eventual browser persistence mechanism is a storage substrate for CSV-backed documents. Repository CSV files may be seed/default state; runtime-mutated state must still remain CSV-backed.
 
-If renderer internals, model-runtime internals, caches, workers, and function-class instances are discarded, the continuing world must still be reconstructable from the CSV backing state plus referenced resource files.
+If renderer internals, model-runtime internals, caches, workers, function-class instances, and transient JSON packages are discarded, the continuing world must still be reconstructable from the CSV backing state plus referenced resource files.
 
 Do not build a backend merely to make static repository CSV files writable.
 
