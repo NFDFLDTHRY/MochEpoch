@@ -3,6 +3,8 @@
 /models/
 /.local/
 /saves/
+__pycache__/
+*.py[cod]
 *.log
 .env
 .env.*

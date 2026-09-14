@@ -47,7 +47,7 @@ IF / ELSE / THEN RESOLVER
 GAME RUNNER
   │
   ▼
-UPDATE CSV STATE
+UPDATE CSV-BACKED STATE
   │
   ▼
 NEXT WORLD
@@ -60,7 +60,7 @@ NEXT WORLD
 
 Referenced CSV files are the inspectable factual state. Type + name resolve the file.
 
-System prompts are stored as CSV data.
+System prompts are CSV data. A prompt may belong to one character/entity or be shared by reference. Do not move prompts into executable code merely for convenience.
 
 Witness is a class of scoped database-calling and packet-construction functions. It does not reason, interpret, or own state.
 
@@ -68,11 +68,21 @@ Each model call is one JSON packet containing the world descriptive summation, t
 
 Granite is a one-shot JSON processing black box. It receives the packet and returns JSON.
 
-The model output is fed into deterministic IF / ELSE / THEN code. Deterministic code decides what actually happens and which CSV values change.
+The model output is fed into deterministic IF / ELSE / THEN code. Deterministic code decides what actually happens and which CSV-backed values change.
 
 The renderer shows the committed world state. It must not become a second hidden source of truth.
 
-Store facts and attributed events, not meta-interpretations. Do not add trust, morality, friendship, loyalty, resentment, civilization scores, or similar abstractions merely because a conventional game architecture might contain them.
+Store facts and attributed events, not meta-interpretations. Trust, morality, friendship, loyalty, resentment, civilization scores, and similar abstractions are intentionally outside the authoritative world state. Failure to produce civilization-like behavior is experimental evidence, not permission to add those abstractions. Only an explicit change to the research question should change that boundary.
+
+## RUNTIME STATE
+
+The CSV files committed under `world/` are the seed/default world and the human-inspectable shape of state.
+
+A Chrome WebApp cannot directly rewrite repository files. Runtime code may therefore parse the CSVs into a mutable in-memory representation. When persistence is needed, save the active CSV-backed state using the simplest browser storage that works.
+
+That runtime storage is not a second world model. The active world must remain serializable/exportable back to the same inspectable CSV shape, and the next Witness call must be constructed from the mutated active state.
+
+Do not build a backend solely to make the repository CSV files writable.
 
 ## FIRST OPERATION
 
@@ -96,14 +106,16 @@ The exact seed is disposable. It proves plumbing, not civilization.
 
 1. Load `world/world.csv`.
 2. Resolve each indexed type + name to its CSV file.
-3. Render enough of that state to show the first fixture.
-4. Implement `Witness` only far enough to construct the one complete Granite packet for Ada.
-5. Make one real Granite 350M call in the target Chrome WebApp.
-6. Parse the returned JSON.
-7. Feed it into the smallest deterministic resolver for this fixture.
-8. Update the relevant CSV-backed state.
-9. Render the visible consequence.
-10. Start the next interaction from that changed state.
+3. Create the active CSV-backed world state in memory.
+4. Render only enough state to show the first fixture.
+5. Implement `Witness` only far enough to construct the one complete Granite packet for Ada.
+6. Make one real Granite 350M call in the target Chrome WebApp.
+7. Parse the returned JSON.
+8. Feed it into the smallest deterministic resolver for this fixture.
+9. Mutate the relevant active CSV-backed state.
+10. Render the visible consequence.
+11. Construct the next interaction from that changed state.
+12. Add browser persistence only when the experiment reaches the point where surviving reload/restart is the operation being tested.
 
 Do not build a general-purpose framework before these operations require one.
 
@@ -120,7 +132,7 @@ One visible consequence.
 
 ## PASS CONDITION
 
-The next interaction must operate correctly from the mutated CSV state without hidden model memory or hidden game state.
+The next interaction must operate correctly from the mutated CSV-backed state without hidden model memory or hidden game state.
 
 ## BUILD POLICY
 
@@ -143,3 +155,5 @@ Add machinery only when a failure requires it
 ```
 
 Do not add cloud or metered automation, including GitHub Actions, without explicit user approval.
+
+Deployment, authentication, payments, and similar product-shell work are separate from the core civilization experiment. Add them only when the user explicitly asks for that operation; do not let them reshape the world-state architecture.

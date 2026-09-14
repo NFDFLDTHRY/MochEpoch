@@ -63,7 +63,7 @@ Can a civilization-like game emerge from CSV world state + scoped Witness calls 
                   GAME RUNNER
                          │
                          ▼
-                 UPDATE CSV STATE
+            UPDATE CSV-BACKED STATE
                          │
                          ▼
                     NEXT WORLD
@@ -77,15 +77,23 @@ Can a civilization-like game emerge from CSV world state + scoped Witness calls 
 
 Referenced CSV files contain inspectable factual state. Type selects the folder and name selects the CSV state file.
 
-System prompts are data inside the relevant CSV.
+System prompts are data inside relevant CSV state. They may be specific to one entity or shared by reference.
 
 Witness only retrieves state and constructs one complete model call.
 
 Granite only converts the supplied packet into the required JSON output.
 
-Deterministic code decides what actually happens. The runner changes CSV state and renders the resulting world.
+Deterministic code decides what actually happens. The runner changes CSV-backed state and renders the resulting world.
 
-Store facts and events, not interpretations. Do not encode social abstractions such as trust, morality, friendship, loyalty, or civilization scores unless an observed failure proves a concrete need for them.
+Store facts and events, not interpretations. Trust, morality, friendship, loyalty, resentment, civilization scores, and similar social abstractions are intentionally not authoritative game state. If the experiment fails to produce them, that failure is a result unless the research question itself is explicitly changed.
+
+## Runtime state
+
+The CSV files in `world/` are the inspectable seed/default world.
+
+A Chrome WebApp may parse those CSVs into an active in-memory copy and, when persistence is needed, save that active copy using simple browser storage. Browser storage is persistence for the CSV-backed world, not a second hidden world model.
+
+The active world must remain exportable/serializable back to the same inspectable CSV shape. Renderer state and model context do not become authoritative gameplay state.
 
 ## First test
 
@@ -93,7 +101,11 @@ One world. One player. One model-controlled character. One Witness call. One Gra
 
 The current seed uses one room, the player, Ada, and one stone held by Ada. The fixture exists only to prove the loop.
 
-**Pass condition:** the next interaction operates correctly from the mutated CSV state without hidden model memory or hidden game state.
+**Pass condition:** the next interaction operates correctly from the mutated CSV-backed state without hidden model memory or hidden game state.
+
+## Current status
+
+The repository currently contains the minimal seed world and design constraints. The executable browser loop, real Granite call, resolver, state mutation, and persistence path still need to be built and run.
 
 ## Build policy
 
