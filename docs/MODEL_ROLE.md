@@ -22,6 +22,18 @@ Granite therefore acts primarily as a reducer: it receives a bounded structured 
 
 Natural language is a field population handled inside this structural machinery, not a separate conversational architecture.
 
+## JSON is operational, CSV is backing state
+
+Granite input and output JSON packages are transient operational structures. They are not game state.
+
+The DNA/RNA analogy used by this project is mechanical only: CSV is the durable backing state; JSON is the temporary expression or transport package for a particular operation.
+
+A Granite packet may be built from CSV-backed facts and a Granite result may propose or describe an operation, but neither becomes authoritative by existing. If a Granite result affects the continuing world, deterministic game functions must compare and resolve it against the relevant CSV backing and write the accepted consequence into CSV-backed state.
+
+Do not create model-owned state, JSON-owned state, or a second runtime world model around Granite. Do not literalize the DNA/RNA analogy into biological mechanics.
+
+See `docs/CSV_BACKING_STATE.md` for the hard state boundary.
+
 ## Natural-language communication uses separate Granite calls
 
 Player-to-NPC communication and NPC-to-player communication are not one Granite run.
