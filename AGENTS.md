@@ -15,7 +15,7 @@ WORLD.CSV search list
   ↓
 type + name resolve referenced CSV state
   ↓
-WITNESS scoped database caller + packet constructor
+WITNESS class functions: scoped CSV access + packet construction
   ↓
 ONE Granite calling packet
   ↓
@@ -32,9 +32,11 @@ NEXT WORLD
 
 The one Granite packet contains the world descriptive summation, system prompt from CSV, current situational state, and output JSON schema together.
 
-Witness retrieves state and constructs the call. It does not reason about the world.
+Witness is only a class containing the small set of ordinary functions needed for scoped CSV access and Granite packet construction. It is not an architectural subsystem and does not reason about the world.
 
 Granite only processes the supplied packet and returns JSON. It does not own world state or execute consequences.
+
+Before modifying Granite integration, Witness, NPC processing, or natural-language communication machinery, read `docs/MODEL_ROLE.md` and preserve its operational framing. Do not design Witness functions against an imagined model interface; establish the concrete Granite WebApp call machinery first, then make the class functions feed that proven interface.
 
 Deterministic code decides what actually happens. The next interaction must operate from the changed CSV-backed state without hidden model memory or hidden game state.
 
