@@ -115,6 +115,8 @@ No GitHub Actions or other metered hosted automation without explicit approval.
 
 See [AGENTS.md](AGENTS.md) for implementation constraints and [docs/MOCK_EPOCH_IMPLEMENTATION_PLAN.md](docs/MOCK_EPOCH_IMPLEMENTATION_PLAN.md) for the current minimal build target.
 
-## License
+## License and attribution
 
 Apache License 2.0. See [LICENSE](LICENSE).
+
+Copyright 2026 487bc LLC. See [NOTICE](NOTICE) for attribution information.
