@@ -39,3 +39,32 @@ Use a disposable copy and the local server command in the README:
 3. Restore the stone CSV, temporarily remove that file, and reload. Confirm the world stays hidden and the page says `Could not load world: world/objects/stone.csv: HTTP 404`.
 
 Restore the original seed after the checks and record the actual visible results. Finish this verification before beginning Witness. No Witness packet, Granite response, resolver outcome, gameplay mutation, persistence, or civilization-like behavior was exercised in this iteration.
+
+## GitHack delivery attempt: 2026-09-14, 22:14 UTC
+
+The current `main` was re-read at `db7be782418816d54ddc65310d76ec3c43d2d864`. The app code, index, and all five referenced CSV files were unchanged from the preceding iteration. The existing installable WebApp product framing remains in place; this operation only introduces a documented development URL.
+
+In the connected real Chrome browser, opened:
+
+[Commit-pinned development URL](https://raw.githack.com/NFDFLDTHRY/MochEpoch/db7be782418816d54ddc65310d76ec3c43d2d864/index.html)
+
+Observed sequence:
+
+1. GitHack displayed its HTML confirmation, showing the expected repository, commit, and `index.html` path.
+2. Selected **Open the page**.
+3. The same URL displayed GitHack's own `404` page: `Something is wrong. That's all we know.` The MochEpoch interface did not appear.
+4. Authenticated GitHub repository metadata returned `private: true` and `visibility: private`. The documented GitHack path requires publicly retrievable source; it cannot use this connector's authenticated access to the private repository.
+
+![GitHack's delivery error before MochEpoch loaded](githack-delivery-404.jpg)
+
+This is an entry-page delivery failure, not the required missing-CSV test. No browser execution of the game was established.
+
+| Required Chrome check | Result in this attempt |
+| --- | --- |
+| Original seed renders Ada holding the stone | Not reached; GitHack returned its own error page |
+| Temporary holder change appears after reload | Not run; no test branch or altered seed was created |
+| Missing referenced CSV produces the game's visible load failure | Not run; GitHack's 404 does not satisfy this check |
+
+Only the development URL documentation and this delivery evidence were added. The seed remains intact, so no restoration was necessary. App code, world architecture, repository visibility, and runtime dependencies were not changed. Witness was not begun.
+
+Next prerequisite: explicit owner authorization for source visibility sufficient for GitHack retrieval. After that, run the three existing game checks against commit-pinned snapshots and record their actual Chrome outcomes.
