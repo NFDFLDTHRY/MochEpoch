@@ -1,60 +1,73 @@
 # MochEpoch implementation rules
 
-## Read first
+## Project shape
 
-Read [README.md](README.md) and [the implementation plan](docs/MOCK_EPOCH_IMPLEMENTATION_PLAN.md) before changing the project. Check the current files and evidence before deciding which gate is complete.
+Mock Epoch asks whether civilization-like behavior can emerge from factual CSV world state, scoped Witness calls, Granite 350M JSON reasoning, and deterministic execution without programming social abstractions such as trust, morality, friendship, loyalty, or civilization.
 
-Use the user's latest project instructions and established Mock Epoch decisions. Do not import requirements or machinery from unrelated projects.
+Preserve this machine:
 
-## Preserve the question
+`world.csv -> referenced CSV state -> Witness constructor -> ONE Granite calling packet -> Granite JSON output -> deterministic IF/ELSE/THEN resolver -> CSV mutation -> rendered next world`
 
-The experiment asks whether civilization-like behavior can emerge from factual CSV state, scoped Witness calls, Granite 350M decisions, and deterministic execution without programming social abstractions.
+- `world/world.csv` is the current search list for what exists or matters.
+- Type + name resolve the corresponding CSV state file.
+- System prompts are data inside the relevant CSV state.
+- Witness is only a scoped database caller and packet constructor.
+- One model packet contains the world descriptive summation, CSV system prompt, current situational state, and output JSON schema together.
+- Granite is JSON in / JSON out. It does not own world state or execute consequences.
+- Deterministic code decides what actually happens and changes CSV state.
+- The next interaction must operate from the changed CSV state without hidden model memory or hidden game state.
+- Store facts and attributed events, not designer interpretations such as trust, morality, friendship, loyalty, or civilization scores.
 
-Do not narrow the project into a schema demonstration or present the first stone fixture as the whole game. Use that fixture to prove the smallest complete loop.
+## Build rule
 
-## Keep authority explicit
+Question -> define operation -> build the smallest version -> run -> save evidence -> try to break -> report only what the run established -> add machinery only when a failure requires it.
 
-- `world/world.csv` indexes what exists or matters. Resolve type to folder and name to CSV.
-- Facts, prompts, and output schemas live in the relevant CSVs. Distinguish instructions from factual state.
-- Witness retrieves only the permitted scope and constructs one complete calling packet.
-- The packet contains the world description, CSV system prompt, situational state, and output JSON schema together.
-- Granite proposes a JSON action. It cannot write files, create world facts, or execute effects.
-- The runner validates references, output structure, and physical preconditions, then commits CSV and renders the committed result.
-- Reconstruct every gameplay value needed by the next interaction from saved CSV and fixed executable rules.
-- Reset model conversation and generation context between decisions. Loaded weights do not constitute gameplay memory.
-- Diagnostic evidence must not become an undeclared source of gameplay state.
-- Preserve the distinction between seed CSVs and the player's active save.
+Do not add architecture because it may be useful later. Do not build frameworks, services, validators, test harnesses, schemas, schedulers, account systems, deployment systems, or abstractions ahead of the operation currently being tested.
 
-## Work by experiment
+Prefer plain HTML, JavaScript, CSV, and local/manual checks until an observed failure requires something more.
 
-1. State the question and observable result.
-2. Build the smallest missing operation.
-3. Run it on the stated environment.
-4. Save inputs, outputs, errors, and consequences.
-5. Try to break the path that was exercised.
-6. Report what the evidence establishes and what remains unresolved.
+Documentation must describe the machine. Do not make documentation itself an executable dependency or require code to parse project Markdown in order for the game to work.
 
-Add machinery only for a documented failure or demonstrated limitation. Start with plain HTML and JavaScript modules. Avoid speculative frameworks, social-stat systems, general rule engines, memory services, model-training pipelines, and schedulers.
+## Cost and external-service boundary
 
-## Evidence discipline
+The repository is version control, not permission to activate hosted services.
 
-- Never mark model loading, API advertisement, a synthetic response, or source validation as successful real inference.
-- Distinguish real generation, synthetic resolver tests, and replay of previously recorded output.
-- Keep unsuccessful attempts, invalid responses, and valid no-ops.
-- A valid `wait` does not satisfy the first test's mutation requirement.
-- Reject malformed or illegal output without silently repairing it or inventing a replacement action.
-- Record the model/revision, runtime/backend, generation settings, executable revision, input CSV, packet, raw output, resolver result, and committed CSV.
-- Preserve observed events with attribution. Do not store trust, friendship, morality, loyalty, or civilization scores as factual state.
-- Keep Gate 0 through Gate 3 pending until evidence establishes their individual conditions.
+**Never create, enable, configure, or rely on GitHub Actions or any other GitHub-hosted execution without the user's explicit approval.**
 
-## Checks and changes
+Without explicit user approval, also do not add or enable:
 
-Run `python3 scripts/check_seed.py` (or `npm run check`) after changing the plan or seed data. This checks the initial fixture; it is not the runtime's world loader or a model test.
+- CI/CD or scheduled cloud jobs
+- GitHub Pages deployment machinery
+- Codespaces
+- CodeQL / Advanced Security jobs
+- Dependabot automation
+- hosted build services
+- hosted databases
+- serverless functions
+- hosted inference
+- analytics, telemetry, error-reporting SaaS, or monitoring
+- third-party services that require an account, API key, billing method, usage quota, or can incur metered charges
 
-Keep the prompt and schema in `world/systems/interaction.csv` aligned with the plan's complete packet. Do not keep another editable prompt in executable code.
+Do not assume a free tier makes a service acceptable. Do not spend the user's money, consume metered credits/minutes, create recurring infrastructure, or create a path that can begin doing so automatically.
 
-When a later experiment deliberately changes the fixture, update its documented operation and the applicable checks together. Do not silently weaken checks to hide a failure.
+If the current operation genuinely requires an external or metered service, stop and explain exactly what is required, why the local/simple path is insufficient, and what cost or quota exposure exists. Wait for explicit approval before adding it.
 
-Keep code, plans, and small experimental evidence in version control. Keep model weight downloads, generated build output, and local active saves out of Git.
+## Dependencies
 
-Finish reports with the question, the run/evidence, what was established, and what remains unresolved.
+Do not add packages merely for convenience or future use. Add a dependency only when the current experiment requires it and the dependency directly enables that operation.
+
+Keep model weights, generated builds, local saves, secrets, and machine-specific files out of Git.
+
+## Evidence
+
+Evidence exists to answer the current experimental question, not to create bureaucracy.
+
+For an actual run, preserve only what is needed to establish what happened: relevant input state, the Witness packet, raw model output or error, resolver result, resulting CSV state, and visible consequence when applicable.
+
+Do not claim that source validation, model loading, API advertisement, synthetic output, or a fixture example proves real inference or gameplay behavior.
+
+## Before changing the project
+
+Read the current repo and the user's latest Mock Epoch instructions first. Do not import machinery or decisions from unrelated projects.
+
+When unsure whether to add something, default to not adding it. Build the next missing executable operation instead.
