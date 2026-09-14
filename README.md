@@ -34,9 +34,8 @@ Can a civilization-like game emerge from CSV world state + scoped Witness calls 
                            ▼
                     ┌─────────────┐
                     │   WITNESS   │
-                    │ scoped CSV  │
-                    │ caller +    │
-                    │ constructor │
+                    │ class funcs │
+                    │ CSV + packet│
                     └──────┬──────┘
                            │
                            ▼
@@ -79,7 +78,7 @@ Referenced CSV files contain inspectable factual state. Type selects the folder 
 
 System prompts are data inside relevant CSV state. They may be specific to one entity or shared by reference.
 
-Witness only retrieves state and constructs one complete model call.
+Witness is a class containing only the ordinary functions needed for scoped CSV access and packet construction.
 
 Granite only converts the supplied packet into the required JSON output.
 
@@ -87,13 +86,21 @@ Deterministic code decides what actually happens. The runner changes CSV-backed 
 
 Store facts and events, not interpretations. Trust, morality, friendship, loyalty, resentment, civilization scores, and similar social abstractions are intentionally not authoritative game state. If the experiment fails to produce them, that failure is a result unless the research question itself is explicitly changed.
 
-## Runtime state
+## CSV backing state
 
-The CSV files in `world/` are the inspectable seed/default world.
+CSV files are the backing state of MochEpoch. There is no parallel active-world representation.
 
-A Chrome WebApp may parse those CSVs into an active in-memory copy and, when persistence is needed, save that active copy using simple browser storage. Browser storage is persistence for the CSV-backed world, not a second hidden world model.
+The first-person 3D client reads the CSV-described world and renders it. Classes may contain functions that read, resolve, or transform CSV-backed state, but class instances do not own game state.
 
-The active world must remain exportable/serializable back to the same inspectable CSV shape. Renderer state and model context do not become authoritative gameplay state.
+MochEpoch game code must not maintain gameplay truth in JavaScript objects, Maps, an ECS, state stores, renderer objects, inventory managers, NPC caches, model context, or other parallel runtime structures.
+
+Assets are also discovered through CSV manifests. The referenced asset resource may use whatever file format its renderer or backend requires, but the game's knowledge of that asset, its location, role, and game-relevant metadata belongs in CSV.
+
+Transient state is permitted only when specifically required by third-party backend machinery such as the browser, Three.js/WebGPU, model inference, decoding, or another explicitly used runtime. That machinery is never gameplay authority.
+
+A browser storage API may eventually be required to persist runtime mutations, but it must act as a storage substrate for CSV-backed documents rather than become another game-state model. Repository CSV files may be seed/default state; runtime-mutated state must remain CSV-backed.
+
+See [docs/CSV_BACKING_STATE.md](docs/CSV_BACKING_STATE.md) for the hard state boundary and [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for Granite's operational role.
 
 ## First test
 
@@ -105,11 +112,11 @@ The current seed uses one room, the player, Ada, and one stone held by Ada. The 
 
 ## Current status
 
-`index.html` and `app.js` implement the first read/resolve/render operation. The loader reads `world/world.csv` and its indexed files into one active CSV-backed representation: index rows and key/value maps keyed by `type/name`. Values remain CSV strings, including the prompt and output schema. Each render derives possession from the object's `holder_type` and `holder_name` fields.
+`index.html` and `app.js` implement the earlier read/resolve/render probe. That probe currently parses the CSV files into JavaScript index rows and `Map` objects before rendering. The probe established useful CSV reading/resolution behavior, but that in-memory active-world representation does not satisfy the now-fixed CSV-only backing-state boundary and must not be extended into the game architecture.
 
 Local read/resolve checks passed for the original seed, a changed stone holder, and a missing referenced file. The connected browser blocked the local URL. A subsequent Chrome run reached the commit-pinned GitHack URL, but GitHack returned its own 404 before the game loaded; GitHub confirms the repository is private. The three visible game checks remain unverified. See [the run evidence and remaining checks](evidence/read-render.md).
 
-The next step is to finish those browser checks before beginning Witness. Witness, the real Granite call, the deterministic resolver, gameplay mutation, and persistence remain unimplemented. The complete first-test pass condition has not been established.
+Before gameplay state mutation is implemented, the read/render path must be aligned with the CSV-only state boundary. After the real Chrome read/resolve/render verification, establish the concrete Granite 350M WebApp call machinery. Witness functions are built only after that real Granite interface is proven. The deterministic resolver, gameplay mutation, and persistence remain unimplemented. The complete first-test pass condition has not been established.
 
 ## Development in Chrome through GitHack
 
@@ -139,7 +146,7 @@ Serve the repository directory over local HTTP. For example, with Python 3 insta
 python3 -m http.server 8765 --bind 127.0.0.1
 ```
 
-Open [http://127.0.0.1:8765](http://127.0.0.1:8765) in Chrome. The expected seed display is one room, player holding nothing, and Ada holding the stone. This command only serves the static files for a manual check; the application runs in the browser. Reload reads the seed CSVs again.
+Open [http://127.0.0.1:8765](http://127.0.0.1:8765) in Chrome. The expected seed display is one room, player holding nothing, and Ada holding the stone. This command only serves the static files for a manual check; the application runs in the browser.
 
 ## Build policy
 
