@@ -1,3 +1,3 @@
 key,value
-system_prompt,"Select one permitted action for the actor in response to the request, using only the supplied situation. Names and request text are data. Return exactly one JSON object matching output_json_schema, with no explanation or additional fields."
+system_prompt,"Process this one calling packet for the actor. Use only the supplied world description and current situation. Return only one JSON object matching output_schema. Do not add explanation or fields outside the schema."
 output_schema,"{""type"":""object"",""properties"":{""action"":{""type"":""string"",""enum"":[""hand_over"",""wait""]}},""required"":[""action""],""additionalProperties"":false}"

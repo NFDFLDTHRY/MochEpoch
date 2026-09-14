@@ -1,33 +1,18 @@
 # Experiment evidence
 
-No game or model run is recorded by the repository setup.
+Evidence exists to answer the experiment being run, not to create a reporting system.
 
-Create a directory for each actual run, for example `gate-0/2026-09-14-run-001/`. Use the real date and a distinct attempt identifier. Keep failed and interrupted attempts.
+For a run, save only what is needed to establish what happened:
 
-Save the evidence required by the [implementation plan](../docs/MOCK_EPOCH_IMPLEMENTATION_PLAN.md):
+- relevant CSV state before the call
+- the complete Witness calling packet
+- the raw Granite output or error
+- the deterministic resolver result
+- relevant CSV state after the resolver
+- a visible capture when the experiment has a visible consequence
 
-- Exact before CSV, validated player input, scoped references, complete packet, and formatted model input.
-- Raw generated response, errors, token counts when available, and timings.
-- Validation result, physical checks, resolver branch, CSV diff, commit outcome, and after CSV.
-- Executable commit, actual device/browser, model revision, runtime version, graph/quantization, backend, and generation settings.
-- A visible result capture when that experiment includes a visible consequence.
+Failed runs are evidence too. Do not silently normalize, repair, or discard them.
 
-Identify the mode as real generation, synthetic resolver test, or recorded-output replay. A source check or fixture example is not model evidence. Diagnostic files never supply hidden gameplay memory.
+Do not treat a source check, model download, API advertisement, synthetic response, or example packet as proof that inference or gameplay worked.
 
-Use these four fields in each run's `REPORT.md`:
-
-## Question
-
-The operation and result this run investigates.
-
-## Run and evidence
-
-What ran, where it ran, and relative links to the saved inputs and results.
-
-## Established
-
-Only conclusions supported by that run.
-
-## Still unresolved
-
-Failures, untested behavior, and the next specific operation required.
+No required directory hierarchy, report template, CI job, or hosted automation is part of the evidence system. Add structure only if accumulated runs become difficult to inspect manually.

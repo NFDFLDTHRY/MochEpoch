@@ -2,8 +2,7 @@
 /dist/
 /models/
 /.local/
-__pycache__/
-*.py[cod]
+/saves/
 *.log
 .env
 .env.*
