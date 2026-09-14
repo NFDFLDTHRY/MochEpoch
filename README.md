@@ -76,9 +76,7 @@ With npm available, the same check is:
 npm run check
 ```
 
-The checker uses only Python's standard library. No dependency installation or model download is required. It checks all six CSVs, exact index resolution, required facts, and the system prompt and JSON schema against the plan.
-
-[Seed checks](.github/workflows/check-seed.yml) run the same command on pushes to `main` and on pull requests. A passing source check establishes fixture consistency only.
+The checker uses only Python's standard library. No dependency installation or model download is required. It checks all six CSVs, exact index resolution, required facts, and the system prompt and JSON schema against the plan. A passing local source check establishes fixture consistency only.
 
 ## Build policy
 
