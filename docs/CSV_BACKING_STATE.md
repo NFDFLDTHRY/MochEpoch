@@ -12,6 +12,27 @@ The game client may render the world, and code may transform the CSV backing sta
 
 If a game-relevant fact matters after an operation, it belongs in CSV-backed state.
 
+## CSV and JSON boundary
+
+A useful mechanical analogy is DNA and RNA:
+
+- CSV is the DNA: the durable backing state that persists, can be inspected, matched, compared, and deterministically transformed.
+- JSON is the RNA: a transient operational expression or transport package produced for a particular operation.
+
+This is an analogy only. Do not import biological machinery, genetics, replication rules, mutation rules, or other biological semantics into the game architecture.
+
+Dynamic JSON is not backing state. A JSON package may be constructed from CSV-backed facts, passed to Granite or another operation, returned from Granite, compared, validated, or otherwise handled, and then discarded when that operation is complete.
+
+If a JSON result affects the continuing game world, deterministic game functions must resolve that result against the relevant CSV-backed facts, references, schemas, and game-defined populations as applicable. Only the resulting CSV transformation becomes continuing game state.
+
+Do not let a JSON object, parsed JavaScript object, model response, message payload, or transport structure become authoritative merely because it exists during an operation.
+
+Any game-relevant JSON field must be grounded by the CSV backing appropriate to that field. Dynamic natural-language payloads may exist inside JSON packages, but their presence does not turn the JSON package into backing state.
+
+The core relationship is:
+
+CSV persists. JSON expresses or transports an operation. Deterministic functions compare and operate against CSV. Accepted consequences return to CSV.
+
 ## Allowed game-code shape
 
 MochEpoch game code is limited to these roles:
@@ -64,10 +85,10 @@ This exception does not permit MochEpoch game logic to store gameplay facts in t
 
 At any point, the continuing game world must be reconstructable from the CSV backing state plus the referenced asset/resource files.
 
-Discarding renderer internals, model runtime internals, caches, workers, and function-class instances must not destroy or alter a game fact.
+Discarding renderer internals, model runtime internals, caches, workers, function-class instances, and transient JSON packages must not destroy or alter a game fact.
 
 ## Implementation instruction
 
-Before changing world-state handling, rendering state, assets, persistence, NPC state, inventory, or other game-state machinery, read this document.
+Before changing world-state handling, rendering state, assets, persistence, NPC state, inventory, JSON handling, or other game-state machinery, read this document.
 
 Do not import a conventional game-engine state architecture into MochEpoch. If an implementation appears to require non-CSV game state, stop and identify the concrete requirement before adding it.
