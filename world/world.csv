@@ -1,0 +1,6 @@
+type,name
+system,world
+system,interaction
+character,player
+character,ada
+object,stone

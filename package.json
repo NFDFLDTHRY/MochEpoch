@@ -1,0 +1,16 @@
+{
+  "name": "mochepoch",
+  "version": "0.0.0",
+  "private": true,
+  "description": "CSV world state, scoped Witness calls, Granite 350M decisions, and deterministic browser game execution.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "NFDFLDTHRY",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NFDFLDTHRY/MochEpoch.git"
+  },
+  "scripts": {
+    "check": "python3 scripts/check_seed.py"
+  }
+}
