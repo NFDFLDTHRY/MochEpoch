@@ -105,7 +105,21 @@ The current seed uses one room, the player, Ada, and one stone held by Ada. The 
 
 ## Current status
 
-The repository currently contains the minimal seed world and design constraints. The executable browser loop, real Granite call, resolver, state mutation, and persistence path still need to be built and run.
+`index.html` and `app.js` implement the first read/resolve/render operation. The loader reads `world/world.csv` and its indexed files into one active CSV-backed representation: index rows and key/value maps keyed by `type/name`. Values remain CSV strings, including the prompt and output schema. Each render derives possession from the object's `holder_type` and `holder_name` fields.
+
+Local read/resolve checks passed for the original seed, a changed stone holder, and a missing referenced file. The connected browser blocked the local URL, so the three visible browser checks remain unverified. See [the run evidence and remaining checks](evidence/read-render.md).
+
+The next step is to finish those browser checks before beginning Witness. Witness, the real Granite call, the deterministic resolver, gameplay mutation, and persistence remain unimplemented. The complete first-test pass condition has not been established.
+
+## Run locally
+
+Serve the repository directory over local HTTP. For example, with Python 3 installed, run this from the repository root:
+
+```sh
+python3 -m http.server 8765 --bind 127.0.0.1
+```
+
+Open [http://127.0.0.1:8765](http://127.0.0.1:8765) in Chrome. The expected seed display is one room, player holding nothing, and Ada holding the stone. This command only serves the static files for a manual check; the application runs in the browser. Reload reads the seed CSVs again.
 
 ## Build policy
 
