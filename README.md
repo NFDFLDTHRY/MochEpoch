@@ -112,11 +112,13 @@ The current seed uses one room, the player, Ada, and one stone held by Ada. The 
 
 ## Current status
 
-`index.html` and `app.js` implement the earlier read/resolve/render probe. That probe currently parses the CSV files into JavaScript index rows and `Map` objects before rendering. The probe established useful CSV reading/resolution behavior, but that in-memory active-world representation does not satisfy the now-fixed CSV-only backing-state boundary and must not be extended into the game architecture.
+`index.html` and `app.js` implement the read/resolve/render probe. The CSV backing-state correction removed `activeWorld` and the parsed index/record Maps. The `CSV` class contains only static functions: CSV text, parser rows, and decoded fields are local computation during a call. The existing display reads through those functions; it is never read back as gameplay authority. This diagnostic display does not establish the first-person 3D client.
 
-Local read/resolve checks passed for the original seed, a changed stone holder, and a missing referenced file. The connected browser blocked the local URL. A subsequent Chrome run reached the commit-pinned GitHack URL, but GitHack returned its own 404 before the game loaded; GitHub confirms the repository is private. The three visible game checks remain unverified. See [the run evidence and remaining checks](evidence/read-render.md).
+Local checks of the corrected CSV functions passed for the original seed, a changed stone holder using the same class and execution context, and a missing referenced file. All six CSV files matched an independent Python CSV read, including the quoted prompt/schema fields. Restoring the seed and creating a fresh execution context reproduced the original facts. These checks did not execute the browser entry point or renderer. See [the run evidence and remaining checks](evidence/read-render.md).
 
-Before gameplay state mutation is implemented, the read/render path must be aligned with the CSV-only state boundary. After the real Chrome read/resolve/render verification, establish the concrete Granite 350M WebApp call machinery. Witness functions are built only after that real Granite interface is proven. The deterministic resolver, gameplay mutation, and persistence remain unimplemented. The complete first-test pass condition has not been established.
+The earlier connected-browser attempt blocked the local URL. The subsequent Chrome run reached the commit-pinned GitHack URL, but GitHack returned its own 404 before the game loaded; GitHub confirmed the repository is private. Those delivery blockers were not retested by the CSV correction. The three visible Chrome checks remain unverified.
+
+Finish the real Chrome read/resolve/render verification before establishing the concrete Granite 350M WebApp call machinery. Witness functions are built only after that real Granite interface is proven. The deterministic resolver, gameplay mutation, and persistence remain unimplemented. The complete first-test pass condition has not been established.
 
 ## Development in Chrome through GitHack
 
