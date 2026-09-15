@@ -1,58 +1,43 @@
-# Current Work proposal
+# Current Work result
 
 proposal_id: 20260915T020507Z-csv-read-projection
-status: PROPOSED
-base_branch: main
-base_commit: baf29393e8074afa4a249470e6a18021cef85a2a
+status: COMPLETE
+implementation_base: e4084c5be65629e677eeb4c14cffd908f8f24cd9
+implementation_commit: 4ad423fdc3735553c02c4bbaace999b655d26e8e
+result_branch: main
 
-## Question
+The user explicitly approved this proposal in the active Work conversation, clarifying that temporary parsing/inspection values are computation and must not be retained. The implementation follows that clarification.
 
-Can the existing read/render probe obtain and display the seed facts directly through CSV-access functions without maintaining a parsed active world?
+## Actual changes
 
-## Repository basis
+- `app.js`: removed `activeWorld` and the parsed index/record Maps. The `CSV` class contains only static functions, with no fields or instances. CSV reads and decoded values stay within the calling operation. The existing display reads those functions, and every indexed file is checked before the world is revealed.
+- `evidence/read-render.md`: appended the correction's commands, source identity, observed results, and limits; preserved all earlier evidence.
+- `README.md`: changed only Current status to reflect the correction and remaining verification.
+- `scratchpad/WORK.md`: recorded this completed result.
 
-Read `AGENTS.md`, all three `docs/` documents, root `README.md`, the scratchpad protocol and current exchange, all six `world/` CSVs, `app.js`, `index.html`, `package.json`, and both evidence Markdown files at the base commit. The attached implementation plan was inspected as a reference; current main governs this proposal.
+No other repository files changed. The committed seed, dependencies, and hosting configuration are unchanged.
 
-`app.js` retains `activeWorld`, parsed index rows, and nested record `Map` objects. Root `README.md` explicitly identifies that representation as violating the CSV backing-state boundary. The current implementation plan requires a compliant read/render path before the Chrome verification and Granite operations.
+## Actual checks and evidence
 
-## Exact proposed operation
+Run: 2026-09-15, 02:21 UTC; Node.js v24.19.0 and Python 3.12.14.
 
-Correct only the existing probe's CSV-access and display path:
+- `node --check app.js`: PASS.
+- Original seed: all six CSVs and ten referenced key/value lookups matched Python's CSV reader, including the quoted prompt/schema strings; stone holder was Ada.
+- Changed holder: changing only the disposable stone CSV to player was observed using the same class and execution context; independent comparisons passed.
+- Missing reference: removing the disposable stone CSV produced `world/objects/stone.csv: HTTP 404`.
+- Restoration: the restored seed returned Ada with both the reused class and a fresh execution context; the fresh context's full comparisons passed.
+- Source and class-member inspection: no retained parsed world or class-owned facts; no fields appeared across calls.
+- Scope check: tested `app.js` bytes preserved, README edits confined to Current status, earlier evidence preserved, all other repository files unchanged.
 
-- Replace the active-world loader and record Maps with stateless class functions that read CSV text, resolve indexed type/name references, and scan the cells needed for the current read or display operation.
-- Keep CSV parsing cursors and decoded fields local to the individual scan. Do not assemble a replacement parsed world, including an operation-local copy of the same index-and-record model.
-- Feed the existing display from those CSV reads. Browser DOM output remains a projection and must never be read back as gameplay authority.
-- Preserve resolution of every indexed file, quoted CSV decoding, and the existing loading/error behavior. Prompts and schemas remain CSV data.
+Implementation: [4ad423f](https://github.com/NFDFLDTHRY/MochEpoch/commit/4ad423fdc3735553c02c4bbaace999b655d26e8e).
+Evidence: [CSV correction run](https://github.com/NFDFLDTHRY/MochEpoch/blob/4ad423fdc3735553c02c4bbaace999b655d26e8e/evidence/read-render.md#csv-backing-state-correction-2026-09-15-0221-utc).
 
-This is a correction to the existing diagnostic probe. It does not establish the first-person 3D client.
+## Failure or unresolved blocker
 
-## Exact repository files to change after approval
+No unexpected failure occurred in the scoped checks. Browser entry-point execution and visible rendering were not tested. The previously recorded localhost browser-policy rejection and private-repository GitHack delivery failure were not retested. The three real Chrome checks remain unverified.
 
-| File | Reason |
-| --- | --- |
-| `app.js` | Remove the parallel world representation and implement the narrowly scoped CSV-access/projection functions. |
-| `evidence/read-render.md` | Append the actual correction-run results and limitations, preserving the earlier evidence. |
-| `README.md` | Update only Current status to match the observed correction results. |
-| `scratchpad/WORK.md` | Record completion or a blocker under the scratchpad protocol. |
+This operation did not establish the first-person 3D client, Granite, Witness, gameplay mutation, or persistence.
 
-No other repository file is included. In particular, this proposal adds no world mutation, persistence substrate, dependencies, Granite/Witness machinery, hosting change, public source copy, or installability machinery.
+## Smallest next operation
 
-## What will run or be inspected
-
-1. Run `node --check app.js`.
-2. Execute the actual CSV-access functions against a disposable copy served over local HTTP, using native Node fetch. Compare decoded values with Python's standard-library CSV reader, including the existing quoted prompt/schema fields.
-3. Repeat the three existing cases: original seed resolves Ada as stone holder; changing only the disposable stone CSV's `holder_name` to `player` changes the newly read holder; removing that disposable file produces an explicit HTTP 404 load failure.
-4. Inspect data lifetimes: no retained parsed world, record Maps, inventory cache, class-owned game facts, or gameplay reads from the DOM. Discard each operation's working values and repeat from the CSV files.
-5. Record exact commands, executable reference, observed outputs, and failures in the existing evidence file. The committed seed stays unchanged; temporary checks add no repository test harness.
-
-## Success and unresolved limits
-
-Success for this operation means the source inspection finds no parallel world representation and the local read/resolve cases reproduce their expected results from CSV. Node checks do not establish visible rendering.
-
-The saved evidence records two browser-delivery blockers: the connected browser rejected localhost by policy, and GitHack returned its own error for the private repository. This proposal does not attempt a workaround or choose another service. The three real Chrome display/reload/error checks remain unverified until an authorized reachable test surface is available.
-
-Repeated CSV reads may expose a concrete consistency or performance limitation. If execution requires a cache, storage layer, additional file, or other material scope change, record the requirement and stop for another review.
-
-## Review gate
-
-Only this proposal file is being changed in the current resync. Implementation has not begun. Stop for review as requested and as required by `scratchpad/README.md`; proceeding requires approval of this exact proposal ID.
+Finish the three existing real Chrome read/resolve/render checks once an authorized reachable test surface is available. Selecting a different delivery service or changing source visibility is outside this completed proposal.
