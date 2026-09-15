@@ -72,6 +72,20 @@ If renderer internals, model-runtime internals, caches, workers, function-class 
 
 Do not build a backend merely to make static repository CSV files writable.
 
+## Work scratchpad handshake
+
+When ChatGPT Work is used on this repository, `scratchpad/` is the required communication surface between Work, the user, and normal ChatGPT sessions.
+
+Before Work changes game code, world CSVs, project architecture, runtime machinery, dependencies, hosting configuration, or other implementation files, it must read `scratchpad/README.md`, write one narrowly scoped proposal into `scratchpad/WORK.md`, set `status: PROPOSED`, and stop for review.
+
+Work may proceed only when `scratchpad/REVIEW.md` explicitly approves the same `proposal_id`, or when the user explicitly tells Work in the active Work conversation to proceed with that exact proposal. Approval is proposal-specific and is never standing permission.
+
+If the approved work later requires more files, different machinery, architecture changes, a new service, cost/quota exposure, or another material scope change, Work must record the change or blocker in `scratchpad/WORK.md` and stop again.
+
+After completing approved work, Work updates `scratchpad/WORK.md` with the actual result and commit/evidence references. The scratchpad is communication only. It is not game state, experimental evidence, or architectural authority and must not override the authoritative repository docs.
+
+Normal ChatGPT sessions reviewing Work should read the scratchpad rather than reconstructing Work's intent from chat memory, and should place review decisions in `scratchpad/REVIEW.md` so Work can read them from the repo.
+
 ## Build policy
 
 Question → define operation → build smallest version → run → save evidence → try to break → report only what the run established → add machinery only when a failure requires it.
