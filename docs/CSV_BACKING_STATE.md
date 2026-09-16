@@ -6,13 +6,15 @@ Read `docs/GAME_BLUEPRINT.md` first for the complete game lifecycle.
 
 Where this document uses `operation`, it means the concrete game code path/state transition being executed. It does not establish an Operation runtime object, context, caller object, registry, dispatcher token, or operation record.
 
+Where this document uses `packet`, it means the one transient JSON object supplied to a single Granite call. It does not establish a packet class, payload wrapper, transport/header protocol, universal packet schema, fixed metadata, or stored packet record.
+
 ## Hard rule
 
 CSV-backed state is the game truth.
 
 There is no second authoritative game-state representation.
 
-The renderer may project the world, deterministic functions may transform it, Witness may construct model-call packets, Granite may generate/evaluate actor behavior, and browser/model runtimes may maintain transient backend machinery, but none of those become a second source of continuing game facts/history.
+The renderer may project the world, deterministic functions may transform it, Witness may construct model-call JSON, Granite may generate/evaluate actor behavior, and browser/model runtimes may maintain transient backend machinery, but none of those become a second source of continuing game facts/history.
 
 If a game-relevant fact or history item must survive the current executing path, it needs a CSV-backed representation.
 
@@ -41,13 +43,15 @@ If one game path uses multiple model/function calls, intermediate JSON remains d
 
 Witness is the scoped CSV → JSON call constructor used when concrete game code calls Granite.
 
-Witness may read the actual CSV-backed references/configuration supplied by that call site, resolve only that scoped state, and construct the transient JSON packet.
+Witness may read the actual CSV-backed references/configuration supplied by that call site, resolve only that scoped state, and construct the one transient JSON object for that call.
 
-Witness does not require a caller/current-operation object, operation id, or operation context.
+That object may be called the Witness/calling packet. It is not a wrapper around another hidden payload.
+
+Witness does not require a caller/current-operation object, operation id, operation context, packet header, or packet metadata.
 
 Witness does not own state, interpret Granite output, decide consequences, or mutate CSV.
 
-There is no required separate Resolver architecture. Reference resolution is ordinary generic CSV work performed while constructing the packet.
+There is no required separate Resolver architecture. Reference resolution is ordinary generic CSV work performed while constructing the call JSON.
 
 ## Return handling does not create another architecture
 
@@ -123,9 +127,9 @@ These examples do not prescribe file-per-entity storage, ECS tables, components,
 
 ## Do not freeze the topology early
 
-The repository may define categories of game-relevant things that must eventually be describable, but exact CSV files, columns, indexes, references, packet shapes, call-configuration representation, history representation, and spatial structures must emerge from executable work.
+The repository may define categories of game-relevant things that must eventually be describable, but exact CSV files, columns, indexes, references, call-JSON fields, call-configuration representation, history representation, and spatial structures must emerge from executable work.
 
-Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, event log, routing table, universal function graph, operation-object/context schema, return-mapping framework, rejection layer, or spatial index because it sounds useful.
+Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, event log, routing table, universal function graph, operation-object/context schema, packet-envelope/header protocol, return-mapping framework, rejection layer, or spatial index because it sounds useful.
 
 Build the actual game asset/mechanic, force it through the lifecycle, and add only the minimum backing representation the run proves necessary.
 
@@ -148,7 +152,7 @@ interaction.csv
 
 That is authoritative configuration because those CSV facts select/configure Ada's current decision path.
 
-Nothing in the current evidence proves a need for a generic operation-id column, function-id column, model registry, next-edge field, routing table, output-population table, operation context, or function-graph CSV.
+Nothing in the current evidence proves a need for a generic operation-id column, function-id column, model registry, next-edge field, routing table, output-population table, operation context, packet metadata/header fields, or function-graph CSV.
 
 If a real browser call or later mechanic requires an additional game-specific reference, add that minimum reference at that time.
 
@@ -213,7 +217,7 @@ MochEpoch game code is limited to these roles unless a concrete execution failur
 1. first-person 3D rendering/audio/UI that projects the CSV-described world;
 2. CSV-backed documents that describe authoritative game state/history/configuration and resource references;
 3. generic deterministic functions that read/resolve/transform CSV-backed state according to concrete implemented mechanics/behavior; and
-4. Witness packet construction plus other transient JSON/model/backend machinery needed by actual calls.
+4. Witness call-JSON construction plus other transient JSON/model/backend machinery needed by actual calls.
 
 Function classes own no game state.
 
@@ -231,7 +235,7 @@ If rendering machinery is discarded and rebuilt from CSV-backed state plus refer
 
 Granite weights/runtime may remain loaded for performance.
 
-Call-local prompts, JSON packets, decoder state, model context, KV cache, workers, or similar inference machinery are not authoritative game state.
+Call-local prompts, JSON call objects, decoder state, model context, KV cache, workers, or similar inference machinery are not authoritative game state.
 
 If later actor behavior needs a fact/history item, that information must come from CSV-backed state rather than hidden model memory.
 
