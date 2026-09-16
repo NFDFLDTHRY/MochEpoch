@@ -49,25 +49,25 @@ For an actor-mediated transition:
 ```text
 AUTHORITATIVE CSV WORLD
         ↓
-Witness resolves the scoped CSV and constructs one JSON operation packet
+Witness resolves scoped CSV and constructs one JSON operation packet
         ↓
 NPC or HUMAN behavior
 (Granite only where fuzzy generation/mapping is required)
         ↓
 raw JSON expression/result
         ↓
-deterministic parse / map / accept or REJECT
+deterministic parse / map / resolve or REJECT
         ↓
-write any durable actor expression/event to CSV-backed state
-        ↓
-deterministic game consequence where applicable
-        ↓
-write resulting durable facts/events to CSV-backed state
+write only the resulting game-relevant CSV facts/events required by the operation
         ↓
 AUTHORITATIVE CSV WORLD'
 ```
 
-Do not turn the harness into a planner, agent framework, semantic world model, behavior tree, social simulation layer, orchestration platform, dialogue manager, or second ECS.
+Do not insert a mandatory actor-event write between mapping and deterministic resolution.
+
+The mapped result may directly mutate current state, persist an attributed event/history fact, do both, or produce no world change. The concrete mechanic determines the minimum authoritative write.
+
+Do not turn the harness into a planner, agent framework, semantic world model, behavior tree, social simulation layer, orchestration platform, dialogue manager, event bus, or second ECS.
 
 A local operation may be tree-shaped or DAG-shaped because it resolves several CSV references/functions. The whole game is a graph because systems/entities reference each other and accepted state transitions feed later operations.
 
@@ -117,7 +117,7 @@ CSV → deterministic function → CSV
 ### Actor-mediated transition
 
 ```text
-CSV → JSON → NPC / HUMAN → JSON → deterministic mapping → CSV → deterministic consequence → CSV
+CSV → JSON → NPC / HUMAN → JSON → deterministic mapping/resolution → CSV
 ```
 
 Do not force Granite into direct deterministic controls or systems that do not need fuzzy generation/mapping.
@@ -131,6 +131,8 @@ It does not ask whether behavior is true, wise, moral, polite, socially appropri
 Language or behavior cannot create game ontology by mentioning it. If the current operation contains no spaceship, saying `use the spaceship` does not create one.
 
 Mapping and mechanical success are different. `hand_over(stone)` may be a valid expressed action even when deterministic mechanics later reject the consequence because the actor does not currently hold the stone.
+
+The failed attempt itself needs CSV-backed history only if later implemented behavior requires that fact.
 
 Preserve behavioral freedom. Constrain only what can become authoritative CSV-backed state.
 
@@ -175,7 +177,7 @@ Granite does not own an NPC, own world state, read arbitrary CSV, choose its own
 
 ## Return edge
 
-Granite returns raw JSON. That JSON is non-authoritative until the deterministic harness maps it into the configured game representation and explicitly writes any durable result into CSV-backed state.
+Granite returns raw JSON. That JSON is non-authoritative until the deterministic harness maps it into the configured game representation and resolves the corresponding operation.
 
 ```text
 raw JSON
@@ -184,10 +186,14 @@ parse / validate / map against configured output bounds
         ↓
 accepted game representation or REJECT
         ↓
-CSV-backed write when persistent
+deterministic operation / consequence
+        ↓
+CSV-backed write(s) actually required by the operation
 ```
 
 Do not create another named subsystem merely for this return edge.
+
+Do not require a separate CSV event record for every accepted expression. Persist action attempts, utterances, observations, or other history only when later game operations need them.
 
 The return edge must not become a behavior corrector, truth engine, or social-state interpreter.
 
@@ -201,7 +207,7 @@ Start with the smallest mapping that completes the real interaction. If one Gran
 
 For NPC-to-NPC communication, the actual utterance crosses between actors. Never replace the delivered utterance with hidden sender-side structured data.
 
-A completed communication that must affect later operations returns through the harness into CSV-backed factual/attributed state. Recording `A said Y` makes the speech event factual; it does not make the proposition inside `Y` objectively true.
+If later operations need to know `A said Y`, persist that factual occurrence in CSV-backed history. Recording it does not make the proposition inside `Y` objectively true.
 
 See `docs/DIALOGUE_BOUNDARY.md`.
 
@@ -217,7 +223,7 @@ Do not let deterministic mechanics invent social interpretations that were never
 
 ## Backing structure must fall out of the game
 
-Do not freeze the final CSV topology, ECS schema, packet schema, spatial index, component model, file-per-entity policy, event schema, or world database in advance.
+Do not freeze the final CSV topology, ECS schema, packet schema, spatial index, component model, file-per-entity policy, event schema, event log, or world database in advance.
 
 Lock the authority boundary and the categories the game must be able to describe. Let concrete schemas emerge as actual first-person game assets and mechanics are forced through the real lifecycle.
 
@@ -236,7 +242,7 @@ The backing state must eventually be able to describe whatever implemented mecha
 - natural resources and objects: trees, rocks, branches/logs, vegetation, water/resources, materials, tools, food, containers, equipment;
 - built world: shelters, houses, storage, workshops, fires, walls, doors, bridges, roads, farms, wells, furniture, construction-in-progress;
 - game actions/transformations: only those actually implemented by game assets/mechanics;
-- factual events/history: actor expressions, speech, transfers, observations, construction, destruction, extraction, injury/death, and other events actual mechanics require;
+- optional factual events/history: only occurrences later mechanics need to reference;
 - systems/functions: deterministic mechanics, model configuration, prompts, scoped inputs/outputs, function routing; and
 - asset/resource references: models, rigs, terrain, textures, materials, animation, audio, shaders, generators, model resources, and other backend assets.
 
@@ -244,7 +250,7 @@ These are ontology categories, not fixed CSV schemas.
 
 ## No encoded civilization
 
-Store facts and attributed events, not designer interpretations.
+Store the factual state and factual/attributed history the game actually needs, not designer interpretations.
 
 Do not add authoritative trust, morality, friendship, loyalty, resentment, faction sentiment, civilization scores, or similar social abstractions unless the user explicitly changes the research question.
 
@@ -296,9 +302,9 @@ A free tier is not permission.
 
 Save only enough evidence to establish the operation being tested.
 
-For a Granite-backed actor operation, preserve the relevant CSV-backed input, the actual Witness packet, the raw Granite output/error, the deterministic map/accept/reject result, any accepted CSV-backed actor expression/event, deterministic consequence if any, and resulting CSV-backed state if it changed.
+For a Granite-backed actor operation, preserve the relevant CSV-backed input, actual Witness packet, raw Granite output/error, deterministic map/accept/reject result, deterministic consequence, and resulting CSV-backed state. Preserve an actor expression/event record only when the operation actually persisted one.
 
-For communication tests, preserve the actual executed model calls and the utterance that crossed. Do not invent evidence for hypothetical stages that did not run.
+For communication tests, preserve the actual executed model calls and the utterance that crossed. Do not invent evidence for hypothetical stages or history records that did not run/exist.
 
 For lifecycle tests, prove that the next operation works from mutated CSV-backed state with transient runtime/model state discarded or irrelevant.
 
