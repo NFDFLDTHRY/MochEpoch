@@ -2,7 +2,7 @@
   "name": "mochepoch",
   "version": "0.0.0",
   "private": true,
-  "description": "CSV world state, scoped Witness calls, Granite 350M JSON reasoning, and deterministic browser game execution.",
+  "description": "CSV-backed first-person civilization experiment: CSV to JSON to human/NPC behavior to JSON back to CSV.",
   "type": "module",
   "license": "Apache-2.0",
   "author": "487bc LLC",
