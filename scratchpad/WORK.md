@@ -1,18 +1,15 @@
-# Current Work proposal
+# Current Work status
 
-proposal_id: 20260915T024510Z-sites-exact-history
-status: CANCELLED
+status: NO_ACTIVE_PROPOSAL
 repository: NFDFLDTHRY/MochEpoch
 branch: main
 
-## Result
+There is no active ChatGPT Work proposal.
 
-The owner chose a simpler development path: make MochEpoch public and use the existing GitHub-authoritative, commit-pinned GitHack route for Chrome verification.
+The previous proposal `20260915T024510Z-sites-exact-history` was cancelled and rejected. Its matching historical review remains in `scratchpad/REVIEW.md`. Do not execute that Site experiment or treat it as a current next step.
 
-Do not execute the private ChatGPT Site exact-history experiment. Do not create a Site, push repository history to a Site remote, add synchronization machinery, or change game/runtime architecture for this proposal.
+The Chrome read/resolve/render verification that the old cancelled note pointed toward has already been completed and recorded under `evidence/`.
 
-The matching review is recorded in `scratchpad/REVIEW.md` as `decision: REJECTED`.
+If ChatGPT Work is used again, it must read `scratchpad/README.md` plus the current authoritative repository docs, replace this file with one new narrowly scoped `status: PROPOSED` operation, and stop for proposal-specific approval before changing implementation files.
 
-## Smallest next operation
-
-After repository visibility is public, verify that a commit-pinned GitHack URL can retrieve the current MochEpoch source and run the three existing Chrome read/resolve/render checks already defined in `evidence/read-render.md`.
+This scratchpad does not define the project's architectural next step. Current architecture and implementation order come from `AGENTS.md`, `docs/GAME_BLUEPRINT.md`, and `docs/MOCK_EPOCH_IMPLEMENTATION_PLAN.md`.
