@@ -25,38 +25,36 @@ For an actor-mediated transition:
 ```text
 AUTHORITATIVE CSV WORLD
         ↓
-Witness resolves the scoped CSV and constructs the JSON operation packet
+Witness resolves scoped CSV and constructs the JSON operation packet
         ↓
 NPC or HUMAN behavior
 (Granite is called where fuzzy generation/mapping is required)
         ↓
 raw JSON expression/result
         ↓
-deterministic parse / map / accept or REJECT
+deterministic parse / map / resolve or REJECT
         ↓
-write any durable actor expression/event to CSV-backed state
-        ↓
-deterministic game resolution where physical consequence is required
-        ↓
-write resulting durable facts/events to CSV-backed state
+write only the resulting game-relevant facts/events required by this operation
         ↓
 AUTHORITATIVE CSV WORLD'
 ```
 
-The actor expression itself may be game history. Physical consequence is a separate deterministic transition from current CSV-backed facts.
+There is no mandatory intermediate actor-event write between JSON mapping and game resolution.
+
+The mapped behavior may lead directly to a state mutation, may persist an attributed event/history fact, may do both, or may produce no world change. The actual mechanic decides which CSV-backed result is required.
 
 ## The harness is the game lifecycle
 
 The harness has a small job:
 
 1. read the CSV-described operation/function wiring;
-2. use Witness to resolve only the scoped CSV-backed inputs for a model call and construct transient JSON;
+2. use Witness to resolve only the scoped CSV-backed inputs needed for a model call and construct transient JSON;
 3. accept human behavior directly or call Granite where fuzzy generation/mapping is required;
 4. deterministically parse/map the resulting JSON against the configured output contract and current CSV-described possibilities;
-5. write any durable actor expression/result into CSV-backed factual/attributed state;
-6. run deterministic mechanics for any physical consequence;
-7. write resulting durable facts/events back to CSV-backed state; and
-8. let rendering project the resulting CSV world.
+5. run the deterministic game operation required by that mapped result; and
+6. write only the durable facts/events the operation actually produces back to CSV-backed state.
+
+Rendering then projects the resulting CSV world.
 
 That is the entire authoritative loop.
 
@@ -123,8 +121,6 @@ Projection does not mutate authoritative state.
 CSV → deterministic function → CSV
 ```
 
-Examples may include movement resolution, time advancement, physical preconditions, resource consumption, construction, damage, weather, growth, or other non-fuzzy mechanics.
-
 ### Actor-mediated transition
 
 ```text
@@ -136,13 +132,9 @@ NPC / HUMAN behavior
  ↓
 JSON
  ↓
-deterministic mapping
+deterministic mapping + operation resolution
  ↓
-CSV-backed actor expression/event when persistent
- ↓
-deterministic consequence where applicable
- ↓
-CSV-backed resulting facts/events
+CSV
 ```
 
 Granite may appear inside the actor-mediated transition. Granite is not the game loop itself.
@@ -180,17 +172,13 @@ CSV world slice
  ↓
 Witness JSON packet
  ↓
-Granite generates/evaluates actor behavior
+Granite-generated/evaluated behavior
  ↓
-raw JSON expression
+raw JSON
  ↓
-deterministic map
+deterministic map + game operation
  ↓
-CSV-backed actor expression/event when persistent
- ↓
-deterministic consequence where applicable
- ↓
-CSV-backed resulting facts/events
+CSV
 ```
 
 ### Human player
@@ -204,13 +192,9 @@ Granite mapping only when needed
  ↓
 raw JSON game representation
  ↓
-deterministic map
+deterministic map + game operation
  ↓
-CSV-backed actor expression/event when persistent
- ↓
-deterministic consequence where applicable
- ↓
-CSV-backed resulting facts/events
+CSV
 ```
 
 A direct deterministic player control does not need Granite merely because Granite exists.
@@ -265,8 +249,14 @@ parse / validate / map against configured output bounds
  ↓
 accepted game representation or REJECT
  ↓
-CSV-backed write when the result must persist
+deterministic operation/resolution
+ ↓
+CSV-backed facts/events required by that operation
 ```
+
+The accepted game representation may remain transient while deterministic mechanics resolve it. It does not need to be written as a separate actor event merely to cross the harness.
+
+Persist an attributed action, utterance, observation, or other event only when the implemented game needs that fact later.
 
 Do not invent another named subsystem around this edge unless execution proves one is needed.
 
@@ -282,9 +272,9 @@ Start with the smallest transformation that completes the real interaction. If o
 
 For NPC-to-NPC communication, the actual utterance that crossed the world is what the recipient receives. Never substitute hidden sender-side structured data.
 
-Recording `A said Y` makes the speech event factual. It does not make the proposition inside `Y` objectively true.
+If later operations need to know that `A said Y`, that speech occurrence must be CSV-backed. Recording it makes the speech event factual; it does not make the proposition inside `Y` objectively true.
 
-Do not add extra checks, retries, correction passes, or dialogue stages to normalize behavior. Add them only if a real run proves a specific requirement.
+Do not add extra checks, retries, correction passes, dialogue stages, or universal conversation history merely to normalize behavior.
 
 ## Deterministic consequence boundary
 
@@ -298,9 +288,9 @@ NPC expression: hand_over(stone)
 
 The expression may map because `hand_over` and `stone` exist in the current game possibilities.
 
-The accepted expression may be recorded as an attributed CSV-backed actor event.
-
 Deterministic mechanics then check actual current CSV facts. If the NPC no longer holds the stone, the physical consequence fails or becomes a no-op according to the implemented mechanic.
+
+The attempted hand-over itself needs CSV-backed history only if a later implemented operation requires that attempt as a fact.
 
 Granite may return failure-prone actor behavior. Deterministic mechanics decide what actually happens.
 
@@ -364,7 +354,11 @@ Only behaviors actually required by implemented assets/mechanics. Examples may i
 
 ### Events / history
 
-Actor-mediated behavior that successfully crosses the harness may return to CSV-backed factual/attributed state, including speech events, attempted actions, transfers, observations, construction/destruction, extraction, crafting, injury/death, and other mechanically relevant events.
+Events/history are optional backing facts, not a mandatory universal log.
+
+Persist only events that later implemented operations need to reference, such as particular speech, observations, attempted actions, transfers, construction/destruction, extraction, crafting, injury/death, or other mechanically relevant occurrences.
+
+An operation may instead require only the resulting current-state mutation.
 
 Recording an attributed event does not turn its semantic content into objective truth.
 
@@ -388,9 +382,9 @@ Scene graph objects, meshes, GPU buffers, animation mixers, LOD state, particles
 
 Do not add authoritative abstractions such as trust scores, friendship scores, loyalty scores, morality scores, resentment scores, faction sentiment, civilization score, or other designer interpretations of social meaning.
 
-Store factual state and attributed events. Let repeated actor behavior and deterministic consequences produce whatever higher-order pattern actually emerges.
+Store the factual state and factual/attributed history the actual game needs. Let repeated actor behavior and deterministic consequences produce whatever higher-order pattern actually emerges.
 
-A settlement can emerge because CSV eventually contains houses, paths, stored food, tools, fields, people, speech/events, construction, exchanges, conflict, cooperation, and other factual consequences. No `civilization = true` variable is required.
+A settlement can emerge because CSV eventually contains houses, paths, stored food, tools, fields, people, construction, exchanges, conflict, cooperation, speech/history where needed, and other factual consequences. No `civilization = true` variable is required.
 
 Failure to produce civilization-like behavior is a valid experimental result.
 
