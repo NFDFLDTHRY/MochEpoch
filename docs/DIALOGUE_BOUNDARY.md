@@ -93,11 +93,15 @@ Returning through Witness makes a result trusted in the architectural sense: it 
 
 11. **Coherence is not truth.** Dialogue control checks structural correspondence and bounded contextual coherence. It does not force characters to be truthful, agreeable, rational, or mutually understood. False claims and mistaken interpretations may be valid game events.
 
-12. **Ambiguity is allowed to remain ambiguity.** If a model result cannot be accepted under the operation schema, Witness rejects it or records an explicitly allowed unresolved/ambiguous result. It must not silently manufacture certainty.
+12. **Discourse is packet-bounded.** A candidate utterance or interpretation may make a false, mistaken, deceptive, or ambiguous proposition about concepts grounded in the operation's bounded JSON package, but it must not introduce new content-bearing entities, objects, systems, capabilities, or subject matter that have no grounding in that package. Surface-language glue, pronouns, morphology, and synonyms need not be literal CSV tokens, but the content they express must map back to grounded packet content. For example, an utterance about who has the stone may be false and still be valid dialogue; an utterance about a carburetor or automotive engine is invalid when the bounded packet contains no corresponding concept.
 
-13. **Retries must be explicit and bounded.** If an operation later requires retry/correction behavior, deterministic game code defines the finite policy. Granite cannot recursively call itself or continue until it likes its own answer.
+13. **Grounding applies to both human and model speech.** Human input does not gain permission to expand the game's ontology merely because a person typed it, and Granite output does not gain permission merely because it is fluent. When a `CHECK` operation is used for dialogue control, the check must explicitly ask whether the candidate's content-bearing discourse remains grounded in the supplied bounded package as well as whether it is coherent with the relevant utterance or structured intent.
 
-14. **Context is scoped per operation.** Resolver must not dump the whole world or entire conversation history into a call merely because it exists. Supply only the CSV-backed state required and permitted for that actor and operation.
+14. **Ambiguity is allowed to remain ambiguity.** If a model result cannot be accepted under the operation schema, Witness rejects it or records an explicitly allowed unresolved/ambiguous result. It must not silently manufacture certainty.
+
+15. **Retries must be explicit and bounded.** If an operation later requires retry/correction behavior, deterministic game code defines the finite policy. Granite cannot recursively call itself or continue until it likes its own answer.
+
+16. **Context is scoped per operation.** Resolver must not dump the whole world or entire conversation history into a call merely because it exists. Supply only the CSV-backed state required and permitted for that actor and operation.
 
 ## Directional dialogue
 
@@ -119,7 +123,7 @@ human utterance + recipient-bounded CSV
  trusted interpretation/event CSV
 ```
 
-If a coherence pass is required for the operation:
+If a coherence/grounding pass is required for the operation:
 
 ```text
 utterance + witnessed interpretation + recipient-bounded CSV
@@ -135,7 +139,7 @@ utterance + witnessed interpretation + recipient-bounded CSV
  trusted checked-result CSV
 ```
 
-The check asks whether the proposed interpretation is a coherent interpretation of what this recipient actually received within the recipient's bounded context. It does not ask whether the human's statement is objectively true.
+The check asks whether the proposed interpretation is a coherent interpretation of what this recipient actually received within the recipient's bounded context and whether the content-bearing discourse is grounded in that bounded package. It does not ask whether the human's statement is objectively true.
 
 ### NPC → Human composition
 
@@ -159,7 +163,7 @@ NPC communicative structure + speaker-bounded CSV
               human
 ```
 
-A speaker-side `CHECK` may be inserted before delivery when the operation requires it. It receives the intended structure, candidate utterance, and only the speaker-side bounded context required to ask whether the candidate coherently expresses that structure. Its return still passes through Witness.
+A speaker-side `CHECK` may be inserted before delivery when the operation requires it. It receives the intended structure, candidate utterance, and only the speaker-side bounded context required to ask whether the candidate coherently expresses that structure and stays grounded in the supplied packet. Its return still passes through Witness.
 
 ### NPC → NPC communication
 
@@ -189,7 +193,7 @@ Resolver with NPC B's bounded context
  NPC B trusted interpretation CSV
 ```
 
-Optional speaker-side and recipient-side `CHECK` operations remain separate and bounded to their respective sides.
+Optional speaker-side and recipient-side `CHECK` operations remain separate and bounded to their respective sides. Each check enforces packet-bounded discourse for the side it sees; neither side receives the other's hidden structure.
 
 ## Emit versus commit
 
