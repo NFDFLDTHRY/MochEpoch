@@ -2,7 +2,7 @@
 
 This folder is a communication surface between the user, normal ChatGPT sessions, and ChatGPT Work.
 
-It is not game state, not experimental evidence, not architecture authority, and not a substitute for the repository documentation. Nothing in this folder may override `AGENTS.md`, `docs/MODEL_ROLE.md`, `docs/CSV_BACKING_STATE.md`, or the current implementation plan.
+It is not game state, not experimental evidence, not architecture authority, and not a substitute for the repository documentation. Nothing in this folder may override `AGENTS.md`, `docs/GAME_BLUEPRINT.md`, `docs/CSV_BACKING_STATE.md`, `docs/MODEL_ROLE.md`, `docs/DIALOGUE_BOUNDARY.md`, or the current implementation plan.
 
 ## Purpose
 
@@ -19,7 +19,7 @@ These files may be rewritten in place for each operation. Do not turn the scratc
 
 Before modifying game code, world CSVs, project architecture, runtime machinery, dependencies, hosting configuration, or other implementation files, Work must:
 
-1. Read the current repository instructions and relevant authoritative docs.
+1. Read `AGENTS.md`, `docs/GAME_BLUEPRINT.md`, and the current relevant authoritative docs from `main`.
 2. Overwrite `scratchpad/WORK.md` with one narrowly scoped proposal.
 3. Give that proposal a unique `proposal_id` such as a UTC timestamp plus a short slug.
 4. Set `status: PROPOSED`.
