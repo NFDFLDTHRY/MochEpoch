@@ -107,6 +107,16 @@ Ordinary functions may call other ordinary functions with the exact references/p
 
 Do not add operation metadata to CSV or JSON unless a concrete executable call proves that field is necessary.
 
+## “Packet” means one call's transient JSON object
+
+`Packet`, `calling packet`, and `Witness packet` are names for the single transient JSON object supplied to one Granite call.
+
+They do not establish a packet class, wrapper object around another payload, header/body protocol, transport layer, fixed top-level fields, universal packet schema, stored packet record, caller metadata, or operation metadata.
+
+Witness simply gathers the scoped CSV-derived values/configuration that one call needs and places them into that call's JSON object. The object's concrete fields must come from the proven Granite interface and the concrete game call.
+
+The current fixture prompt's phrase `one calling packet` is therefore ordinary call-local language, not evidence for another packet architecture.
+
 ## Current fixture search root
 
 The current executable seed uses `world/world.csv` as the search list for what exists or matters.
@@ -245,7 +255,7 @@ Witness owns no state. It does not interpret Granite output, decide consequences
 
 There is no required separate Resolver architecture. Reference resolution is ordinary generic CSV work performed while Witness constructs the packet.
 
-Witness packet shape is not frozen. Build only the packet fields the proven Granite interface and concrete game call require. Do not add an output-schema, return-constraint, or operation-metadata field merely because another fixture has one.
+Witness packet shape is not frozen. Build only the JSON fields the proven Granite interface and concrete game call require. Do not add an envelope, header, packet metadata, output-schema, return-constraint, or operation-metadata field merely because another fixture has one.
 
 ## JSON return handling stays local
 
