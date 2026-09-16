@@ -31,18 +31,18 @@ Witness resolves scoped CSV and constructs one JSON packet when Granite is neede
         ↓
 NPC or HUMAN behavior
         ↓
-raw JSON expression/result where applicable
+JSON expression/result where applicable
         ↓
-deterministic parse / map / resolve or REJECT
+operation-local deterministic handling
         ↓
-write only the game-relevant CSV facts/history produced by this operation
+write only game-relevant CSV facts/history produced by this operation
         ↓
 AUTHORITATIVE CSV WORLD'
 ```
 
 There is no mandatory actor-event write before game resolution.
 
-The mapped behavior may directly mutate current state, persist an attributed fact/history item for later use, do both, or produce no world change. The actual implemented operation determines the minimum CSV-backed result.
+The operation may directly mutate current state, persist an attributed fact/history item for later use, do both, or produce no world change. The actual implemented operation determines the minimum CSV-backed result.
 
 The human or NPC may behave chaotically. They may lie, misunderstand, contradict themselves, make a poor choice, attempt an impossible action, use strange language, cooperate, refuse, or otherwise surprise the designer.
 
@@ -54,16 +54,7 @@ The harness can be understood as a function graph because one operation may reso
 
 That is a description of execution shape, not a requirement for a stored graph structure.
 
-Do not create a universal:
-
-- operation-id field;
-- function-id table;
-- graph table;
-- routing table;
-- next-edge field;
-- node schema;
-- output-population table; or
-- generic orchestration layer.
+Do not create a universal operation-id field, function-id table, graph table, routing table, next-edge field, node schema, output-population table, or generic orchestration layer.
 
 Game-specific choices that must survive outside executable code belong in CSV-backed configuration, but only when a real implemented operation requires them.
 
@@ -86,20 +77,20 @@ Executable functions are generic/stateless with respect to game truth.
 
 ## EXECUTION VIEWS, NOT OPERATION TYPES
 
-Projection, direct deterministic transitions, and actor-mediated transitions are only useful ways to describe paths through the same lifecycle. They are not runtime types, enums, dispatcher cases, or required primitives.
+Projection, direct deterministic transitions, and actor-mediated transitions are useful ways to describe paths through the same lifecycle. They are not runtime types, enums, dispatcher cases, or required primitives.
 
 ```text
-projection:            CSV → renderer / audio / UI
+projection:      CSV → renderer / audio / UI
 
-deterministic:         CSV → deterministic function → CSV
+deterministic:   CSV → deterministic function → CSV
 
-actor-mediated:        CSV → JSON when needed → NPC / HUMAN
-                       → JSON when needed → deterministic mapping/resolution → CSV
+actor-mediated: CSV → JSON when needed → NPC / HUMAN
+                → JSON when needed → operation-local deterministic handling → CSV
 ```
 
 Do not create an `operation_type`, dispatcher, scheduler, class hierarchy, or orchestration layer merely to encode these descriptions.
 
-Do not put Granite into deterministic systems that do not need fuzzy generation/mapping.
+Do not put Granite into deterministic systems that do not need fuzzy generation/evaluation.
 
 ## GRANITE CONTRACT
 
@@ -109,11 +100,11 @@ Its exact job is:
 
 > Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet, subject only to whatever return shape the current call actually requires.
 
-The scope is about what information Witness supplies and what the deterministic harness can map back into the game. It is **not** a universal behavior whitelist.
+The scope is about what information Witness supplies. It is not a universal behavior whitelist.
 
 A particular operation may use a narrow output enum. The current `hand_over | wait` fixture is one local example, not the general behavior ontology.
 
-Granite may represent arbitrary actor language/behavior, including strange, false, contradictory, foolish, hostile, cooperative, or mechanically impossible behavior. The game only cares whether the result can map back into the CSV-described world and an implemented mechanic.
+Granite may represent arbitrary actor language/behavior, including strange, false, contradictory, foolish, hostile, cooperative, or mechanically impossible behavior.
 
 Granite does not own NPCs, own world state, inspect arbitrary CSV directly, choose its own scope, decide objective truth, execute physical consequences, mutate CSV, or carry hidden game truth between calls.
 
@@ -127,8 +118,6 @@ A Witness call:
 2. resolves only that scoped CSV state;
 3. includes only the prompt, situation, facts/context, model/resource information, and return constraint the real call actually needs; and
 4. constructs the transient JSON packet Granite receives.
-
-Conceptually:
 
 ```text
 scoped CSV-backed state/configuration
@@ -149,41 +138,67 @@ There is no required separate Resolver architecture. CSV reference resolution is
 
 The Witness packet schema is not frozen before the real browser call establishes its minimum shape.
 
-## RETURN EDGE
+## RETURN HANDLING
 
-The deterministic harness/game runner handles the Granite return:
+There is no universal semantic mapper, acceptance layer, generic validator framework, `REJECT` state, or `accepted game representation` stage.
+
+The current operation uses only the deterministic code it actually needs to consume the Granite return.
+
+For the first fixture:
 
 ```text
-raw JSON
+Granite → {"action":"hand_over"}
         ↓
-parse / map against the current CSV-described world and implemented mechanic
+parse interaction.csv's local output shape
         ↓
-accepted game representation or REJECT
+call hand_over mechanic
         ↓
-deterministic game operation/resolution
+mechanic reads current CSV-backed state
         ↓
-write only resulting durable CSV-backed facts/history actually required
+stone holder = player OR no state change
 ```
 
-The accepted game representation may remain transient while deterministic mechanics resolve it. It does not need its own event record merely to pass through the harness.
+For `wait`:
 
-Persist an action attempt, utterance, observation, or other occurrence only when later implemented game behavior needs that fact.
+```text
+Granite → {"action":"wait"}
+        ↓
+parse local output shape
+        ↓
+wait mechanic / no world mutation
+```
 
-Do not invent another named subsystem merely for this edge.
+For an unusable return:
+
+```text
+Granite → malformed / out-of-schema / unusable JSON
+        ↓
+this operation cannot consume it
+        ↓
+no authoritative CSV write
+        ↓
+save failure evidence
+```
+
+Do not build a generic return-mapping or rejection subsystem around this fixture.
+
+A later operation may require a different parser, reference lookup, language transformation, mechanic selection, or write. Add only what that executed operation proves necessary.
+
+“Mapping” is shorthand only when useful for an operation-local conversion. It is not architecture.
 
 ## PLAYER / NPC SYMMETRY
 
-NPC behavior may use Granite to generate/evaluate actions or dialogue from the scoped current CSV-backed world/context.
+NPC behavior may use Granite to generate/evaluate actions or dialogue from scoped current CSV-backed world/context.
 
-Human behavior enters as external action/dialogue and may use Granite when fuzzy mapping or natural-language interpretation is required.
+Human behavior enters as external action/dialogue and may use Granite when fuzzy interpretation or natural-language transformation is required.
 
 Direct deterministic controls do not require Granite merely because the model exists.
 
 Do not build two separate semantic worlds for player and NPC behavior.
 
-## MAPPING VERSUS PHYSICAL SUCCESS
+## EXPRESSED ACTION VERSUS PHYSICAL SUCCESS
 
-An actor can express an action that maps into the game and still fails physically.
+An actor can express an action that a concrete operation understands and still fail physically.
 
 Example:
 
@@ -191,9 +206,9 @@ Example:
 hand_over(stone)
 ```
 
-This can map if the current CSV-described world contains the referenced stone and the game has an implemented `hand_over` mechanic.
+If this operation recognizes `hand_over` and the stone exists, it can invoke the implemented mechanic.
 
-Deterministic mechanics then inspect current CSV-backed state. If the actor no longer holds the stone, the physical consequence fails according to the implemented mechanic.
+The mechanic then inspects current CSV-backed state. If the actor no longer holds the stone, the physical consequence fails according to the mechanic.
 
 The failed attempt itself only needs CSV-backed history if a later operation requires it.
 
@@ -251,54 +266,20 @@ It should not prematurely lock:
 - a universal Granite packet schema;
 - a universal dialogue schema;
 - a universal function-graph/routing schema;
-- a universal operation-type schema; or
+- a return-mapping/acceptance/rejection framework; or
 - a fixed model-call count.
 
 Use this test:
 
-> If Granite, the player, an NPC, deterministic mechanics, or a later operation may need to refer to a fact after the current operation ends, that fact needs a CSV-backed representation.
+> If Granite, the player, an NPC, deterministic mechanics, or a later operation needs a fact after the current operation ends, that fact needs a CSV-backed representation.
 
 ## WORLD CATEGORIES
 
 These are ontology categories, not fixed schemas.
 
-The backing state must eventually be able to describe whatever implemented mechanics require from:
+The backing state must eventually be able to describe whatever implemented mechanics require from world/space, actors, physical/biological state, natural resources/objects, built world, actions/transformations, optional factual history, systems/function configuration, and assets/resources.
 
-### World / space
-
-Terrain, regions/clearings/forests/fields/settlements, water, positions/orientations, containment/adjacency/occupancy/reachability, extents, time/environment.
-
-### Actors
-
-Player, NPCs, creatures if added, identity, location/orientation, physical condition, holdings/equipment, persistent game-relevant state, factual observations/history when later behavior requires them.
-
-### Physical / biological state
-
-Only when mechanics require it: injury/health, hunger, thirst, fatigue/sleep, exposure, movement capability, carrying limits, sensory capability.
-
-### Natural resources / objects
-
-Trees, rocks/stone, branches/logs, vegetation, food plants, water/resources, materials, loose objects, tools, clothing/equipment, food/consumables, containers/storage, unique objects.
-
-### Built world
-
-When implemented: shelters/houses, storage, workshops, fires, walls/fences, gates/doors, bridges, roads/paths, farms/plots, wells, furniture, construction-in-progress.
-
-### Actions / transformations
-
-Only what actual mechanics require: movement, object handling, use, traversal, gathering, harvesting, crafting, building, repair, farming, storage/transport/consumption, combat if implemented, and later behaviors proven necessary.
-
-### Events / history
-
-Only factual/attributed occurrences later operations actually need to reference. No universal event log is required.
-
-### Systems / function configuration
-
-Only the concrete game-specific function selections/references/parameters proven necessary by implemented operations. The current fixture proves `decision_system` plus prompt/schema configuration, not a universal graph schema.
-
-### Assets / resources
-
-Actor models/rigs, terrain geometry/generators, world-object resources, materials/textures, water, animation, audio, shaders, model resources, and other backend assets.
+Only add the concrete facts and references real mechanics require.
 
 ## RENDERER / RESOURCE BOUNDARY
 
@@ -308,7 +289,7 @@ Destroying and rebuilding transient runtime machinery from CSV-backed state plus
 
 ## NO ENCODED CIVILIZATION
 
-Store the factual state and factual/attributed history the game actually needs, not designer interpretations.
+Store factual state and factual/attributed history the game actually needs, not designer interpretations.
 
 Do not add authoritative trust, morality, friendship, loyalty, resentment, faction sentiment, civilization scores, or similar social abstractions unless the research question is explicitly changed.
 
@@ -339,7 +320,7 @@ Do not generalize the current `interaction.csv` shape into the final game archit
 
 ## CURRENT EVIDENCE
 
-The Chrome read/resolve/render milestone established that current CSV-backed seed state can be read, references resolved, rendered diagnostically, changed by editing the backing CSV, and failed closed when a required referenced CSV is missing.
+The Chrome read/resolve/render milestone established that current CSV-backed seed state can be read, references resolved, rendered diagnostically, changed by editing backing CSV, and failed closed when a required referenced CSV is missing.
 
 It did not establish:
 
@@ -368,12 +349,12 @@ The smallest useful proof is:
 After that interface is proven:
 
 1. build the thinnest Witness required to retrieve the current fixture's scoped CSV inputs and construct the proven call packet;
-2. build the smallest deterministic JSON-return mapping required by that same operation;
-3. connect the current fixture through the smallest real `CSV → Witness JSON → Granite → JSON → deterministic map/resolve → CSV` operation;
-4. render the changed CSV-backed result;
+2. build the smallest operation-local deterministic JSON consumer required by that same fixture;
+3. connect the current fixture through `CSV → Witness JSON → Granite → JSON → operation-local deterministic handling → CSV`;
+4. render the changed CSV-backed result; and
 5. prove the next interaction reads the mutated CSV-backed world without hidden model/runtime game state.
 
-Add no extra call-configuration fields until those runs prove they are necessary.
+Add no extra call-configuration or return-handling machinery until those runs prove it necessary.
 
 ## PASS CONDITION
 
@@ -382,12 +363,12 @@ For the first complete actor-mediated fixture:
 - one authoritative CSV-backed world begins in a known state;
 - one Witness call constructs the minimum packet from the scoped CSV-backed state/configuration actually required;
 - one real Granite result is produced;
-- deterministic code parses/maps/resolves the result;
-- the resulting minimum CSV-backed world fact change is written;
+- operation-local deterministic code consumes that result or fails without an authoritative write;
+- the concrete mechanic writes the resulting minimum CSV-backed world fact change when applicable;
 - rendering reflects the new state; and
 - the next operation works correctly from that mutated CSV-backed state without hidden model memory or hidden authoritative runtime state.
 
-No event log, graph table, routing field, generalized operation schema, operation-type enum, or behavior whitelist is required for this pass.
+No event log, graph table, routing field, generalized operation schema, generic mapper, acceptance layer, or `REJECT` state is required for this pass.
 
 ## BUILD POLICY
 
@@ -409,6 +390,6 @@ Report only what the run established
 Add machinery only when a failure requires it
 ```
 
-Do not add cloud/metered automation, GitHub Actions, hosted inference, databases, generic agent frameworks, generalized dialogue systems, graph/orchestration frameworks, or speculative infrastructure without explicit user approval and an observed need.
+Do not add cloud/metered automation, GitHub Actions, hosted inference, databases, generic agent frameworks, generalized dialogue systems, graph/orchestration frameworks, generic validation/mapping layers, or speculative infrastructure without explicit user approval and an observed need.
 
 Deployment, authentication, payments, and other product-shell work remain separate from the core civilization experiment unless explicitly requested.
