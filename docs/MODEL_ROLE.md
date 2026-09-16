@@ -175,9 +175,11 @@ resulting durable facts/events return to CSV
 
 ## Behavioral freedom
 
-Granite is not required to behave sensibly.
+Granite output is not required to encode sensible actor behavior.
 
-It may produce a bad choice, lie, misunderstand, contradict itself, attempt an impossible action, refuse, cooperate, use odd language, or otherwise behave unpredictably.
+A Granite return may represent an NPC making a bad choice, lying, misunderstanding, contradicting prior speech, attempting an impossible action, refusing, cooperating, using odd language, or otherwise behaving unpredictably.
+
+Those are properties of the actor behavior represented by the return, not evidence that Granite itself is an in-world actor.
 
 That variation is part of the experiment.
 
@@ -186,7 +188,7 @@ The boundary constrains what the result can correspond to in the represented gam
 Example:
 
 ```text
-Granite result: hand_over(stone)
+Granite return representing Ada's expression: hand_over(stone)
 ```
 
 That may be a semantically valid expressed action because `hand_over` and `stone` are represented in the operation's bounded population.
@@ -313,7 +315,7 @@ The recipient receives the actual emitted utterance, never the sender's hidden c
 Preserve:
 
 ```text
-sender intended X → said Y → recipient interpreted Z
+sender candidate expression X → said Y → recipient interpreted Z
 ```
 
 including `X ≠ Z`.
@@ -326,7 +328,7 @@ A bounded action result is not automatically a physical world mutation.
 
 The accepted actor expression/event returns through CSV-backed state. Deterministic game code then checks current CSV-backed preconditions and computes the permitted physical consequence.
 
-Granite may propose behavior. Deterministic mechanics decide what actually happens.
+Granite may produce a return representing proposed actor behavior. Deterministic mechanics decide what actually happens.
 
 For dialogue, the factual event that an utterance occurred is CSV-backed game history. The semantic claim inside that utterance remains attributed speech and is not automatically objective world truth.
 
