@@ -1,0 +1,12 @@
+{
+  "status": "LOCKED",
+  "architecture_version": 1,
+  "document": "docs/GAME_BLUEPRINT.md",
+  "git_blob_sha": "5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945",
+  "locked_from_commit": "8f5d50ca3491fd6a7e9f38ee895084e02d90e495",
+  "locked_on": "2026-09-16",
+  "rule": "docs/GAME_BLUEPRINT.md must remain byte-for-byte identical to the locked Git blob. Do not modify the blueprint during implementation, repair, refactoring, cleanup, documentation alignment, or architecture auditing.",
+  "verification": "Before architecture-related repository work, fetch docs/GAME_BLUEPRINT.md from current main and compare its Git blob SHA to git_blob_sha. If it differs, stop and report the mismatch without normalizing or rewriting the blueprint.",
+  "unlock_policy": "Only an explicit user instruction to unlock, replace, or create a new version of the MochEpoch architecture permits changing docs/GAME_BLUEPRINT.md or this lock record. Implementation evidence may trigger a request to reconsider the architecture, but does not itself authorize an edit.",
+  "subordinate_docs": "Other architecture and implementation documents may evolve only when they remain consistent with the locked blueprint. If they conflict with it, treat the locked blueprint as controlling and stop before changing it unless the user explicitly authorizes an architecture revision."
+}
