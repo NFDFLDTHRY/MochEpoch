@@ -8,32 +8,30 @@ Can a civilization-like game emerge from CSV world state + bounded Resolver/Gran
 
 ## Core model boundary
 
+Every model stage uses the same primitive:
+
 ```text
-TRUSTED CSV-BACKED STATE
+CSV-BOUNDED TRUSTED STATE
         ↓
      RESOLVER
 CSV → bounded JSON parameters
         ↓
- GRANITE(operation)
+ GRANITE(stage)
    JSON → JSON
         ↓
 UNTRUSTED JSON RESULT
         ↓
       WITNESS
-JSON → bounded CSV-backed result or REJECT
-        ↓
-TRUSTED CSV-BACKED STRUCTURE AGAIN
+JSON → CSV-bounded trusted result or REJECT
 ```
 
-Resolver is outbound from the game world. It resolves only the trusted CSV-backed state permitted for the current operation and constructs Granite's bounded JSON parameters.
+Each Granite call is one transformation from a game-defined bounded population of possibilities.
 
-Granite is a function used by the game: `parameters → Granite → return value`. It has no game authority, direct CSV access, hidden world memory, or permission to execute consequences. Every Granite return is untrusted.
+Resolver projects the CSV-bounded state needed for that stage into JSON. Granite performs one JSON → JSON transformation and is reset at call end with respect to game truth. Witness validates that one return against the stage's allowed structure and converts it back into CSV-bounded trusted structure or rejects it.
 
-Witness is inbound to the game world. It validates a raw Granite return against the exact schema, references, scope, identities, and authority permitted for the operation, then produces only the allowed CSV-backed structure or rejects the result.
+If another stage is needed, it starts again from CSV-bounded state through Resolver. There are no special Witness modes or hidden conversation state.
 
-A witnessed result becoming trusted means it is legal game structure. It does not mean a spoken claim is true or a model interpretation is correct.
-
-If a witnessed result proposes a world consequence, deterministic game code checks the current authoritative CSV state and applies any permitted mutation. Granite never commits world state directly.
+Granite is a function used by the game. It has no game authority, direct CSV access, hidden world memory, or permission to execute consequences.
 
 See [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for the model contract and [docs/DIALOGUE_BOUNDARY.md](docs/DIALOGUE_BOUNDARY.md) for human/NPC communication rules.
 
@@ -61,33 +59,46 @@ See [docs/CSV_BACKING_STATE.md](docs/CSV_BACKING_STATE.md) for the hard state bo
 
 ## Dialogue
 
-Human and NPC dialogue uses the same trust primitive: `Resolver → Granite → Witness`.
+Dialogue is a sequence of repeated `Resolver → Granite → Witness` transformations, not one chatbot turn.
 
-The primitive does not reverse. What changes is whether language is entering the structured game world or being composed for delivery out of it.
+```text
+Human → NPC
+INTAKE → CHECK → COMMIT
 
-Human-to-NPC intake uses the human utterance as explicitly labeled external input plus the recipient's bounded CSV context. Granite may propose a structured interpretation; Witness accepts or rejects it into CSV-backed communication structure.
+NPC → Human
+COMPOSE → CHECK → EMIT
 
-NPC-to-human composition starts from trusted NPC-side communicative structure in CSV. Granite may propose surface language; Witness accepts or rejects the utterance into dialogue CSV before deterministic delivery.
+NPC → NPC
+COMPOSE → CHECK → EMIT
+actual utterance crosses
+INTAKE → CHECK → COMMIT
+```
 
-NPC-to-NPC communication must traverse the actual delivered utterance. Do not give a recipient another NPC's hidden structured intention. `intended X → said Y → interpreted Z` is allowed, including X ≠ Z.
+Every named stage above is independently:
 
-Checker/coherence calls are also ordinary Granite calls. Their returns are untrusted until Witness accepts them. They are local to the transformation being checked and must not become an omniscient truth engine or enforce perfect communication.
+```text
+Resolver → Granite(stage) → Witness
+```
 
-Speech is an attributed event, not automatically a world fact. Lies, mistakes, ambiguity, and misunderstanding remain possible.
+`CHECK` is mandatory wherever human- or Granite-produced language can influence a later semantic/game stage. Checker asks whether the utterance is coherently matchable, even if imprecisely or factually incorrectly, to the possibilities represented by the corresponding bounded packet.
+
+Checker does not decide objective truth. A false statement about a grounded stone may be valid; automotive-engine discourse is invalid if nothing in the packet corresponds to automotive machinery.
+
+NPC-to-NPC communication crosses the actual emitted utterance. The receiving NPC never gets the sender's hidden structured intent. `intended X → said Y → interpreted Z` is allowed, including `X ≠ Z`.
 
 ## First test
 
-One world. One player. One character whose operation calls Granite. One Resolver package. One Granite 350M JSON response. One Witness acceptance/rejection. One deterministic consequence decision. One CSV state mutation when permitted. One visible consequence.
+One world. One player. One game-controlled character whose decision path may call Granite. One stone. One bounded action result. One deterministic consequence. One visible mutation.
 
-The current seed uses one room, the player, Ada, and one stone held by Ada. The fixture exists only to prove the loop.
+The current seed uses one room, the player, Ada, and one stone held by Ada. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
 
-**Pass condition:** the next interaction operates correctly from the mutated CSV-backed state without hidden model memory or hidden game state.
+**Pass condition:** the next interaction operates correctly from the resulting CSV-backed state without hidden model memory or hidden game state.
 
 ## Current status
 
 `index.html` and `app.js` implement the read/resolve/render probe. The CSV backing-state correction removed `activeWorld` and the parsed index/record Maps. The `CSV` class contains only static functions: CSV text, parser rows, and decoded fields are local computation during a call. The existing display reads through those functions; it is never read back as gameplay authority. This diagnostic display does not establish the first-person 3D client.
 
-The real Chrome read/resolve/render milestone now passes on public commit-pinned GitHack snapshots:
+The real Chrome read/resolve/render milestone passes on public commit-pinned GitHack snapshots:
 
 1. original seed rendered player holding nothing and Ada holding the stone;
 2. a disposable branch changing only `stone.csv` holder from Ada to player rendered player holding the stone and Ada holding nothing; and
