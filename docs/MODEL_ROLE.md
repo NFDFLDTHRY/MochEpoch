@@ -33,6 +33,24 @@ When an operation requires fuzzy generation or correspondence, Granite may:
 
 A direct deterministic player control or deterministic world mechanic does not require Granite merely because the model is available.
 
+## What selects a Granite call
+
+Granite is a callable node in the CSV-described function graph.
+
+CSV-backed configuration may determine/reference, as the proven operation requires:
+
+- the operation/stage being performed;
+- the model/runtime resource;
+- the actor/context references;
+- the system prompt;
+- the CSV-backed facts/populations Resolver may project;
+- the required output shape/population; and
+- the next function/operation edge.
+
+Executable code provides the generic call machinery. Do not hard-code a second NPC/game-specific control architecture around Granite.
+
+The exact CSV and JSON schemas are not fixed yet. They must fall out of the real browser call and real game operations.
+
 ## What Granite must never own
 
 Granite does not:
@@ -98,7 +116,7 @@ Resolver may include only what the current operation requires, such as:
 
 This list is conceptual, not a frozen JSON schema.
 
-Resolver does not interpret Granite output, perform semantic CHECK, own world state, execute consequences, or mutate authoritative state.
+Resolver does not interpret Granite output, perform semantic CHECK, own game state, execute consequences, or mutate authoritative state.
 
 ## Granite
 
@@ -136,12 +154,12 @@ CSV-bounded
 = transient value constrained by possibilities derived from trusted CSV
 
 CSV-backed
-= authoritative continuing state/configuration represented in CSV
+= authoritative continuing state/history/configuration represented in CSV
 ```
 
 A Witness result may be legal input to another transformation without becoming authoritative game state.
 
-Only an explicit accepted write into CSV-backed state changes continuing game truth.
+Only an explicit accepted write into CSV-backed state changes continuing game truth/history.
 
 This preserves the project relationship:
 
@@ -150,8 +168,9 @@ CSV persists
 JSON expresses/transports
 Granite transforms
 Witness bounds
-Deterministic mechanics resolve consequences
-accepted durable result returns to CSV
+accepted actor expression/event returns to CSV
+deterministic mechanics resolve physical consequence
+resulting durable facts/events return to CSV
 ```
 
 ## Behavioral freedom
@@ -172,7 +191,7 @@ Granite result: hand_over(stone)
 
 That may be a semantically valid expressed action because `hand_over` and `stone` are represented in the operation's bounded population.
 
-Deterministic mechanics may still make the action fail if the current CSV state says the actor does not hold the stone.
+The accepted actor expression can be written to CSV-backed factual/attributed state. Deterministic mechanics may then make the physical action fail if current CSV-backed state says the actor does not hold the stone.
 
 Do not make Granite pre-solve every physical precondition merely to avoid failed attempts.
 
@@ -209,9 +228,13 @@ Granite generates/evaluates action or dialogue
  ↓
 JSON expression
  ↓
-harness
+harness mapping / validation
  ↓
-CSV if an accepted durable transition occurs
+write accepted actor expression/event to CSV-backed state
+ ↓
+deterministic consequence where applicable
+ ↓
+CSV-backed resulting facts/events
 ```
 
 For a human:
@@ -225,9 +248,13 @@ Granite mapping/evaluation when fuzzy interpretation is needed
  ↓
 JSON game representation
  ↓
-harness
+harness mapping / validation
  ↓
-CSV if an accepted durable transition occurs
+write accepted actor expression/event to CSV-backed state
+ ↓
+deterministic consequence where applicable
+ ↓
+CSV-backed resulting facts/events
 ```
 
 Granite is machinery used by the game on either side where fuzzy transformation is required. It is not synonymous with NPC control.
@@ -256,6 +283,8 @@ Resolver → Granite(stage) → Witness
 ```
 
 Intermediate stage outputs are bounded transient structures. They do not become authoritative CSV-backed state merely because Witness validated them.
+
+The completed communication returns through the harness into CSV-backed factual/attributed state. Recording that `A said Y` is authoritative as an event does not make the proposition inside `Y` objectively true.
 
 See `docs/DIALOGUE_BOUNDARY.md` for the communication contract.
 
@@ -289,17 +318,17 @@ sender intended X → said Y → recipient interpreted Z
 
 including `X ≠ Z`.
 
-This difference is allowed experimental behavior.
+The `said Y` event and recipient-side accepted interpretation/result return through CSV-backed attributed state. The difference between X, Y, and Z is allowed experimental behavior.
 
 ## Consequence boundary
 
 A bounded action result is not automatically a physical world mutation.
 
-Deterministic game code checks current CSV-backed preconditions and computes the permitted consequence.
+The accepted actor expression/event returns through CSV-backed state. Deterministic game code then checks current CSV-backed preconditions and computes the permitted physical consequence.
 
 Granite may propose behavior. Deterministic mechanics decide what actually happens.
 
-An emitted utterance may be delivered without automatically becoming a durable historical fact. If future operations need the fact that it was spoken/heard, persist an appropriate attributed event in CSV-backed state.
+For dialogue, the factual event that an utterance occurred is CSV-backed game history. The semantic claim inside that utterance remains attributed speech and is not automatically objective world truth.
 
 ## Schema rule
 
