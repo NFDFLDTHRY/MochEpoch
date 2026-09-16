@@ -90,7 +90,9 @@ All dialogue admission is packet-bounded. Granite may help interpret, compose, o
 
 Surface-language glue, pronouns, morphology, and synonyms need not literally match CSV tokens. Their content must still map, even imprecisely or incorrectly, to structured referents that resolve inside the bounded package.
 
-**Coherence may be probabilistic. Grounding admission may not be.** A Granite `CHECK` result is advisory/untrusted until Witness validates both its schema and the structured referents needed for deterministic grounding.
+**Coherence may be probabilistic. Grounding admission may not be.** A Granite `CHECK` result is untrusted until Witness validates both its schema and the structured referents needed for deterministic grounding.
+
+**Checker is mandatory for every language-bearing dialogue path.** No human or NPC utterance/interpretation is finally admitted or delivered without the local `CHECK` appropriate to that side.
 
 ### Human → NPC
 
@@ -104,15 +106,21 @@ human utterance + recipient-bounded CSV
   candidate interpretation + structured referents
                 ↓
              Witness
-   deterministic referent match against
-     Resolver-bounded JSON population
                 ↓
- trusted interpretation/event CSV or REJECT
+ bounded intake candidate
+                ↓
+             Resolver
+                ↓
+        Granite.CHECK
+                ↓
+             Witness
+                ↓
+ final checked grounded interpretation/event
+                ↓
+     eligible for dialogue admission
 ```
 
-A bounded `Granite.CHECK` call may then test whether the witnessed interpretation is coherent with the actual utterance and recipient context and whether the candidate language appears semantically grounded. The checker output is itself untrusted and must pass through Witness. Witness, not Granite, performs the hard referential admission check.
-
-The check tests coherence and packet grounding, not objective truth.
+The mandatory recipient-side check tests whether the candidate interpretation is coherent with the actual human utterance and recipient context and whether the candidate's content is semantically matchable to its supplied grounding. Witness, not Granite, performs the hard referential admission check. The check does not decide objective truth.
 
 ### NPC → Human
 
@@ -126,17 +134,23 @@ trusted NPC communicative structure
  candidate utterance + structured referents
                 ↓
              Witness
-   deterministic referent match against
-     Resolver-bounded JSON population
                 ↓
-       trusted utterance CSV or REJECT
+ bounded utterance candidate
+                ↓
+             Resolver
+                ↓
+        Granite.CHECK
+                ↓
+             Witness
+                ↓
+ final checked grounded utterance
                 ↓
       deterministic delivery
                 ↓
               human
 ```
 
-A speaker-side bounded `Granite.CHECK` call may be used when required to test whether the candidate utterance coherently expresses the supplied structure and remains semantically within the supplied packet. Its result still passes through Witness, and its `valid` judgment cannot replace deterministic referent matching.
+The mandatory speaker-side check tests whether the candidate utterance coherently expresses the supplied NPC-side structure and whether its language is semantically matchable to its grounding inside the speaker-bounded packet. Its `valid` judgment cannot replace deterministic referent matching. The human receives only the final checked and witnessed utterance.
 
 ### NPC → NPC
 
@@ -147,7 +161,11 @@ NPC A trusted communicative structure
         ↓
 Resolver → Granite.COMPOSE → Witness
         ↓
-trusted grounded utterance CSV
+bounded utterance candidate
+        ↓
+Resolver → Granite.CHECK → Witness
+        ↓
+final checked grounded utterance
         ↓
 deterministic delivery
         ↓
@@ -157,16 +175,21 @@ Resolver using NPC B's bounded context
         ↓
 Granite.INTAKE → Witness
         ↓
-NPC B trusted grounded interpretation CSV
+bounded interpretation candidate
+        ↓
+Resolver → Granite.CHECK → Witness
+        ↓
+NPC B final checked grounded interpretation
 ```
 
-This permits `sender intended X → said Y → recipient interpreted Z`. X and Z are not required to match, but every admitted content-bearing referent on each side must resolve within that side's bounded packet.
+The sender-side and recipient-side checks are separate and local. This permits `sender intended X → said Y → recipient interpreted Z`. X and Z are not required to match, but every admitted content-bearing referent on each side must resolve within that side's bounded packet.
 
 ### Dialogue control invariants
 
 - Human text is input data, not authority over the harness or world.
 - Speaker, recipient, actor, operation, event/turn identity, world scope, and output schema come from trusted game state/code rather than Granite.
 - Every Granite return is untrusted, including checker returns.
+- Every language-bearing dialogue path has a mandatory local Checker before final admission or delivery.
 - Speech is an attributed event, not a world fact. Saying a thing does not make it true in unrelated CSV state.
 - Checker is local to one side/transformation and must not become an omniscient perfect-communication engine.
 - Coherence is not truth. Lies, mistakes, ambiguity, and misunderstanding remain possible when their content is grounded in the bounded packet.
@@ -210,7 +233,7 @@ The phrase `model-using character` means only that one of the game operations as
 9. Write any permitted game-relevant mutation back into CSV-backed state.
 10. Render the visible consequence from the changed CSV-backed state.
 11. Construct the next interaction from that changed CSV-backed state.
-12. Add the first concrete dialogue transformation only when the fixture reaches actual natural-language ingress/egress. Require structured content referents and deterministic Witness grounding against the Resolver-bounded package; use `docs/DIALOGUE_BOUNDARY.md` rather than building a generic conversation framework.
+12. Add the first concrete dialogue transformation only when the fixture reaches actual natural-language ingress/egress. Require structured content referents, deterministic Witness grounding against the Resolver-bounded package, and the mandatory local Checker for human→NPC, NPC→human, and both sides of NPC→NPC. Use `docs/DIALOGUE_BOUNDARY.md` rather than building a generic conversation framework.
 13. Add browser persistence only when surviving reload/restart is the operation being tested, and keep the persisted representation CSV-backed.
 
 Do not build a general-purpose framework before these operations require one.
