@@ -1,155 +1,287 @@
 # Granite role and experimental framing
 
-This document records the operational framing that must be preserved while building MochEpoch. It does not state the experiment's hidden hypothesis or predicted result.
+This document defines exactly what MochEpoch expects Granite to do.
 
-## Structural model role
+Read `docs/GAME_BLUEPRINT.md` first for the full lifecycle and `docs/CSV_BACKING_STATE.md` for the authority boundary.
 
-MochEpoch does not treat Granite as an intelligent agent, NPC brain, world model, authority, or source of meaning.
+## Exact role
 
-For this project, Granite is used exactly like another game function:
+Granite is not an NPC brain, autonomous agent, world model, authority, truth engine, civilization simulator, or owner of character state.
+
+Granite is used like another game function:
 
 ```text
 parameters → Granite → return value
 ```
 
-Each invocation performs one bounded JSON → JSON transformation. Granite does not own the character, the world, or the conversation.
+Its exact job is:
 
-Language is treated operationally as structure. Do not invent a second hidden semantic world merely to explain language processing.
+> Generate or evaluate actions and natural-language dialogue against the finite behavioral possibilities exposed by the current CSV-described world.
 
-Do not replace this framing with generic "AI agent," "NPC brain," chatbot, model-as-reasoner, or model-as-world assumptions.
+That is the model contract.
+
+## What Granite may be used for
+
+When an operation requires fuzzy generation or correspondence, Granite may:
+
+- select/generate an NPC action from a bounded current possibility-space;
+- generate NPC natural-language dialogue from a bounded current possibility-space;
+- map human natural-language input into game-defined possibilities;
+- map a fuzzy human action into game-defined possibilities when required;
+- check whether supplied/generated language is coherently matchable to the bounded packet; and
+- perform another narrowly defined JSON → JSON actor-behavior transformation if an executable operation proves it necessary.
+
+A direct deterministic player control or deterministic world mechanic does not require Granite merely because the model is available.
+
+## What Granite must never own
+
+Granite does not:
+
+- own an NPC;
+- own the player;
+- own world state;
+- read arbitrary CSV directly;
+- decide which world facts it is allowed to receive;
+- decide its own operation scope;
+- invent new authoritative entities/actions/properties merely by mentioning them;
+- maintain hidden game truth between calls;
+- decide objective truth;
+- execute physical consequences;
+- mutate arbitrary CSV;
+- write directly to rendering/UI;
+- implement trust, friendship, morality, loyalty, resentment, civilization, or similar social scores.
+
+Model weights/runtime may remain loaded for performance. Call-local model state is not game state.
 
 ## One model-call primitive
 
-Every Granite transformation has exactly the same shape:
+Every Granite transformation uses the same game-side boundary:
 
 ```text
-CSV-bounded input
+CSV-backed world / bounded transient input
         ↓
 Resolver
-CSV-bounded input → bounded JSON parameters
+        ↓
+bounded JSON parameters
         ↓
 Granite(stage)
-JSON → JSON
         ↓
 untrusted JSON result
         ↓
 Witness
-JSON → CSV-bounded result or REJECT
+        ↓
+bounded transient result or REJECT
 ```
 
-Resolver and Witness are deterministic game-side boundaries around one Granite call.
+Every Granite call is one bounded JSON → JSON transformation.
 
-### Resolver
+Stage names describe the requested transformation. They do not create separate model agents or model-owned subsystems.
 
-Resolver does one thing: it reads/resolves the CSV-bounded input permitted for the current transformation and constructs the bounded JSON parameters Granite may receive.
+## Resolver
 
-The Resolver input may be the initial trusted CSV state or a prior CSV-bounded intermediate that is still untrusted within the dialogue pipeline.
+Resolver does one thing:
 
-Resolver does not interpret model output, own game state, perform semantic checking, grant trust, or mutate authoritative state.
+> Read/resolve only the CSV-backed facts and bounded transient inputs permitted for the current transformation and project them into the JSON packet Granite receives.
 
-### Granite
+Resolver may include only what the current operation requires, such as:
 
-Granite does one thing: transform the supplied JSON packet into one JSON return.
+- actor identity;
+- relevant nearby/known actors;
+- relevant objects/resources/structures;
+- current factual state;
+- available actions/behaviors;
+- grounded dialogue concepts;
+- system prompt;
+- operation/stage identity;
+- required output shape/population;
+- external human action/dialogue when applicable.
 
-Calls are independent and reset at call end with respect to game truth. Granite has no direct CSV access, no hidden world authority, no permission to choose its own scope, and no game-relevant memory carried automatically into the next call.
+This list is conceptual, not a frozen JSON schema.
+
+Resolver does not interpret Granite output, perform semantic CHECK, own world state, execute consequences, or mutate authoritative state.
+
+## Granite
+
+Granite does one thing:
+
+> Transform the supplied bounded JSON packet into one JSON return for the requested operation.
+
+Calls are independent with respect to game truth.
+
+Granite has no direct CSV access, no hidden world authority, no permission to choose its own scope, and no automatic game-relevant memory carried into later calls.
 
 Every Granite return is untrusted.
 
-Stage names such as `INTAKE`, `CHECK`, `COMPOSE`, `COMMIT`, and `EMIT` describe the transformation requested from that call. They do not create agents or model-owned subsystems.
+## Witness
 
-### Witness
+Witness does one thing:
 
-Witness does one thing: deterministically validate one raw Granite return against that transformation's schema, allowed values/references, identity, scope, and authority, then produce the corresponding CSV-bounded result or reject it.
+> Deterministically validate one raw Granite return against that transformation's schema, allowed values/references, identity, scope, and other game-defined bounds, then return the corresponding bounded transient result or reject it.
 
-Witness does not perform the semantic language judgment assigned to `Granite.CHECK`. It does not infer missing meaning, silently repair malformed output, invent world facts, enlarge the allowed population, or independently grant trust.
+Witness does not:
 
-**CSV-bounded does not mean trusted.** In a three-transformation dialogue pipeline, Witness outputs from the first two transformations remain untrusted intermediates. The same Witness operation follows the third transformation; only after the complete pipeline succeeds is that final CSV-bounded result eligible to be trusted.
+- perform the semantic natural-language judgment assigned to Granite `CHECK`;
+- invent missing meaning;
+- silently repair malformed output;
+- enlarge the allowed world population;
+- execute consequences;
+- turn a transient intermediate into authoritative world state merely because it passed validation.
 
-There are no PRECHECK/FINAL Witness modes. The Witness implementation does not change roles. Trust is a property of successful completion of the whole pipeline, not of an intermediate Witness return.
+## CSV-bounded versus CSV-backed
 
-## End-to-end trust rule
-
-Dialogue runs from trusted CSV through untrusted model transformations and back to trusted CSV:
+Use these terms precisely:
 
 ```text
-TRUSTED CSV INPUT
-        ↓
-transformation 1
-        ↓
-CSV-bounded UNTRUSTED intermediate
-        ↓
-transformation 2
-        ↓
-CSV-bounded UNTRUSTED intermediate
-        ↓
-transformation 3
-        ↓
-FINAL CSV-bounded result
-        ↓
-TRUSTED
+CSV-bounded
+= transient value constrained by possibilities derived from trusted CSV
+
+CSV-backed
+= authoritative continuing state/configuration represented in CSV
 ```
 
-This distinction is architectural. An intermediate result may be structurally legal for the next transformation while still being untrusted as a dialogue/game result.
+A Witness result may be legal input to another transformation without becoming authoritative game state.
 
-## Bounded transformation workload
+Only an explicit accepted write into CSV-backed state changes continuing game truth.
 
-Each Granite call receives a game-defined bounded population of possibilities and produces one structured return in the supplied output shape.
+This preserves the project relationship:
 
-Field populations change according to the current CSV-bounded input, but Granite is not asked to invent a protocol or extend the game's ontology from call to call.
+```text
+CSV persists
+JSON expresses/transports
+Granite transforms
+Witness bounds
+Deterministic mechanics resolve consequences
+accepted durable result returns to CSV
+```
 
-Natural language may be included as a field in a transformation packet, but free-form language itself is never game authority.
+## Behavioral freedom
+
+Granite is not required to behave sensibly.
+
+It may produce a bad choice, lie, misunderstand, contradict itself, attempt an impossible action, refuse, cooperate, use odd language, or otherwise behave unpredictably.
+
+That variation is part of the experiment.
+
+The boundary constrains what the result can correspond to in the represented game world. It does not optimize behavior toward designer expectations.
+
+Example:
+
+```text
+Granite result: hand_over(stone)
+```
+
+That may be a semantically valid expressed action because `hand_over` and `stone` are represented in the operation's bounded population.
+
+Deterministic mechanics may still make the action fail if the current CSV state says the actor does not hold the stone.
+
+Do not make Granite pre-solve every physical precondition merely to avoid failed attempts.
+
+## Bounded world population
+
+Each Granite call operates over a game-defined finite population of possibilities supplied by Resolver.
+
+Depending on the operation, that population may contain relevant:
+
+- actors;
+- objects/resources/structures;
+- systems/actions/behaviors;
+- properties/relations;
+- factual state;
+- grounded dialogue concepts;
+- output choices/references.
+
+Granite may combine, select, phrase, or evaluate within the supplied operation, but it does not enlarge authoritative world ontology by mentioning unsupported concepts.
+
+Natural language may be free-form text inside a packet. Free-form text is not game authority.
+
+## Human and NPC symmetry
+
+The actor boundary is symmetrical at the world-state level.
+
+For an NPC:
+
+```text
+CSV world slice
+ ↓
+bounded JSON
+ ↓
+Granite generates/evaluates action or dialogue
+ ↓
+JSON expression
+ ↓
+harness
+ ↓
+CSV if an accepted durable transition occurs
+```
+
+For a human:
+
+```text
+CSV world slice + external human action/dialogue
+ ↓
+bounded operation
+ ↓
+Granite mapping/evaluation when fuzzy interpretation is needed
+ ↓
+JSON game representation
+ ↓
+harness
+ ↓
+CSV if an accepted durable transition occurs
+```
+
+Granite is machinery used by the game on either side where fuzzy transformation is required. It is not synonymous with NPC control.
 
 ## Dialogue transformations
 
-Dialogue is a chain of independent model calls, not a conversation living inside Granite.
-
-### Human → NPC
+Natural-language communication may use these sequences:
 
 ```text
-TRUSTED CSV + external human utterance
+Human → NPC
+INTAKE → CHECK → COMMIT
 
-INTAKE: Resolver → Granite → Witness
-  ↓
-CSV-bounded interpretation — UNTRUSTED
-  ↓
-CHECK: Resolver → Granite → Witness
-  ↓
-CSV-bounded checked interpretation — UNTRUSTED
-  ↓
-COMMIT: Resolver → Granite → Witness
-  ↓
-FINAL CSV-bounded structured return — TRUSTED
+NPC → Human
+COMPOSE → CHECK → EMIT
+
+NPC → NPC
+COMPOSE → CHECK → EMIT
+actual utterance crosses
+INTAKE → CHECK → COMMIT
 ```
 
-`INTAKE` maps the human utterance into the operation's bounded possibilities. `CHECK` separately asks whether the utterance is coherently matchable to the corresponding bounded packet. `COMMIT` transforms the checked intermediate into the final bounded structured result available to deterministic game machinery.
-
-### NPC → Human
+Every named stage is independently:
 
 ```text
-TRUSTED NPC CSV communicative state
-
-COMPOSE: Resolver → Granite → Witness
-  ↓
-CSV-bounded candidate utterance — UNTRUSTED
-  ↓
-CHECK: Resolver → Granite → Witness
-  ↓
-CSV-bounded checked utterance — UNTRUSTED
-  ↓
-EMIT: Resolver → Granite → Witness
-  ↓
-FINAL CSV-bounded utterance/result — TRUSTED
-  ↓
-deterministic delivery
+Resolver → Granite(stage) → Witness
 ```
 
-`COMPOSE` proposes language from the NPC-side bounded state. `CHECK` separately asks whether that candidate language is coherently matchable to the corresponding speaker-side packet. `EMIT` transforms the checked intermediate into the final bounded result that may be delivered.
+Intermediate stage outputs are bounded transient structures. They do not become authoritative CSV-backed state merely because Witness validated them.
 
-### NPC → NPC
+See `docs/DIALOGUE_BOUNDARY.md` for the communication contract.
 
-NPC-to-NPC communication uses the sender pipeline followed by the receiver pipeline. The actual trusted emitted utterance crosses between them. The recipient never receives the sender's hidden structured intent.
+## CHECK role
 
-This permits:
+`Granite.CHECK` asks:
+
+> Is this utterance/candidate language coherently matchable, even if imprecisely or factually incorrectly, to the possibilities represented by this bounded packet?
+
+CHECK does not decide objective truth.
+
+A false statement about an existing stone can pass.
+
+Automotive-engine discourse must fail when the bounded packet contains nothing corresponding to automotive machinery.
+
+Lies, mistakes, ambiguity, deception, and misunderstanding are allowed when the language remains grounded in the supplied possibilities.
+
+CHECK is local to the side being checked. Do not provide omniscient hidden state merely to force two speakers to understand one another identically.
+
+Witness validates CHECK's structured return. Witness does not reproduce CHECK's semantic task.
+
+## NPC-to-NPC communication
+
+The recipient receives the actual emitted utterance, never the sender's hidden candidate/structured representation.
+
+Preserve:
 
 ```text
 sender intended X → said Y → recipient interpreted Z
@@ -157,46 +289,32 @@ sender intended X → said Y → recipient interpreted Z
 
 including `X ≠ Z`.
 
-## Checker role
+This difference is allowed experimental behavior.
 
-`Granite.CHECK` is mandatory wherever human- or Granite-produced language can influence the final semantic/game result.
+## Consequence boundary
 
-Checker's narrow question is whether the utterance/candidate language is coherently matchable, even if imprecisely or factually incorrectly, to the possibilities represented by the supplied bounded packet.
+A bounded action result is not automatically a physical world mutation.
 
-Checker does not decide objective truth. A false statement about the stone can be valid if the packet contains the relevant stone/actors/state. Automotive-engine discourse is invalid when nothing in the packet corresponds to automotive machinery.
+Deterministic game code checks current CSV-backed preconditions and computes the permitted consequence.
 
-Checker is local to the side being checked. It must not receive both parties' private structures merely to force mutual understanding.
+Granite may propose behavior. Deterministic mechanics decide what actually happens.
 
-Checker's return is still untrusted and goes through ordinary Witness exactly like every other Granite return. After Witness it becomes a CSV-bounded checked intermediate, but remains untrusted until the final `COMMIT` or `EMIT` transformation succeeds.
+An emitted utterance may be delivered without automatically becoming a durable historical fact. If future operations need the fact that it was spoken/heard, persist an appropriate attributed event in CSV-backed state.
 
-## JSON is operational, CSV is backing state
+## Schema rule
 
-Granite input and output JSON packages are transient operational structures. They are not game state.
+Do not freeze the final Granite packet shape before the real browser model integration is executed.
 
-CSV is the durable backing state; JSON is temporary expression or transport for one transformation.
+The behavioral contract is fixed. The serialization shape is not.
 
-A CSV-bounded intermediate is not authoritative merely because it has passed Witness. Only the completed pipeline's final trusted result may become authoritative dialogue/game state.
+First establish the concrete Granite 350M browser/WebApp calling interface. Then build the smallest Resolver/Witness and packet needed for a real operation. Let later packet fields emerge from later executable operations.
 
-Do not create model-owned state, JSON-owned state, or a second runtime world model around Granite.
-
-See `docs/CSV_BACKING_STATE.md` for the hard state boundary and `docs/DIALOGUE_BOUNDARY.md` for dialogue sequencing.
-
-## World and consequence boundary
-
-Granite does not own world state, memory, motives, relationships, permissions, identities, or consequences.
-
-Authoritative world state remains external, inspectable, and CSV-backed. Speaker, recipient, actor, operation identity, event identity, and permitted schemas/populations come from trusted game code/CSV rather than Granite.
-
-A final trusted game-action result may be consumed by deterministic game code. Deterministic code checks current CSV-backed preconditions and performs any allowed world mutation.
-
-A final trusted emitted utterance may be presented by deterministic delivery code.
-
-Intermediate Witness outputs must not be mistaken for final authoritative results.
+Do not design a general model protocol merely because it might be useful.
 
 ## Preserve the experiment
 
-Do not add semantic abstractions, hidden conversational memory, relationship scores, or model-centered interpretations of intelligence because they seem useful.
+Do not add hidden conversational memory, relationship scores, personality engines, social-state abstractions, model-owned memories, or generic agent frameworks because they seem useful.
 
-Do not let dialogue controls turn into a truth engine. Falsehood, imprecision, ambiguity, deception, and misunderstanding are permitted when language remains matchable to the bounded packet. Ungrounded subject matter must not reach the final trusted result.
+Do not optimize away lies, failed attempts, misunderstandings, strange choices, or conflict.
 
-The deeper hypothesis being tested by MochEpoch is intentionally unspecified here. Do not infer it, encode it, or optimize the implementation toward a presumed conclusion. Preserve the apparatus and let observed runs establish what emerges.
+Preserve the apparatus and let runs establish what behavior emerges.
