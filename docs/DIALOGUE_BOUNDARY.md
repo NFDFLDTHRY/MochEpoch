@@ -94,13 +94,29 @@ A candidate cannot become CSV-backed dialogue merely because Granite says it is 
 
 The operation schema must make grounding mandatory wherever free-form content could otherwise introduce game-relevant subject matter. Witness rejects missing grounding fields, unknown references, references outside the bounded population, or structural claims outside the operation's authority.
 
-Human and Granite language are treated identically at this boundary. A human cannot expand the game's ontology by typing a new subject, and Granite cannot expand it by producing fluent text. External human text remains external input until an intake/check result has crossed Witness. Granite-composed text remains an untrusted candidate until its dialogue operation has crossed Witness.
+Human and Granite language are treated identically at this boundary. A human cannot expand the game's ontology by typing a new subject, and Granite cannot expand it by producing fluent text. External human text remains external input until its intake and mandatory check have completed. Granite-composed text remains a candidate until its mandatory speaker-side check has completed.
 
 Falsehood is different from ontology drift. An utterance may be imprecise, mistaken, deceptive, or false while remaining grounded in allowed packet content. For example, `I already gave you the stone` can be admissible when `Ada`, `player`, and `stone` are grounded even if the current stone holder makes the proposition false. `The carburetor needs a richer jet` is not admissible when no automotive engine, carburetor, or corresponding permitted concept exists in the bounded package.
 
 Surface-language glue does not require one-to-one CSV tokens. Pronouns, morphology, ordinary grammar, and synonyms may express grounded content. What matters is that content-bearing discourse is matchable to the permitted structured grounding and that no content-bearing ontology can reach CSV only through an unchecked string.
 
 A semantic model error can still produce a bad interpretation of grounded material. That is experimental/model-quality evidence. It is not permission to create a new entity, system, capability, or game fact outside the verified grounding references.
+
+## Mandatory checker contract
+
+Every human- or NPC-originated language-bearing candidate must undergo a local `Granite.CHECK` before it is finally admitted as dialogue or delivered to its recipient.
+
+`CHECK` is mandatory in all three dialogue directions:
+
+- **Human → NPC:** check the intake interpretation against the actual human utterance and the recipient-bounded packet.
+- **NPC → Human:** check the composed utterance against the NPC's supplied communicative structure and speaker-bounded packet before deterministic delivery to the human.
+- **NPC → NPC:** check the sender's composed utterance before delivery, then independently check the recipient's intake interpretation after the actual utterance is received.
+
+The Checker asks whether the language/interpretation is semantically coherent with the corresponding structured packet and whether its content-bearing discourse is matchable to that packet. It does not decide objective truth and it does not replace Witness.
+
+Every `CHECK` return is itself untrusted. It must pass through Witness, and Witness still performs deterministic schema, reference, scope, identity, authority, and grounding-population checks. A `CHECK` result of `valid` cannot make an unknown or out-of-scope referent legal.
+
+The Checker is local to the side being checked. It must never receive hidden state from both sides merely to force sender intent and recipient interpretation to match.
 
 ## Dialogue invariants
 
@@ -116,13 +132,13 @@ A semantic model error can still produce a bad interpretation of grounded materi
 
 6. **World consequences remain deterministic.** A witnessed action result may become a trusted action proposal, but deterministic game code checks the current CSV-backed preconditions and performs any allowed world mutation. Granite never commits a world mutation itself.
 
-7. **Delivery remains deterministic.** A witnessed utterance may become trusted dialogue CSV. Game code presents that exact accepted utterance to its recipient. Granite does not directly write UI or send speech around Witness.
+7. **Delivery remains deterministic.** A checked and witnessed utterance may become trusted dialogue CSV. Game code presents that exact accepted utterance to its recipient. Granite does not directly write UI or send speech around Witness.
 
 8. **No semantic teleportation.** An NPC recipient receives the utterance that was actually delivered, not another NPC's hidden structured intention. If NPC A intends X, emits Y, and NPC B interprets Y as Z, X and Z may differ. That difference is part of the experiment.
 
-9. **Checker is local, not omniscient.** A `CHECK` call receives only the bounded context appropriate to the transformation being checked. It may test whether an interpretation is coherent with the heard utterance and recipient context, or whether a composed utterance is coherent with the supplied speaker-side structure. It must not secretly compare both characters' private structures to enforce perfect communication.
+9. **Checker is mandatory and local, not omniscient.** Every language-bearing dialogue candidate must be checked on the appropriate side before final admission/delivery. A `CHECK` call receives only the bounded context appropriate to that transformation. It must not secretly compare both characters' private structures to enforce perfect communication.
 
-10. **Checker is not the hard boundary.** Its result is another probabilistic Granite return and is untrusted until Witness accepts its exact schema. `CHECK` may assess semantic correspondence and whether the candidate appears to stay within the packet, but deterministic schema/reference/authority enforcement and grounding-reference membership remain Witness responsibilities.
+10. **Checker is not the hard boundary.** Its result is another probabilistic Granite return and is untrusted until Witness accepts its exact schema. `CHECK` assesses semantic correspondence and whether the candidate appears to stay within the packet, but deterministic schema/reference/authority enforcement and grounding-reference membership remain Witness responsibilities.
 
 11. **Coherence is not truth.** Dialogue control checks structural correspondence and bounded contextual coherence. It does not force characters to be truthful, agreeable, rational, or mutually understood. False claims and mistaken interpretations may be valid game events when their discourse remains grounded.
 
@@ -156,13 +172,7 @@ human utterance + recipient-bounded CSV
                 ↓
              Witness
                 ↓
- trusted grounded interpretation/event CSV
-```
-
-If a coherence/grounding pass is required for the operation:
-
-```text
-utterance + witnessed interpretation + recipient-bounded CSV
+ bounded intake candidate
                 ↓
              Resolver
                 ↓
@@ -172,14 +182,16 @@ utterance + witnessed interpretation + recipient-bounded CSV
                 ↓
              Witness
                 ↓
- trusted checked-result CSV
+ final checked grounded interpretation/event
+                ↓
+     eligible for dialogue admission
 ```
 
-The check asks whether the proposed interpretation is a coherent interpretation of what this recipient actually received within the recipient's bounded context and whether the content-bearing discourse corresponds to the supplied grounding. It does not ask whether the human's statement is objectively true. Regardless of the check's opinion, admission still requires Witness to verify the structured grounding references against the bounded population.
+The mandatory check asks whether the proposed interpretation is a coherent interpretation of what this recipient actually received within the recipient's bounded context and whether the content-bearing discourse corresponds to the supplied grounding. It does not ask whether the human's statement is objectively true. Regardless of the check's opinion, admission still requires Witness to verify the structured grounding references against the bounded population.
 
 ### NPC → Human composition
 
-NPC-side communicative intent or response state begins as trusted CSV-backed structure. Surface language must cross the same trust boundary.
+NPC-side communicative intent or response state begins as trusted CSV-backed structure. Surface language must cross the same trust boundary and cannot be delivered merely because `COMPOSE` produced fluent text.
 
 ```text
 NPC communicative structure + speaker-bounded CSV
@@ -193,18 +205,28 @@ NPC communicative structure + speaker-bounded CSV
                 ↓
              Witness
                 ↓
-       trusted grounded utterance CSV
+ bounded utterance candidate
+                ↓
+             Resolver
+                ↓
+        Granite.CHECK
+                ↓
+        untrusted JSON
+                ↓
+             Witness
+                ↓
+ final checked grounded utterance
                 ↓
       deterministic delivery
                 ↓
               human
 ```
 
-A speaker-side `CHECK` may be inserted before delivery when the operation requires it. It receives the intended structure, candidate utterance, candidate grounding, and only the speaker-side bounded context required to ask whether the candidate coherently expresses that structure and whether the language corresponds to its grounding. Its return still passes through Witness.
+The mandatory speaker-side check receives the intended communicative structure, candidate utterance, candidate grounding, and only the speaker-side bounded context required to ask whether the candidate coherently expresses that structure and whether the language corresponds to its grounding. The human receives only the final checked and witnessed utterance.
 
 ### NPC → NPC communication
 
-NPC-to-NPC dialogue uses both halves. Do not hand the recipient the sender's hidden structure.
+NPC-to-NPC dialogue uses both halves. The recipient receives the actual delivered utterance, never the sender's hidden structured intention.
 
 ```text
 NPC A trusted communicative structure
@@ -215,7 +237,15 @@ NPC A trusted communicative structure
                 ↓
              Witness
                 ↓
- trusted grounded utterance CSV
+ bounded utterance candidate
+                ↓
+             Resolver
+                ↓
+        Granite.CHECK
+                ↓
+             Witness
+                ↓
+ final checked grounded utterance
                 ↓
       deterministic delivery
                 ↓
@@ -227,32 +257,42 @@ Resolver with NPC B's bounded context
                 ↓
              Witness
                 ↓
- NPC B trusted grounded interpretation CSV
+ bounded interpretation candidate
+                ↓
+             Resolver
+                ↓
+        Granite.CHECK
+                ↓
+             Witness
+                ↓
+ NPC B final checked grounded interpretation
 ```
 
-Optional speaker-side and recipient-side `CHECK` operations remain separate and bounded to their respective sides. Each side must independently satisfy its own grounding contract; neither side receives the other's hidden structure.
+The sender-side and recipient-side checks are separate and bounded to their respective sides. Each side independently satisfies its own coherence and grounding contract. This preserves `sender intended X → said Y → recipient interpreted Z`, including X ≠ Z.
 
 ## Emit versus commit
 
 `emit` and `commit` are consequences outside Granite, not privileges granted to the model.
 
-A Granite operation may return an untrusted candidate describing what kind of result it proposes. Witness may accept that candidate into a bounded CSV-backed structure only if the operation schema and grounding contract permit it.
+A Granite operation may return an untrusted candidate describing what kind of result it proposes. Witness may accept that candidate into a bounded game-side structure only if the operation schema and grounding contract permit it. For language-bearing dialogue, the required local Checker must also complete before final dialogue admission or delivery.
 
-After Witness:
+After final dialogue admission:
 
 - an **emit** result is deterministically delivered/presented from trusted dialogue CSV;
 - a **commit** result is deterministically checked against current authoritative CSV and, if legal, applied as a world-state mutation.
 
-The trust chain therefore remains:
+The trust chain for each Granite call remains:
 
 ```text
-CSV → Resolver → JSON → Granite → JSON(untrusted) → Witness → CSV(trusted)
+CSV → Resolver → JSON → Granite → JSON(untrusted) → Witness → bounded trusted result
 ```
 
-Any later emit or commit consumes the trusted CSV result. Granite never emits directly and never commits directly.
+Dialogue may require several such calls in sequence. Granite never emits directly and never commits directly.
 
 ## Implementation rule
 
 Do not build a general conversation framework. Implement only the next concrete Resolver/Granite/Witness operation required by the current fixture. For every language-bearing operation, define the smallest explicit grounding schema needed by that operation rather than introducing a global semantic ontology.
 
-Each model call must expose its exact bounded input JSON, raw output JSON, grounding references, Witness acceptance/rejection, and resulting CSV-backed structure as inspectable evidence.
+Every human→NPC, NPC→human, and NPC→NPC language-bearing path must include the appropriate mandatory local `CHECK` stage before final dialogue admission or delivery.
+
+Each model call must expose its exact bounded input JSON, raw output JSON, grounding references, Witness acceptance/rejection, and resulting bounded structure as inspectable evidence.
