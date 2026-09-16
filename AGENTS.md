@@ -99,6 +99,16 @@ Witness does not require a current-operation object. Ordinary functions may simp
 
 Do not add operation metadata to CSV or JSON unless a concrete executable call proves that field is necessary.
 
+## “Packet” is just the one-call JSON object
+
+`Packet`, `calling packet`, and `Witness packet` mean the one transient JSON object supplied to a single Granite call.
+
+Do not infer a packet class, payload wrapper, header/body protocol, transport layer, universal packet schema, fixed top-level fields, stored packet record, caller metadata, or operation metadata from that word.
+
+Witness constructs that object directly from the scoped CSV-derived values/configuration the concrete call needs. Add only the fields the proven Granite interface and call require.
+
+The current fixture prompt's phrase `one calling packet` is local wording, not evidence for another subsystem.
+
 ## Current fixture root
 
 The current executable fixture uses `world/world.csv` as its search list for what exists or matters. In the current probe, `type,name` resolves the referenced CSV record.
@@ -167,15 +177,17 @@ A Witness call:
 1. receives whatever CSV-backed references/parameters the concrete call site actually supplies;
 2. resolves only that scoped CSV state;
 3. includes only the prompt, situation, facts/context, model/resource information, and any call-specific output guidance/configuration actually used; and
-4. constructs the transient JSON packet Granite receives.
+4. constructs the one transient JSON object Granite receives.
+
+That JSON object is the Witness/calling packet. It is not a wrapper around a second payload.
 
 Witness does not require a caller object, current-operation object, operation id, or operation context.
 
-No output-schema or return-constraint field is mandatory merely because Witness exists.
+No packet metadata, output-schema, or return-constraint field is mandatory merely because Witness exists.
 
 Witness owns no state. It does not inspect Granite output, decide consequences, repair output, maintain NPC memory, or mutate CSV.
 
-There is no required separate `Resolver` architecture. CSV reference resolution is ordinary generic work performed during Witness packet construction.
+There is no required separate `Resolver` architecture. CSV reference resolution is ordinary generic work performed during Witness call-JSON construction.
 
 Do not turn Witness into a model wrapper framework or stateful service. It is just the outbound edge of the harness.
 
@@ -237,7 +249,7 @@ See `docs/DIALOGUE_BOUNDARY.md`.
 
 ## Backing structure must fall out of the game
 
-Do not freeze the final CSV topology, ECS schema, packet schema, output-schema/structured-output policy, spatial index, component model, file-per-entity policy, event schema, event log, function-graph/routing schema, operation-object/context schema, return-mapping framework, rejection protocol, or world database in advance.
+Do not freeze the final CSV topology, ECS schema, packet schema, packet-envelope protocol, output-schema/structured-output policy, spatial index, component model, file-per-entity policy, event schema, event log, function-graph/routing schema, operation-object/context schema, return-mapping framework, rejection protocol, or world database in advance.
 
 Lock the authority boundary and the categories the game must be able to describe. Let concrete schemas emerge as actual first-person game assets and mechanics are forced through the real lifecycle.
 
