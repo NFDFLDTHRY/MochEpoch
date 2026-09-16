@@ -8,7 +8,7 @@ Read `docs/GAME_BLUEPRINT.md` first for the full lifecycle and `docs/CSV_BACKING
 
 Granite is not an NPC brain, autonomous agent, world model, authority, truth engine, civilization simulator, or owner of character state.
 
-Granite is an ordinary callable game function:
+Granite is an ordinary call-scoped game function:
 
 ```text
 JSON parameters → Granite → JSON return
@@ -16,11 +16,21 @@ JSON parameters → Granite → JSON return
 
 Its job is:
 
-> Generate or evaluate actor actions and natural-language dialogue from the bounded game possibilities supplied in one call packet.
+> Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet, subject only to whatever return shape the current call actually requires.
 
-Granite may generate an NPC action, generate NPC language, map human language into game-defined possibilities, map a fuzzy human action, or perform another narrowly defined JSON → JSON transformation only when an executable operation proves it necessary.
+Granite may generate an NPC action, generate NPC language, map human language into a game-relevant representation, map a fuzzy human action, or perform another narrowly defined JSON → JSON transformation only when an executable operation proves it necessary.
 
 A deterministic player control or deterministic world mechanic does not require Granite merely because the model exists.
+
+## Scoped does not mean behavior-whitelisted
+
+The call is scoped because Witness selects the CSV-backed state/configuration supplied to Granite.
+
+That scope limits the information available to the call. It does not require the represented actor to choose from a universal finite action menu, behave sensibly, or stay within a designer-approved social script.
+
+A particular operation may deliberately use a narrow return schema. The current fixture's `hand_over | wait` enum is one such local constraint. It is not the general MochEpoch behavior ontology.
+
+Granite may produce strange, false, contradictory, foolish, hostile, cooperative, impossible, or otherwise surprising actor behavior. The authoritative question comes later: can the result map back into the current CSV-described world and an implemented mechanic?
 
 ## Witness is the outbound wrapper
 
@@ -28,9 +38,9 @@ A deterministic player control or deterministic world mechanic does not require 
 
 A Witness call does only this:
 
-1. receive the caller/current operation plus whatever CSV-backed references the implemented call actually uses;
-2. resolve only that scoped CSV state;
-3. include only the current system prompt, situation, world facts/possibilities, model/resource information, and return constraint the real call actually needs; and
+1. receive the caller/current operation and whatever CSV-backed references the implemented call actually uses;
+2. resolve only that scoped CSV state/configuration;
+3. include only the prompt, situation, facts/context, model/resource information, and return constraint the real call actually needs; and
 4. construct the transient JSON packet passed to Granite.
 
 Conceptually:
@@ -39,7 +49,7 @@ Conceptually:
 scoped CSV-backed state/configuration
         ↓
 Witness
-resolve scoped CSV + construct packet
+retrieve scoped CSV + construct packet
         ↓
 JSON packet
         ↓
@@ -52,38 +62,24 @@ Witness owns no game state. It does not reason about the world, interpret Granit
 
 Witness is not a separate simulation subsystem. It is a generic stateless edge operation in the same harness.
 
-There is no required separate `Resolver` architecture. Reference resolution is simply work Witness performs while constructing the packet, using generic CSV machinery.
+There is no required separate `Resolver` architecture. Reference resolution is ordinary generic CSV work performed while constructing the packet.
+
+The Witness packet schema is not frozen before the real browser call establishes its minimum shape.
 
 ## What selects a Granite call
 
-Game-specific call choices that must exist outside executable code belong in CSV-backed configuration.
+Game-specific choices that must survive outside executable code belong in CSV-backed configuration only when a real operation requires them.
 
-Do not turn that statement into a prebuilt schema.
-
-The current fixture proves only a narrow relationship:
+The current fixture proves only this narrow relationship:
 
 ```text
-Ada
-  decision_system = interaction
-        ↓
-interaction.csv
-  system_prompt = ...
-  output_schema = hand_over | wait
+Ada decision_system = interaction
+interaction.csv supplies system_prompt + output_schema
 ```
 
-That is enough to establish that game-specific call configuration can be CSV-backed.
+Do not infer a universal operation record, model registry, function-routing table, next-step field, or output-population schema from that fixture.
 
-It does not establish that every call needs:
-
-- an explicit operation id;
-- a function id field;
-- a model registry entry;
-- a next-function pointer;
-- a routing table;
-- an output-population field separate from whatever return constraint the call already uses; or
-- a universal function-graph record.
-
-If the real browser call or later game mechanic proves another CSV-backed reference is required, add the minimum reference then.
+If the real Granite browser interface proves that another model/resource reference is required, add the minimum reference then. If a later operation proves another call must follow, add only the minimum game-specific reference required by that operation.
 
 Executable code supplies generic machinery. Do not hard-code a second NPC/game-specific control architecture around Granite.
 
@@ -95,7 +91,7 @@ Granite does not:
 - own world state;
 - read arbitrary CSV directly;
 - choose what world scope it receives;
-- enlarge authoritative ontology merely by mentioning something;
+- create authoritative ontology merely by mentioning something;
 - maintain hidden game truth between calls;
 - decide objective truth;
 - execute physical consequences;
@@ -114,22 +110,27 @@ The deterministic harness/game runner performs only the return work required by 
 ```text
 raw Granite JSON
         ↓
-parse / validate / map against what this operation actually allows
+parse / map against the current CSV-described world and implemented mechanic
         ↓
 accepted game representation or REJECT
         ↓
-deterministic operation / consequence
+deterministic game operation / consequence
         ↓
-write the CSV-backed facts/history the operation actually requires
+write only the CSV-backed facts/history the operation actually requires
 ```
 
-The accepted game representation can remain transient while deterministic mechanics resolve it. It does not require its own CSV event merely because Granite produced it.
+The accepted representation can remain transient while deterministic mechanics resolve it. It does not require its own CSV event merely because Granite produced it.
 
-The operation may mutate current CSV state directly, write factual/attributed history when later behavior needs that history, do both, or produce no CSV change when resolution fails or is a no-op.
+The operation may:
+
+- mutate current CSV state directly;
+- write factual/attributed history when later behavior needs that history;
+- do both; or
+- produce no CSV change when resolution fails or is a no-op.
 
 This return edge is not Witness. Do not invent a second named subsystem merely to perform it.
 
-A schema-valid Granite return is still not game truth. Only the CSV-backed facts/history actually written by the accepted operation become continuing game truth.
+A schema-valid Granite return is still not game truth. Only the CSV-backed facts/history actually written by the accepted operation become continuing game truth/history.
 
 If another Granite transformation is actually required, a transient prior result may be used to construct another scoped Witness packet. Intermediate JSON remains disposable unless a later implemented operation genuinely needs it persisted.
 
@@ -141,17 +142,15 @@ A return may represent an NPC lying, misunderstanding, contradicting prior speec
 
 Those are properties of the represented actor behavior, not evidence that Granite is an in-world actor.
 
-The harness only needs the result to map back into the game world represented by CSV-backed possibilities.
-
 Example:
 
 ```text
 Granite return representing Ada's action: hand_over(stone)
 ```
 
-That action can map correctly because `hand_over` and `stone` are represented in the current operation. Deterministic mechanics may still make the physical hand-over fail if current CSV-backed state says Ada no longer holds the stone.
+That action can map if the current CSV-described world contains the referenced stone and the game has an implemented `hand_over` mechanic. Deterministic mechanics may still make the physical hand-over fail if current CSV-backed state says Ada no longer holds the stone.
 
-The failed attempt does not need a permanent event record unless later implemented behavior requires it.
+The failed attempt does not need a permanent history record unless later implemented behavior requires it.
 
 Do not make Granite pre-solve every physical precondition merely to avoid failed attempts.
 
@@ -162,7 +161,7 @@ At the game-truth boundary, humans and NPCs occupy the same behavioral slot.
 NPC path:
 
 ```text
-CSV → Witness packet → Granite-generated behavior JSON → deterministic map/resolve → CSV
+CSV → Witness packet when needed → Granite-generated behavior JSON → deterministic map/resolve → CSV
 ```
 
 Human path when fuzzy mapping is needed:
@@ -179,9 +178,7 @@ Granite is machinery used where fuzzy generation/mapping is required. It is not 
 
 Natural-language communication has no fixed Granite stage graph.
 
-Start with one scoped Witness call when one call can complete the required mapping. Add another model call only when an executed case demonstrates a concrete need.
-
-If that later call requires a game-specific CSV-backed reference, add only that reference. Do not prebuild routing fields or a dialogue graph.
+Start with one scoped Witness call when one call can complete the required transformation. Add another model call only when an executed case demonstrates a concrete need.
 
 For NPC-to-NPC communication, the actual utterance delivered by the sender crosses to the recipient. Never substitute hidden sender-side structured data for what the recipient actually received.
 
@@ -191,8 +188,6 @@ Persist speech/history only when later game behavior needs it. See `docs/DIALOGU
 
 The behavioral contract is fixed. The serialization shape is not.
 
-First establish the concrete Granite 350M browser/WebApp calling interface. Then build the smallest Witness packet and deterministic return mapping required by the real operation.
+First establish the concrete Granite 350M browser/WebApp calling interface. Then build the smallest Witness packet and deterministic return mapping required by the real operation. Let later packet fields, history representation, and additional calls emerge only from later executable operations.
 
-Let later packet fields, model/resource references, history representation, and additional calls emerge only from later executable operations.
-
-Do not design a general model protocol, routing schema, function graph table, or event layer merely because it might be useful.
+Do not design a general model protocol, behavior whitelist, graph protocol, or event layer merely because it might be useful.
