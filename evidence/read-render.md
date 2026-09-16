@@ -1,3 +1,7 @@
+# Historical evidence notice
+
+This file is a chronological record of earlier implementation attempts and observations. It is **not architectural authority**. Some planning statements, terminology, and next-step instructions below were superseded later. Current MochEpoch architecture is defined by `AGENTS.md` and the authoritative documents under `docs/`, led by `docs/GAME_BLUEPRINT.md`. Preserve the observations below as evidence; do not reconstruct the current design from them.
+
 # Read/resolve/render iteration
 
 Run: 2026-09-14, 21:10 UTC. Base: `88938bd723356f4bb88c00da62eede3981d3863e`.
