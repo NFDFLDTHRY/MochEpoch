@@ -3,8 +3,10 @@
 status: CLOSED
 closed_against_main: 8dfde456c59c36318f2bdab6fa4f9e44a105907c
 closed_on: 2026-09-16
+architecture_lock: docs/ARCHITECTURE_LOCK.json
+locked_blueprint_blob: 5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945
 
-This file records the end of the architecture-audit phase. It is not a new architecture layer. `docs/GAME_BLUEPRINT.md` remains the architectural blueprint.
+This file records the end of the architecture-audit phase. It is not a new architecture layer. `docs/GAME_BLUEPRINT.md` remains the architectural blueprint and is now locked by `docs/ARCHITECTURE_LOCK.json`.
 
 ## Closure basis
 
@@ -39,6 +41,16 @@ The final closure sweep found no remaining contradiction between the agreed blue
 
 The current executable repository still establishes only the CSV read/resolve/render probe. It does not yet establish a real Granite call, a real Witness call, actor-mediated CSV mutation, browser persistence, or the complete first-test loop.
 
+## Architecture lock
+
+The closed blueprint is frozen byte-for-byte at Git blob SHA `5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945`.
+
+Implementation, repair, cleanup, documentation alignment, refactoring, or renewed auditing does not authorize changing the blueprint or its lock record.
+
+Only an explicit user instruction to unlock, replace, or create a new architecture version authorizes changing `docs/GAME_BLUEPRINT.md` or `docs/ARCHITECTURE_LOCK.json`.
+
+If executable evidence conflicts with the locked blueprint, save the evidence and report the conflict. Do not resolve it by silently changing architecture.
+
 ## Stop rule
 
 Do not continue vocabulary-by-vocabulary architecture auditing.
@@ -49,6 +61,8 @@ Reopen architecture only when at least one of these occurs:
 - executable evidence contradicts a current invariant;
 - the next concrete implementation cannot be completed without machinery that conflicts with the blueprint; or
 - two current authoritative repository documents materially contradict each other.
+
+Even when one of those triggers occurs, reopening discussion does not unlock the blueprint. The user must explicitly authorize an architecture revision before the locked files change.
 
 Absent one of those triggers, the next work is executable, not architectural.
 
