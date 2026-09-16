@@ -4,7 +4,7 @@ Tiny Model Civilizations Browser Game.
 
 ## Question
 
-Can a civilization-like first-person game emerge from CSV-backed world truth, bounded JSON transformations, human/NPC behavior, and deterministic consequences without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization?
+Can a civilization-like first-person game emerge from CSV-backed world truth, scoped JSON transformations, human/NPC behavior, and deterministic consequences without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization?
 
 ## The game in one line
 
@@ -29,59 +29,76 @@ For an actor-mediated operation:
 ```text
 AUTHORITATIVE CSV WORLD
         ↓
-Witness resolves scoped CSV and constructs one JSON packet when Granite is needed
+Witness resolves scoped CSV and constructs a JSON packet when Granite is needed
         ↓
 NPC or HUMAN behavior
         ↓
-raw JSON expression/result where applicable
+JSON expression/result where applicable
         ↓
-deterministic parse / map / resolve or REJECT
+deterministic map / resolve or REJECT
         ↓
 write only the resulting game-relevant CSV facts/history required by the operation
         ↓
 AUTHORITATIVE CSV WORLD'
 ```
 
-There is no mandatory intermediate actor-event write. The mapped behavior may directly mutate current state, persist factual/attributed history when later behavior needs it, do both, or produce no world change.
-
 The human or NPC may lie, misunderstand, contradict themselves, make a bad decision, attempt an impossible action, use strange wording, cooperate, refuse, or otherwise behave unpredictably. That variation is part of the experiment.
 
-The harness does not decide whether behavior is sensible, moral, truthful, socially appropriate, or optimal. It asks what the behavior corresponds to in the currently represented world. Language or behavior cannot create new game ontology merely by mentioning it.
+The harness does not decide whether behavior is sensible, moral, truthful, socially appropriate, optimal, or likely to succeed. It asks what the behavior maps to in the currently represented world.
 
-Mapping and physical success are separate. An actor can validly express `hand_over(stone)` even when deterministic mechanics later reject the physical consequence because the actor no longer holds the stone.
+Language or behavior cannot create authoritative world ontology by mention alone.
+
+## Scoped does not mean behavior-whitelisted
+
+Witness gives Granite a scoped slice of CSV-backed world/configuration plus whatever prompt/resource/return constraints the current call actually needs.
+
+That does not require actors to choose from a universal finite behavior menu.
+
+The current fixture's `hand_over | wait` output enum is a local test constraint, not MochEpoch's general behavior ontology.
+
+Granite or a human may produce arbitrary language or behavior. The game only cares whether the result can map back into the CSV-described world and an implemented mechanic.
 
 ## Function graph
 
-The harness can look like a small tree/DAG of generic function calls over CSV-backed references.
+The harness may look tree-shaped or DAG-shaped during a particular operation because several CSV references/functions feed one result. Repeated operations form the larger game graph.
 
-That is the shape of actual execution, not a requirement for a stored graph structure.
+That is an execution shape, not a required graph data structure.
 
-Do not assume MochEpoch needs a universal operation id, function table, node table, routing table, next-edge field, or graph executor.
+Do not infer a universal operation record, graph table, routing table, next-edge field, node schema, output-population table, or graph executor.
 
-Game-specific choices that must survive outside executable code belong in CSV-backed configuration only when an implemented operation actually needs them.
-
-The current fixture proves a narrow relationship:
+The current fixture proves only a narrow relationship:
 
 ```text
 Ada decision_system = interaction
 interaction.csv supplies system_prompt + output_schema
 ```
 
-That is enough for now. Future model/resource references or call-chaining references must be added only when real execution requires them.
+Add more CSV-backed call/configuration references only when a real executable operation proves they are needed.
 
-Generic functions execute the resulting operation path. They do not own game state or become a second game-specific runtime architecture.
+## Useful execution views
+
+These are descriptions, not runtime operation types:
+
+```text
+projection:            CSV → renderer / audio / UI
+
+deterministic:         CSV → deterministic function → CSV
+
+actor-mediated:        CSV → JSON when needed → NPC / HUMAN
+                       → JSON when needed → deterministic mapping/resolution → CSV
+```
+
+Do not create an operation-type enum, dispatcher, scheduler, or class hierarchy merely to encode those descriptions.
 
 ## Witness
 
 Witness is the scoped CSV → JSON Granite-call constructor.
 
-A Witness call receives the caller/current operation plus the CSV-backed references actually needed by that call, resolves only that scoped state, and constructs the transient JSON packet Granite receives.
+It retrieves only the CSV-backed state/configuration needed for the current call and constructs the transient JSON packet Granite receives.
 
 Witness owns no game state. It does not inspect Granite output, decide consequences, repair output, or mutate CSV.
 
-There is no required separate Resolver subsystem. Reference resolution is just part of Witness packet construction using generic CSV functions.
-
-Witness packet fields are not frozen before the real Granite browser call proves them.
+There is no required separate Resolver subsystem.
 
 ## Granite
 
@@ -91,25 +108,11 @@ Granite is used like another game function:
 JSON parameters → Granite → JSON return
 ```
 
-Its job is to generate or evaluate actions and natural-language dialogue from the bounded game possibilities supplied in one call packet.
+Its job is to generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet, subject only to whatever return shape that call actually requires.
 
 Granite does not own an NPC, own world state, read arbitrary CSV directly, choose its own scope, decide objective truth, execute physical consequences, mutate CSV, or carry hidden game truth between calls.
 
-The return JSON is non-authoritative until deterministic harness code maps it into the current game operation and resolves the corresponding result.
-
-```text
-raw Granite JSON
-        ↓
-parse / validate / map against what this operation actually permits
-        ↓
-accepted game representation or REJECT
-        ↓
-deterministic game operation
-        ↓
-required CSV-backed result
-```
-
-The operation may directly mutate state, persist history when later behavior needs it, do both, or do nothing. Do not invent another named subsystem or universal event layer for this edge.
+The return JSON is non-authoritative until deterministic harness code maps it back into the current CSV-described world and resolves the corresponding game operation.
 
 See [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for the model contract.
 
@@ -117,7 +120,7 @@ See [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for the model contract.
 
 The player and NPCs enter the same behavioral boundary.
 
-NPC behavior may use Granite to generate/evaluate actions or dialogue from a bounded current possibility-space.
+NPC behavior may use Granite to generate/evaluate actions or dialogue from the scoped current CSV-backed world/context.
 
 Human behavior enters as external action/dialogue and may use Granite when fuzzy mapping or natural-language interpretation is actually required.
 
@@ -129,15 +132,13 @@ Natural-language communication is not a separate dialogue architecture. It uses 
 
 There is no mandatory `INTAKE → CHECK → COMMIT`, `COMPOSE → CHECK → EMIT`, or other fixed stage graph.
 
-Start with the smallest mapping that completes the real interaction. If one Granite transformation is enough, use one. Add another transformation, retry, check, or correction pass only when execution demonstrates a concrete need.
-
-If a later communication operation needs game-specific CSV-backed configuration, add only the minimum reference required then. Do not prebuild dialogue routing.
+Start with the smallest mapping that completes the real interaction. Add another transformation, retry, check, or correction pass only when execution demonstrates a concrete need.
 
 For NPC-to-NPC communication, the actual utterance crosses between actors. Never replace what was actually said with hidden sender-side structured data.
 
-If later operations need to know that `A said Y`, persist that occurrence as CSV-backed factual history. Recording it makes the speech event authoritative, not the proposition inside `Y` objectively true.
+If later operations need to know that `A said Y`, persist that occurrence as CSV-backed factual history. Recording it makes the occurrence factual, not the proposition inside `Y` objectively true.
 
-See [docs/DIALOGUE_BOUNDARY.md](docs/DIALOGUE_BOUNDARY.md) for the communication boundary.
+See [docs/DIALOGUE_BOUNDARY.md](docs/DIALOGUE_BOUNDARY.md).
 
 ## CSV backing state
 
@@ -145,15 +146,15 @@ CSV is the only authoritative game backing state. There is no parallel active-wo
 
 MochEpoch game code must not maintain authoritative gameplay truth in JavaScript objects, Maps, an ECS, state stores, renderer objects, inventory managers, NPC caches, model context, or other parallel runtime structures.
 
-If a game-relevant fact/event must survive the current operation, it needs a CSV-backed representation.
+If a game-relevant fact/history item must survive the current operation, it needs a CSV-backed representation.
 
 If something exists only to turn those facts into pixels, sound, animation, GPU work, inference, or another backend representation, it is rendering/resource machinery rather than independent game truth.
 
 The concrete CSV topology is intentionally not fixed in advance. World assets and mechanics reveal the smallest correct backing structure as they are built and forced through the actual lifecycle.
 
-The backing state must eventually be able to describe the game-relevant world categories actual mechanics require: world/space, actors, physical actor state, natural resources/objects, built structures, actions/transformations, optional factual/attributed history, concrete function/model configuration proven necessary, and asset/resource references.
+The backing state must eventually be able to describe the game-relevant world categories actual mechanics require: world/space, actors, physical actor state, natural resources/objects, built structures, actions/transformations, optional factual history, system/function/model configuration, and asset/resource references.
 
-These are ontology categories, not a preselected ECS, file-per-entity schema, or function-routing schema.
+These are ontology categories, not a preselected ECS or file-per-entity schema.
 
 See [docs/CSV_BACKING_STATE.md](docs/CSV_BACKING_STATE.md).
 
@@ -164,8 +165,6 @@ The first-person 3D renderer is a projection of the CSV-described world.
 Game assets are discovered through CSV-backed references/manifests. Referenced models, textures, audio, shaders, model weights, generators, and other resources may use whatever format their backend requires.
 
 Scene objects, meshes, GPU buffers, animation mixers, particles, shadows, fog, camera internals, renderer caches, and backend handles are disposable runtime machinery unless a corresponding game fact is represented in CSV.
-
-Destroying and rebuilding renderer/model runtime machinery must not destroy or alter a continuing game fact/event.
 
 ## No encoded civilization
 
@@ -183,7 +182,7 @@ One world. One player. One game-controlled character whose decision path may cal
 
 The current seed uses one room, the player, Ada, and one stone held by Ada. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
 
-No event log, graph table, routing field, generalized operation schema, or actor-history record is required for this first fixture unless the run itself demonstrates a concrete need.
+No event log, graph table, operation-type enum, or actor-history record is required for this first fixture unless the run itself demonstrates a need.
 
 **Pass condition:** the next interaction operates correctly from the resulting authoritative CSV-backed state without hidden model memory or hidden game state.
 
@@ -199,9 +198,9 @@ The real Chrome read/resolve/render milestone passed on public commit-pinned Git
 
 These checks establish current CSV read/reference-resolution/projection behavior. They do not establish a Granite call, Witness packet, actor-mediated gameplay mutation, persistence, or the complete first-test loop.
 
-The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real bounded JSON-in → JSON-out call. Then build the thinnest actual `CSV → Witness JSON → Granite → JSON → deterministic map/resolve → CSV` path the proven interface requires.
+The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real scoped JSON-in → JSON-out call. Then build the thinnest actual `CSV → Witness JSON → Granite → JSON → deterministic map/resolve → CSV` path the proven interface requires.
 
-Do not freeze future world/ECS/packet/dialogue/history/function-routing schemas before execution reveals them.
+Do not freeze future world/ECS/packet/dialogue/history schemas before execution reveals them.
 
 ## Development in Chrome through GitHack
 
