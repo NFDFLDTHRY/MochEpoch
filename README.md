@@ -56,6 +56,14 @@ That does not imply an `Operation` class/object, operation context, caller objec
 
 Ordinary functions can call Witness and other functions with only the references/parameters they actually need. Do not add operation metadata to CSV or JSON unless executable work proves it necessary.
 
+## “Packet” is just the Granite call JSON
+
+`Packet`, `calling packet`, and `Witness packet` mean the one transient JSON object supplied to a single Granite call.
+
+The term does not imply a packet class, header/body protocol, payload wrapper, transport layer, fixed top-level fields, universal packet schema, stored packet record, caller metadata, or operation metadata.
+
+Witness simply builds that one JSON object from the scoped CSV-derived values/configuration the concrete call needs.
+
 ## Scoped does not mean behavior-whitelisted
 
 Witness gives Granite a scoped slice of CSV-backed world/configuration plus whatever prompt/resource information and call-specific output guidance the concrete call actually uses.
@@ -104,13 +112,15 @@ Do not create an operation-type enum, dispatcher, scheduler, class hierarchy, op
 
 Witness is the scoped CSV → JSON Granite-call constructor.
 
-It retrieves only the CSV-backed state/configuration needed for the current call and constructs the transient JSON packet Granite receives.
+It retrieves only the CSV-backed state/configuration needed for the current call and constructs the one transient JSON object Granite receives.
+
+That object is the Witness/calling packet. It is not a wrapper around another hidden payload.
 
 Witness owns no game state. It does not inspect Granite output, decide consequences, repair output, or mutate CSV.
 
 There is no required separate Resolver subsystem.
 
-Witness does not require a caller/current-operation object, operation id/context, `output_schema`, or return-constraint field merely because another call has one.
+Witness does not require a caller/current-operation object, operation id/context, packet metadata, `output_schema`, or return-constraint field merely because another call has one.
 
 ## Granite
 
@@ -216,7 +226,7 @@ One world. One player. One game-controlled character whose decision path may cal
 
 The current seed uses one room, the player, Ada, and one stone held by Ada. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
 
-No event log, graph table, operation object/context/type enum, universal output-schema layer, return-mapping layer, rejection state, or actor-history record is required for this first fixture unless the run itself demonstrates a need.
+No event log, graph table, operation object/context/type enum, packet envelope/protocol, universal output-schema layer, return-mapping layer, rejection state, or actor-history record is required for this first fixture unless the run itself demonstrates a need.
 
 **Pass condition:** the next interaction operates correctly from the resulting authoritative CSV-backed state without hidden model memory or hidden game state.
 
@@ -242,7 +252,7 @@ CSV → Witness JSON → Granite → JSON → local deterministic handling → C
 
 path the proven interface requires.
 
-Do not freeze future world/ECS/packet/dialogue/history/output-schema/operation-context structures before execution reveals them.
+Do not freeze future world/ECS/packet-envelope/dialogue/history/output-schema/operation-context structures before execution reveals them.
 
 ## Development in Chrome through GitHack
 
