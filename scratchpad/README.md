@@ -2,7 +2,17 @@
 
 This folder is a communication surface between the user, normal ChatGPT sessions, and ChatGPT Work.
 
-It is not game state, not experimental evidence, not architecture authority, and not a substitute for the repository documentation. Nothing in this folder may override `AGENTS.md`, `docs/GAME_BLUEPRINT.md`, `docs/CSV_BACKING_STATE.md`, `docs/MODEL_ROLE.md`, `docs/DIALOGUE_BOUNDARY.md`, or the current implementation plan.
+It is not game state, not experimental evidence, not architecture authority, and not a substitute for the repository documentation. Nothing in this folder may override `docs/ARCHITECTURE_LOCK.json`, `AGENTS.md`, `docs/GAME_BLUEPRINT.md`, `docs/CSV_BACKING_STATE.md`, `docs/MODEL_ROLE.md`, `docs/DIALOGUE_BOUNDARY.md`, or the current implementation plan.
+
+## Architecture lock
+
+`docs/GAME_BLUEPRINT.md` is locked by `docs/ARCHITECTURE_LOCK.json`.
+
+Before proposing architecture-related work, Work must verify that the current `docs/GAME_BLUEPRINT.md` Git blob SHA matches the lock file. A mismatch is a blocker and must be reported without rewriting the blueprint or updating the lock.
+
+Work must not propose or perform changes to `docs/GAME_BLUEPRINT.md` or `docs/ARCHITECTURE_LOCK.json` unless the user has explicitly instructed it to unlock, replace, or create a new architecture version.
+
+Executable evidence may justify reporting an architecture conflict. It does not authorize Work to resolve that conflict by changing the locked blueprint.
 
 ## Purpose
 
@@ -19,12 +29,13 @@ These files may be rewritten in place for each operation. Do not turn the scratc
 
 Before modifying game code, world CSVs, project architecture, runtime machinery, dependencies, hosting configuration, or other implementation files, Work must:
 
-1. Read `AGENTS.md`, `docs/GAME_BLUEPRINT.md`, and the current relevant authoritative docs from `main`.
-2. Overwrite `scratchpad/WORK.md` with one narrowly scoped proposal.
-3. Give that proposal a unique `proposal_id` such as a UTC timestamp plus a short slug.
-4. Set `status: PROPOSED`.
-5. State the exact operation, exact files it expects to touch, why each file is needed, what it will run or inspect, what result would count as success, and any unresolved question or risk.
-6. Stop before making the proposed implementation changes.
+1. Read `docs/ARCHITECTURE_LOCK.json`, `AGENTS.md`, `docs/GAME_BLUEPRINT.md`, and the current relevant authoritative docs from `main`.
+2. Verify the locked blueprint blob SHA when the proposed work is architecture-related.
+3. Overwrite `scratchpad/WORK.md` with one narrowly scoped proposal.
+4. Give that proposal a unique `proposal_id` such as a UTC timestamp plus a short slug.
+5. Set `status: PROPOSED`.
+6. State the exact operation, exact files it expects to touch, why each file is needed, what it will run or inspect, what result would count as success, and any unresolved question or risk.
+7. Stop before making the proposed implementation changes.
 
 Work may proceed only after `scratchpad/REVIEW.md` explicitly contains `decision: APPROVED` and names the same `proposal_id`, or the user explicitly instructs Work in the active Work conversation to proceed with that exact proposal.
 
@@ -42,7 +53,7 @@ After an approved operation, Work must update `WORK.md` with `status: COMPLETE` 
 - any failure or unresolved blocker;
 - the smallest next operation, if one is evident.
 
-Do not silently promote scratchpad statements into project truth. Durable architectural decisions belong in the authoritative docs only after explicit approval. Experimental evidence belongs in the repository evidence area only when the run actually established it.
+Do not silently promote scratchpad statements into project truth. Durable architectural decisions belong in the authoritative docs only after explicit approval, and the locked blueprint requires an explicit unlock/version decision before it can change. Experimental evidence belongs in the repository evidence area only when the run actually established it.
 
 ## For normal ChatGPT sessions
 
