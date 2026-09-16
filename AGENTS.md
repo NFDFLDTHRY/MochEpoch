@@ -83,7 +83,7 @@ Ada decision_system = interaction
 interaction.csv supplies system_prompt + output_schema
 ```
 
-Do not generalize that into a universal call-configuration schema.
+The `output_schema` key is fixture-local configuration. Do not generalize it into a universal call-configuration schema, universal output-schema field, return-constraint field, or structured-output layer.
 
 If later execution proves another game-specific reference is required, add the minimum reference then.
 
@@ -126,11 +126,13 @@ Preserve behavioral freedom. Constrain only what can become authoritative CSV-ba
 
 ## Scoped does not mean behavior-whitelisted
 
-Witness gives Granite a scoped slice of CSV-backed world/configuration plus whatever prompt/resource/return constraints the current call actually needs.
+Witness gives Granite a scoped slice of CSV-backed world/configuration plus whatever prompt/resource information and operation-specific output guidance the concrete call actually uses.
 
 That limits the information supplied. It does not require the actor to choose from a universal finite menu of acceptable behavior.
 
-A particular fixture may use a narrow enum such as `hand_over | wait`. That is fixture data, not the general architecture.
+A particular fixture may use a narrow enum such as `hand_over | wait`. That is fixture data, not the general architecture. Another call may use a different schema, a prompt convention, parser-specific output, or no explicit output-schema mechanism at all.
+
+Do not add an `output_schema`, enum, grammar, constrained decoder, or return-constraint field merely because another call has one.
 
 Granite or a human may produce arbitrary language or behavior. A concrete operation consumes only what its implemented code understands. Anything else remains non-authoritative unless a later executable requirement defines different handling.
 
@@ -154,8 +156,10 @@ A Witness call:
 
 1. receives the caller/current operation and whatever CSV-backed references the implemented call actually uses;
 2. resolves only that scoped CSV state;
-3. includes only the prompt, situation, facts/context, model/resource information, and return constraint the real call actually needs; and
+3. includes only the prompt, situation, facts/context, model/resource information, and any operation-specific output guidance/configuration the real call actually uses; and
 4. constructs the transient JSON packet Granite receives.
+
+No output-schema or return-constraint field is mandatory merely because Witness exists.
 
 Witness owns no state. It does not inspect Granite output, decide consequences, repair output, maintain NPC memory, or mutate CSV.
 
@@ -171,7 +175,9 @@ Granite is a call-scoped JSON → JSON game function.
 
 Its exact role is:
 
-> Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet, subject only to whatever return shape the current call actually requires.
+> Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet and return JSON in whatever concrete form that operation actually uses.
+
+A JSON Schema, enum, grammar, constrained decoder, or other explicit return-shape mechanism is optional operation-local machinery, not a universal Granite requirement.
 
 Granite does not own an NPC, own world state, read arbitrary CSV, choose its own scope, decide objective truth, execute physical consequences, mutate CSV, write directly to UI, or carry hidden game truth between calls.
 
@@ -195,6 +201,8 @@ CSV-backed write(s) only if that operation produces them
 
 If the operation cannot consume the return, it performs no authoritative CSV write and the failure is evidence.
 
+The current fixture parses its explicit `output_schema`; that does not make schema validation a universal return step.
+
 Do not create another named subsystem merely for this side of the lifecycle.
 
 The return handling must not become a behavior corrector, truth engine, social-state interpreter, or universal semantic gate.
@@ -217,7 +225,7 @@ See `docs/DIALOGUE_BOUNDARY.md`.
 
 ## Backing structure must fall out of the game
 
-Do not freeze the final CSV topology, ECS schema, packet schema, spatial index, component model, file-per-entity policy, event schema, event log, function-graph/routing schema, return-mapping framework, rejection protocol, or world database in advance.
+Do not freeze the final CSV topology, ECS schema, packet schema, output-schema/structured-output policy, spatial index, component model, file-per-entity policy, event schema, event log, function-graph/routing schema, return-mapping framework, rejection protocol, or world database in advance.
 
 Lock the authority boundary and the categories the game must be able to describe. Let concrete schemas emerge as actual first-person game assets and mechanics are forced through the real lifecycle.
 
