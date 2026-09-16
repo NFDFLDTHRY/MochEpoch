@@ -29,23 +29,21 @@ For an actor-mediated operation:
 ```text
 AUTHORITATIVE CSV WORLD
         ↓
-Witness resolves the scoped CSV and constructs one JSON operation packet
+Witness resolves scoped CSV and constructs one JSON operation packet
         ↓
 NPC or HUMAN behavior
 (Granite only where fuzzy generation/mapping is required)
         ↓
 raw JSON expression/result
         ↓
-deterministic parse / map / accept or REJECT
+deterministic parse / map / resolve or REJECT
         ↓
-write any durable actor expression/event to CSV-backed state
-        ↓
-deterministic game resolution where a physical consequence is required
-        ↓
-write resulting durable facts/events to CSV-backed state
+write only the resulting game-relevant CSV facts/events required by the operation
         ↓
 AUTHORITATIVE CSV WORLD'
 ```
+
+There is no mandatory intermediate actor-event write. The mapped behavior may directly mutate current state, persist factual/attributed history when later behavior needs it, do both, or produce no world change.
 
 The human or NPC may lie, misunderstand, contradict themselves, make a bad decision, attempt an impossible action, use strange wording, cooperate, refuse, or otherwise behave unpredictably. That variation is part of the experiment.
 
@@ -85,7 +83,7 @@ Its job is to generate or evaluate actions and natural-language dialogue from th
 
 Granite does not own an NPC, own world state, read arbitrary CSV directly, choose its own scope, decide objective truth, execute physical consequences, mutate CSV, or carry hidden game truth between calls.
 
-The return JSON is non-authoritative until deterministic harness code maps it into the configured game representation and explicitly writes any durable result into CSV-backed state.
+The return JSON is non-authoritative until deterministic harness code maps it into the configured game representation and resolves the corresponding operation.
 
 ```text
 raw Granite JSON
@@ -94,10 +92,12 @@ parse / validate / map against configured output bounds
         ↓
 accepted game representation or REJECT
         ↓
-CSV-backed write when persistent
+deterministic game operation
+        ↓
+required CSV-backed result
 ```
 
-Do not invent another named subsystem for that return edge.
+The operation may directly mutate state, persist history when later behavior needs it, do both, or do nothing. Do not invent another named subsystem or universal event layer for this edge.
 
 See [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for the model contract.
 
@@ -121,9 +121,9 @@ Start with the smallest mapping that completes the real interaction. If one Gran
 
 For NPC-to-NPC communication, the actual utterance crosses between actors. Never replace what was actually said with hidden sender-side structured data.
 
-Completed communication that must affect later operations returns through the harness into CSV-backed factual/attributed state. Recording `A said Y` makes the speech event authoritative, not the proposition inside `Y` objectively true.
+If later operations need to know that `A said Y`, persist that occurrence as CSV-backed factual history. Recording it makes the speech event authoritative, not the proposition inside `Y` objectively true.
 
-See [docs/DIALOGUE_BOUNDARY.md](docs/DIALOGUE_BOUNDARY.md).
+See [docs/DIALOGUE_BOUNDARY.md](docs/DIALOGUE_BOUNDARY.md) for the communication boundary.
 
 ## CSV backing state
 
@@ -137,7 +137,7 @@ If something exists only to turn those facts into pixels, sound, animation, GPU 
 
 The concrete CSV topology is intentionally not fixed in advance. World assets and mechanics reveal the smallest correct backing structure as they are built and forced through the actual lifecycle.
 
-The backing state must eventually be able to describe the game-relevant world categories actual mechanics require: world/space, actors, physical actor state, natural resources/objects, built structures, actions/transformations, factual/attributed events/history, system/function/model configuration, and asset/resource references. These are ontology categories, not a preselected ECS or file-per-entity schema.
+The backing state must eventually be able to describe the game-relevant world categories actual mechanics require: world/space, actors, physical actor state, natural resources/objects, built structures, actions/transformations, optional factual/attributed history, system/function/model configuration, and asset/resource references. These are ontology categories, not a preselected ECS or file-per-entity schema.
 
 See [docs/CSV_BACKING_STATE.md](docs/CSV_BACKING_STATE.md).
 
@@ -153,19 +153,21 @@ Destroying and rebuilding renderer/model runtime machinery must not destroy or a
 
 ## No encoded civilization
 
-Store factual state and attributed events, not designer interpretations.
+Store the factual state and factual/attributed history the game actually needs, not designer interpretations.
 
 Do not add authoritative trust, morality, friendship, loyalty, resentment, faction sentiment, civilization scores, or similar social abstractions merely because they seem useful.
 
-A settlement may emerge because the world eventually contains factual houses, paths, stored food, tools, fields, people, speech events, construction, exchanges, conflict, cooperation, and other consequences. No `civilization = true` variable is required.
+A settlement may emerge because the world eventually contains factual houses, paths, stored food, tools, fields, people, construction, exchanges, conflict, cooperation, speech/history where needed, and other consequences. No `civilization = true` variable is required.
 
 Failure to produce civilization-like behavior is valid experimental evidence.
 
 ## First test
 
-One world. One player. One game-controlled character whose decision path may call Granite. One stone. One Witness call. One real Granite JSON return. One deterministic return mapping. One deterministic consequence. One CSV-backed world mutation. One visible consequence.
+One world. One player. One game-controlled character whose decision path may call Granite. One stone. One Witness call. One real Granite JSON return. One deterministic return mapping/resolution. One CSV-backed world mutation. One visible consequence.
 
 The current seed uses one room, the player, Ada, and one stone held by Ada. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
+
+No event log or actor-history record is required for this first fixture unless the run itself demonstrates that a later operation needs one.
 
 **Pass condition:** the next interaction operates correctly from the resulting authoritative CSV-backed state without hidden model memory or hidden game state.
 
@@ -179,9 +181,9 @@ The real Chrome read/resolve/render milestone passed on public commit-pinned Git
 2. a disposable branch changing only `stone.csv` holder from Ada to player rendered player holding the stone and Ada holding nothing; and
 3. a disposable branch removing `stone.csv` kept the world hidden and displayed `Could not load world: world/objects/stone.csv: HTTP 404`.
 
-These checks establish current CSV read/reference-resolution/projection behavior. They do not establish a Granite call, Witness packet, actor-event write, gameplay mutation, persistence, or the complete first-test loop.
+These checks establish current CSV read/reference-resolution/projection behavior. They do not establish a Granite call, Witness packet, actor-mediated gameplay mutation, persistence, or the complete first-test loop.
 
-The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real bounded JSON-in → JSON-out call. Then build the thinnest actual `CSV → Witness JSON → Granite → JSON → deterministic map → CSV` path the proven interface requires. Do not freeze future world/ECS/packet/dialogue schemas before execution reveals them.
+The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real bounded JSON-in → JSON-out call. Then build the thinnest actual `CSV → Witness JSON → Granite → JSON → deterministic map/resolve → CSV` path the proven interface requires. Do not freeze future world/ECS/packet/dialogue/history schemas before execution reveals them.
 
 ## Development in Chrome through GitHack
 
