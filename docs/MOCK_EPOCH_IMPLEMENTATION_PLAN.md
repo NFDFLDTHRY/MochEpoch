@@ -1,58 +1,42 @@
-# MOCK EPOCH — IMPLEMENTATION PLAN
+# MOCH EPOCH — IMPLEMENTATION PLAN
 
 ## QUESTION
 
-Can a civilization-like game emerge from CSV world state + scoped Witness calls + Granite 350M JSON reasoning + deterministic game execution, without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization?
+Can a civilization-like game emerge from CSV world state + bounded Resolver/Granite/Witness transformations + deterministic game execution, without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization?
 
-## DESIGN
+## CORE MODEL CALL
+
+Every Granite call crosses the same trust boundary:
 
 ```text
-PLAYER
+TRUSTED CSV-BACKED STATE
   │
   ▼
-GAME RUNNER
+RESOLVER
+CSV → bounded JSON parameters
   │
   ▼
-WORLD.CSV search list
-  │
-  ├─ type + name → character CSV
-  ├─ type + name → object CSV
-  └─ type + name → system CSV
-  │
-  ▼
-decision required
-  │
-  ▼
-WITNESS
-class functions for scoped CSV access + calling-packet construction
-  │
-  ▼
-ONE GRANITE CALLING PACKET
-  ├─ world_descriptive_summation
-  ├─ system_prompt
-  ├─ current_situational_state
-  └─ output_schema
-  │
-  ▼
-GRANITE 350M
+GRANITE(operation)
 JSON → JSON
   │
   ▼
-MODEL OUTPUT
+UNTRUSTED JSON RESULT
   │
   ▼
-IF / ELSE / THEN RESOLVER
+WITNESS
+JSON → bounded CSV-backed result or REJECT
   │
   ▼
-GAME RUNNER
-  │
-  ▼
-UPDATE CSV-BACKED STATE
-  │
-  ▼
-NEXT WORLD
-  └──────── LOOP
+TRUSTED CSV-BACKED STRUCTURE AGAIN
 ```
+
+Resolver and Witness are deterministic game-side boundaries. Granite is a called function between them.
+
+Resolver is outbound: trusted CSV → bounded JSON.
+
+Witness is inbound: untrusted Granite JSON → bounded CSV-backed structure or rejection.
+
+Do not reverse these names.
 
 ## WORLD RULES
 
@@ -62,13 +46,13 @@ Referenced CSV files are the inspectable factual state. Type + name resolve the 
 
 System prompts are CSV data. A prompt may belong to one character/entity or be shared by reference. Do not move prompts into executable code merely for convenience.
 
-Witness is a class containing scoped CSV-access and packet-construction functions. It does not reason, interpret, or own state.
+Granite is a one-shot JSON transformation function. It receives only the bounded package supplied by Resolver and returns JSON. It does not own state, inspect CSV directly, remember prior calls, or execute consequences.
 
-Each model call is one JSON packet containing the world descriptive summation, the relevant CSV system prompt, the current situational state, and the output JSON schema.
+Every Granite output is untrusted. Witness validates the exact operation schema, references, identity, scope, and permitted authority before any result becomes legal CSV-backed structure.
 
-Granite is a one-shot JSON processing black box. It receives the packet and returns JSON.
+A witnessed result being trusted means it is valid game representation, not that its natural-language claims are true or that the model's interpretation is correct.
 
-The model output is fed into deterministic IF / ELSE / THEN code. Deterministic code decides what actually happens and which CSV-backed values change.
+World consequences remain deterministic. A witnessed action result may become an action proposal; ordinary game code checks current CSV-backed preconditions and performs any allowed mutation.
 
 The first-person 3D renderer is a projection of the CSV-described world. It must not become a second source of gameplay state.
 
@@ -83,36 +67,119 @@ Do not maintain gameplay truth in JavaScript objects, Maps, an ECS, a state stor
 Game code is limited to:
 
 1. the first-person 3D client that reads the CSV-described world and renders it;
-2. CSV files containing world, entity, system, asset, and other game-relevant backing state; and
-3. classes containing functions that read, resolve, or transform that CSV backing state.
+2. CSV files containing world, entity, system, asset, communication, event, and other game-relevant backing state; and
+3. classes containing functions that read, resolve, validate, or transform that CSV backing state at explicit operation boundaries.
 
 Function classes do not own game state. Any game-relevant result that must survive an operation is represented back in CSV-backed state.
 
 Assets are discovered through CSV manifests. The referenced resource may be any format required by the renderer or another backend, but asset identity, location, role, and game-relevant metadata belong in CSV.
 
-Transient state is permitted only when specifically required by third-party backend machinery such as the browser, Three.js/WebGPU, model inference, decoding, or another explicitly used runtime. That transient machinery is never game authority and may not hold a game fact that exists nowhere in CSV.
+Transient JSON is permitted only for the duration of an operation. Granite input/output JSON is transport/expression, never backing state.
 
 A Chrome WebApp cannot directly rewrite repository files. This is a persistence problem, not permission to replace CSV with an in-memory game model. The later persistence mechanism must act as a storage substrate for CSV-backed documents. Repository CSV files may be seed/default state; runtime-mutated state must remain CSV-backed.
 
 See `docs/CSV_BACKING_STATE.md` for the full hard boundary.
 
+## DIALOGUE RULES
+
+Human and NPC communication uses the same core call primitive: `Resolver → Granite → Witness`.
+
+The trust machinery never reverses. What changes is whether surface language is entering the structured game world or being composed for delivery out of it.
+
+### Human → NPC
+
+```text
+human utterance + recipient-bounded CSV
+                ↓
+             Resolver
+                ↓
+        Granite.INTAKE
+                ↓
+             Witness
+                ↓
+ trusted interpretation/event CSV
+```
+
+A bounded `Granite.CHECK` call may then test whether the witnessed interpretation is coherent with the actual utterance and the recipient's permitted context. The checker output is itself untrusted and must pass through Witness.
+
+The check tests coherence, not objective truth.
+
+### NPC → Human
+
+```text
+trusted NPC communicative structure
+                ↓
+             Resolver
+                ↓
+       Granite.COMPOSE
+                ↓
+             Witness
+                ↓
+       trusted utterance CSV
+                ↓
+      deterministic delivery
+                ↓
+              human
+```
+
+A speaker-side bounded `Granite.CHECK` call may be used when required to test whether the candidate utterance coherently expresses the supplied structure. The result still passes through Witness.
+
+### NPC → NPC
+
+NPC-to-NPC communication uses both halves. The recipient must receive the actual delivered utterance, not the sender's hidden structured intention.
+
+```text
+NPC A trusted communicative structure
+        ↓
+Resolver → Granite.COMPOSE → Witness
+        ↓
+trusted utterance CSV
+        ↓
+deterministic delivery
+        ↓
+actual utterance
+        ↓
+Resolver using NPC B's bounded context
+        ↓
+Granite.INTAKE → Witness
+        ↓
+NPC B trusted interpretation CSV
+```
+
+This permits `sender intended X → said Y → recipient interpreted Z`. X and Z are not required to match.
+
+### Dialogue control invariants
+
+- Human text is input data, not authority over the harness or world.
+- Speaker, recipient, actor, operation, event/turn identity, world scope, and output schema come from trusted game state/code rather than Granite.
+- Every Granite return is untrusted, including checker returns.
+- Speech is an attributed event, not a world fact. Saying a thing does not make it true in unrelated CSV state.
+- Checker is local to one side/transformation and must not become an omniscient perfect-communication engine.
+- Coherence is not truth. Lies, mistakes, ambiguity, and misunderstanding remain possible.
+- Any communication/history that affects later behavior must be CSV-backed rather than hidden in model context.
+- Any retry/correction policy must be explicit, deterministic, and finite.
+- Emit/deliver and world commit are deterministic consequences after Witness, not powers granted to Granite.
+
+See `docs/DIALOGUE_BOUNDARY.md` for the complete boundary contract.
+
 ## FIRST OPERATION
 
-Use the smallest fixture that can prove the complete loop:
+Use the smallest fixture that can prove the complete world-action loop:
 
 ```text
 world: one room
 player: player
-model character: Ada
+model-using character: Ada
 object: stone
 initial fact: Ada holds the stone
 player event: ask Ada for the stone
-model output schema: hand_over | wait
-resolver: ordinary deterministic code
-visible mutation: stone holder changes if the resolved result produces a transfer
+Granite action output schema: hand_over | wait
+world mutation: deterministic code transfers the stone only if the witnessed action proposal and current CSV state permit it
 ```
 
 The exact seed is disposable. It proves plumbing, not civilization.
+
+The phrase `model-using character` means only that one of the game operations associated with Ada calls Granite as a function. Granite does not control or embody Ada.
 
 ## IMPLEMENTATION ORDER
 
@@ -120,13 +187,15 @@ The exact seed is disposable. It proves plumbing, not civilization.
 2. Resolve each indexed type + name to its CSV file.
 3. Render only enough CSV-described state to show the first fixture, without creating a parallel active-world state layer.
 4. Finish the real Chrome read/resolve/render verification.
-5. Establish the concrete Granite 350M WebApp machinery and prove one real fixed-shape JSON-in → JSON-out Granite call.
-6. Only after the Granite call interface is proven, implement `Witness` as a class containing only the functions needed to gather scoped CSV state and construct the one complete Granite packet for Ada.
-7. Feed the returned JSON into the smallest deterministic resolver for this fixture.
-8. Write the resulting game-relevant mutation back into CSV-backed state.
-9. Render the visible consequence from the changed CSV-backed state.
-10. Construct the next interaction from that changed CSV-backed state.
-11. Add browser persistence only when surviving reload/restart is the operation being tested, and keep the persisted representation CSV-backed.
+5. Establish the concrete Granite 350M WebApp machinery and prove one real fixed-shape JSON-in → JSON-out Granite call with no game authority attached.
+6. Implement the smallest Resolver function required for the first operation against that proven Granite interface: relevant trusted CSV → exact bounded JSON parameters.
+7. Feed the raw Granite return into the smallest Witness function required for that operation: exact untrusted JSON → accepted bounded CSV-backed result or rejection.
+8. Feed the witnessed action proposal into ordinary deterministic game code and check current CSV-backed preconditions.
+9. Write any permitted game-relevant mutation back into CSV-backed state.
+10. Render the visible consequence from the changed CSV-backed state.
+11. Construct the next interaction from that changed CSV-backed state.
+12. Add the first concrete dialogue transformation only when the fixture reaches actual natural-language ingress/egress; use the rules in `docs/DIALOGUE_BOUNDARY.md` rather than building a generic conversation framework.
+13. Add browser persistence only when surviving reload/restart is the operation being tested, and keep the persisted representation CSV-backed.
 
 Do not build a general-purpose framework before these operations require one.
 
@@ -134,11 +203,12 @@ Do not build a general-purpose framework before these operations require one.
 
 One world.
 One player.
-One model-controlled character.
-One Witness call.
+One character whose operation calls Granite.
+One Resolver package.
 One Granite 350M JSON response.
-One deterministic resolver.
-One CSV state mutation.
+One Witness acceptance/rejection.
+One deterministic consequence decision.
+One CSV state mutation when permitted.
 One visible consequence.
 
 ## PASS CONDITION
