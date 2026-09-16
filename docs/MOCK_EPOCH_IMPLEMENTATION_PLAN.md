@@ -85,6 +85,16 @@ Ordinary functions can call Witness and other functions with the actual referenc
 
 Do not add operation metadata to CSV or JSON merely because the plan uses the word `operation`.
 
+## “PACKET” IS THE ONE GRANITE CALL JSON OBJECT
+
+This plan uses `packet`, `calling packet`, and `Witness packet` for the one transient JSON object passed to a single Granite call.
+
+That does not require a packet class, nested payload wrapper, header/body format, transport protocol, fixed top-level field set, universal packet schema, stored packet record, caller metadata, or operation metadata.
+
+Witness builds that JSON object directly from the scoped CSV-derived values/configuration needed by the concrete call. Its fields are discovered from the real Granite interface and the actual game call.
+
+The phrase `one calling packet` in the current fixture prompt is local wording, not a second architecture.
+
 ## EXECUTION VIEWS, NOT OPERATION TYPES
 
 Projection, direct deterministic transitions, and actor-mediated transitions are useful ways to describe paths through the same lifecycle. They are not runtime types, enums, dispatcher cases, or required primitives.
@@ -129,17 +139,19 @@ A Witness call:
 1. receives whatever CSV-backed references/parameters the concrete call site actually supplies;
 2. resolves only that scoped CSV state;
 3. includes only the prompt, situation, facts/context, model/resource information, and any call-specific output guidance/configuration actually used; and
-4. constructs the transient JSON packet Granite receives.
+4. constructs the one transient JSON object Granite receives.
+
+That object is the Witness/calling packet. It is not a wrapper around another hidden payload.
 
 Witness does not require a caller object, current-operation object, operation id, or operation context.
 
-No `output_schema`, enum, grammar, or return-constraint field is mandatory merely because Witness exists.
+No packet metadata, `output_schema`, enum, grammar, or return-constraint field is mandatory merely because Witness exists.
 
 ```text
 scoped CSV-backed state/configuration
         ↓
 Witness
-retrieve scoped CSV + construct packet
+retrieve scoped CSV + construct call JSON
         ↓
 JSON packet
         ↓
@@ -150,9 +162,9 @@ raw JSON return
 
 Witness owns no game state and does not inspect or validate Granite output.
 
-There is no required separate Resolver architecture. CSV reference resolution is simply part of Witness packet construction using generic CSV machinery.
+There is no required separate Resolver architecture. CSV reference resolution is simply part of Witness call-JSON construction using generic CSV machinery.
 
-The Witness packet schema is not frozen before the real browser call establishes its minimum shape.
+The Witness packet shape is not frozen before the real browser call establishes its minimum fields.
 
 ## RETURN HANDLING
 
@@ -281,7 +293,7 @@ It should not prematurely lock:
 - a database normalization scheme;
 - an event schema or universal event log;
 - a spatial index;
-- a universal Granite packet schema;
+- a universal Granite packet schema or packet-envelope protocol;
 - a universal output-schema or structured-output policy;
 - a universal dialogue schema;
 - a universal function-graph/routing schema;
@@ -332,7 +344,7 @@ interaction system_prompt: CSV-backed
 interaction output_schema: hand_over | wait
 ```
 
-The fixture is plumbing evidence, not the final game ontology, function configuration schema, universal operation schema, or universal Granite output policy.
+The fixture is plumbing evidence, not the final game ontology, function configuration schema, universal operation schema, packet protocol, or universal Granite output policy.
 
 Ada is game-controlled. Granite may be called by her configured decision path as an ordinary function. Granite does not embody Ada.
 
@@ -349,7 +361,7 @@ It did not establish:
 - actor-mediated mutation;
 - browser persistence;
 - the first-person 3D renderer;
-- final world/history/call-configuration/output-schema structures;
+- final world/history/call-configuration/output-schema/packet structures;
 - any Operation runtime object/context; or
 - civilization-like emergence.
 
@@ -364,36 +376,36 @@ Establish the concrete Granite 350M browser/WebApp calling machinery.
 The smallest useful proof is:
 
 1. load the real Granite runtime/model in the target browser path;
-2. make one real scoped JSON-in → JSON-out call using only whatever output convention the smallest real call actually needs;
+2. make one real scoped JSON-in → JSON-out call using only whatever input fields and output convention the smallest real call actually needs;
 3. parse the actual return with only the minimum parser that call requires;
 4. record success/failure and runtime evidence;
-5. do not add a structured-output/schema layer merely because the current game fixture has `output_schema`; and
+5. do not add a packet envelope/protocol or structured-output/schema layer merely because the current game fixture uses the words `calling packet` and `output_schema`; and
 6. do not attach fake game authority or synthetic fallback.
 
 After that interface is proven:
 
-1. build the thinnest Witness required to retrieve the current fixture's scoped CSV inputs and construct the proven call packet;
+1. build the thinnest Witness required to retrieve the current fixture's scoped CSV inputs and construct the proven call JSON object;
 2. use the current fixture's `output_schema` only if the concrete connected call actually needs/uses it;
 3. build the smallest local deterministic JSON consumer required by that same fixture;
 4. connect the current fixture through `CSV → Witness JSON → Granite → JSON → local deterministic handling → CSV`;
 5. render the changed CSV-backed result; and
 6. prove the next interaction reads the mutated CSV-backed world without hidden model/runtime game state.
 
-Add no operation-object/context, call-configuration, output-schema, or return-handling machinery until those runs prove it necessary.
+Add no operation-object/context, packet-envelope/protocol, call-configuration, output-schema, or return-handling machinery until those runs prove it necessary.
 
 ## PASS CONDITION
 
 For the first complete actor-mediated fixture:
 
 - one authoritative CSV-backed world begins in a known state;
-- one Witness call constructs the minimum packet from the scoped CSV-backed state/configuration actually required;
+- one Witness call constructs the minimum one-call JSON object from the scoped CSV-backed state/configuration actually required;
 - one real Granite result is produced;
 - local deterministic code consumes that result or fails without an authoritative write;
 - the concrete mechanic writes the resulting minimum CSV-backed world fact change when applicable;
 - rendering reflects the new state; and
 - the next interaction works correctly from that mutated CSV-backed state without hidden model memory or hidden authoritative runtime state.
 
-No event log, graph table, routing field, generalized operation schema/object/context, universal output-schema layer, generic mapper, acceptance layer, or `REJECT` state is required for this pass.
+No event log, graph table, routing field, generalized operation schema/object/context, packet envelope/protocol, universal output-schema layer, generic mapper, acceptance layer, or `REJECT` state is required for this pass.
 
 ## BUILD POLICY
 
@@ -417,6 +429,6 @@ Add machinery only when a failure requires it
 
 `Define operation` means define the concrete behavior/state transition being tested. It does not mean create an Operation runtime abstraction.
 
-Do not add cloud/metered automation, GitHub Actions, hosted inference, databases, generic agent frameworks, generalized dialogue systems, graph/orchestration frameworks, operation-object/context frameworks, generic validation/mapping layers, universal structured-output/schema machinery, or speculative infrastructure without explicit user approval and an observed need.
+Do not add cloud/metered automation, GitHub Actions, hosted inference, databases, generic agent frameworks, generalized dialogue systems, graph/orchestration frameworks, operation-object/context frameworks, packet-envelope/protocol frameworks, generic validation/mapping layers, universal structured-output/schema machinery, or speculative infrastructure without explicit user approval and an observed need.
 
 Deployment, authentication, payments, and other product-shell work remain separate from the core civilization experiment unless explicitly requested.
