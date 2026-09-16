@@ -20,7 +20,7 @@ The harness that performs this transition is not a subsystem inside the game. It
 
 Rendering and assets project that world for the human. They are not independent sources of game truth.
 
-See [docs/GAME_BLUEPRINT.md](docs/GAME_BLUEPRINT.md) for the complete architectural blueprint.
+See [docs/GAME_BLUEPRINT.md](docs/GAME_BLUEPRINT.md) for the architectural blueprint.
 
 ## Core lifecycle
 
@@ -49,7 +49,7 @@ write resulting durable facts/events to CSV
 TRUSTED CSV WORLD'
 ```
 
-The player or an NPC may lie, misunderstand, contradict themselves, make a bad decision, attempt an impossible action, use strange wording, cooperate, refuse, or otherwise behave unpredictably. That behavioral variation is part of the experiment.
+The human or NPC may lie, misunderstand, contradict themselves, make a bad decision, attempt an impossible action, use strange wording, cooperate, refuse, or otherwise behave unpredictably. That variation is part of the experiment.
 
 The harness does not decide whether behavior is sensible, moral, truthful, socially appropriate, or optimal. It asks what the behavior corresponds to in the currently represented world. Language or behavior cannot create new game ontology merely by mentioning it.
 
@@ -82,22 +82,22 @@ One Granite transformation uses:
 ```text
 CSV-backed world / bounded transient input
         ↓
-RESOLVER
+Resolver
         ↓
 bounded JSON parameters
         ↓
-GRANITE(stage)
+Granite(operation)
         ↓
 untrusted JSON result
         ↓
-WITNESS
+Witness
         ↓
 bounded transient result or REJECT
 ```
 
 `CSV-bounded` means constrained to possibilities defined from trusted CSV. It does not mean the intermediate is itself authoritative CSV-backed state.
 
-Trust returns to the game only when the completed accepted result is admitted into CSV-backed state.
+Only an explicit accepted write into CSV-backed state changes continuing game truth/history.
 
 See [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for the model contract.
 
@@ -113,36 +113,17 @@ Direct deterministic controls do not need Granite merely because Granite exists.
 
 ## Communication
 
-Natural-language communication may require several bounded Granite transformations.
+Natural-language communication is not a separate dialogue architecture. It uses the same actor-mediated harness.
 
-```text
-Human → NPC
-INTAKE → CHECK → COMMIT
+There is no mandatory `INTAKE → CHECK → COMMIT`, `COMPOSE → CHECK → EMIT`, or other fixed stage graph.
 
-NPC → Human
-COMPOSE → CHECK → EMIT
+Start with the smallest mapping that completes the real interaction. If one Granite transformation is enough, use one. Add another transformation, check, retry, or correction pass only when execution demonstrates a concrete need. Any extra routing belongs in CSV-backed function configuration.
 
-NPC → NPC
-COMPOSE → CHECK → EMIT
-actual utterance crosses
-INTAKE → CHECK → COMMIT
-```
+For NPC-to-NPC communication, the actual utterance crosses between actors. Never replace what was actually said with hidden sender-side structured data.
 
-Every named stage is the same primitive:
+Completed communication that must affect later operations returns through the harness into CSV-backed factual/attributed state. Recording `A said Y` makes the speech event authoritative, not the proposition inside `Y` objectively true.
 
-```text
-Resolver → Granite(stage) → Witness
-```
-
-Intermediate stage results are bounded transient structures, not authoritative CSV-backed world state.
-
-Completed communication returns through the harness into CSV-backed factual/attributed state. Recording `A said Y` makes the speech event authoritative, not the proposition inside `Y` objectively true.
-
-`CHECK` asks whether language is coherently matchable to the corresponding bounded world packet. It does not decide objective truth. Lies, mistakes, ambiguity, deception, contradiction, and misunderstanding are allowed when language remains grounded in the supplied possibilities.
-
-NPC-to-NPC communication crosses the actual emitted utterance. Preserve `A candidate expression X → said Y → B interpreted Z`, including `X ≠ Z`.
-
-See [docs/DIALOGUE_BOUNDARY.md](docs/DIALOGUE_BOUNDARY.md) for the communication contract.
+See [docs/DIALOGUE_BOUNDARY.md](docs/DIALOGUE_BOUNDARY.md) for the communication boundary.
 
 ## CSV backing state
 
@@ -156,11 +137,9 @@ If something exists only to turn those facts into pixels, sound, animation, GPU 
 
 The concrete CSV topology is intentionally not fixed in advance. World assets and mechanics reveal the smallest correct backing structure as they are built and forced through the actual lifecycle.
 
-The current fixture uses `world/world.csv` as its search list for what exists or matters. In the current probe, each `type,name` entry resolves the corresponding CSV-backed record. That is the current executable arrangement, not a promise that the finished game's backing topology must keep the same file-per-name shape.
-
 The backing state must eventually be able to describe the game-relevant world categories actual mechanics require: world/space, actors, physical actor state, natural resources/objects, built structures, actions/transformations, factual/attributed events/history, system/function/model configuration, and asset/resource references. These are ontology categories, not a preselected ECS or file-per-entity schema.
 
-See [docs/CSV_BACKING_STATE.md](docs/CSV_BACKING_STATE.md) for the hard state boundary and [docs/GAME_BLUEPRINT.md](docs/GAME_BLUEPRINT.md) for the backing-state discovery rules and world categories.
+See [docs/CSV_BACKING_STATE.md](docs/CSV_BACKING_STATE.md).
 
 ## Rendering and assets
 
@@ -186,7 +165,7 @@ Failure to produce civilization-like behavior is valid experimental evidence.
 
 One world. One player. One game-controlled character whose decision path may call Granite. One stone. One bounded action result. One CSV-backed actor event. One deterministic consequence. One CSV-backed world mutation. One visible consequence.
 
-The current seed uses one room, the player, Ada, and one stone held by Ada. `world/world.csv` is the current seed search list. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
+The current seed uses one room, the player, Ada, and one stone held by Ada. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
 
 **Pass condition:** the next interaction operates correctly from the resulting authoritative CSV-backed state without hidden model memory or hidden game state.
 
@@ -194,7 +173,7 @@ The current seed uses one room, the player, Ada, and one stone held by Ada. `wor
 
 `index.html` and `app.js` implement the read/resolve/render probe. The current display reads through stateless CSV functions and is never read back as gameplay authority. This diagnostic display does not establish the first-person 3D client.
 
-The real Chrome read/resolve/render milestone passes on public commit-pinned GitHack snapshots:
+The real Chrome read/resolve/render milestone passed on public commit-pinned GitHack snapshots:
 
 1. original seed rendered player holding nothing and Ada holding the stone;
 2. a disposable branch changing only `stone.csv` holder from Ada to player rendered player holding the stone and Ada holding nothing; and
@@ -202,7 +181,7 @@ The real Chrome read/resolve/render milestone passes on public commit-pinned Git
 
 These checks establish current CSV read/reference-resolution/projection behavior. They do not establish a Granite call, actor-event write, gameplay mutation, persistence, or the complete first-test loop.
 
-The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real bounded JSON-in → JSON-out call. Then build the thinnest actual CSV → JSON → Granite → JSON → CSV path the proven interface requires. Do not freeze future world/ECS/packet schemas before execution reveals them.
+The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real bounded JSON-in → JSON-out call. Then build the thinnest actual `CSV → JSON → Granite → JSON → CSV` path the proven interface requires. Do not freeze future world/ECS/packet/dialogue schemas before execution reveals them.
 
 ## Development in Chrome through GitHack
 
