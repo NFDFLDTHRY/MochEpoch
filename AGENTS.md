@@ -1,16 +1,31 @@
 # MochEpoch agent rules
 
+## Architecture lock
+
+`docs/GAME_BLUEPRINT.md` is locked by `docs/ARCHITECTURE_LOCK.json`.
+
+Before architecture-related repository work, fetch the current `docs/GAME_BLUEPRINT.md` blob SHA and compare it with `git_blob_sha` in the lock file.
+
+If the SHA differs, stop and report the mismatch. Do not normalize, repair, rewrite, or silently replace the blueprint.
+
+Do not modify `docs/GAME_BLUEPRINT.md` or `docs/ARCHITECTURE_LOCK.json` during implementation, repair, refactoring, cleanup, documentation alignment, or architecture auditing.
+
+Only an explicit user instruction to unlock, replace, or create a new architecture version authorizes changing either locked file. Executable evidence may justify asking for an architecture revision, but does not itself authorize one.
+
+Other architecture and implementation documents may evolve only while remaining consistent with the locked blueprint. If another document conflicts with the locked blueprint, treat the locked blueprint as controlling and stop before changing the architecture unless the user explicitly authorizes a revision.
+
 ## Read this first
 
 Before changing MochEpoch architecture, world state, Granite integration, actor behavior, rendering state, assets, persistence, or game systems, read:
 
-1. `docs/GAME_BLUEPRINT.md`
-2. `docs/CSV_BACKING_STATE.md`
-3. `docs/MODEL_ROLE.md`
-4. `docs/DIALOGUE_BOUNDARY.md` when communication is involved
-5. `docs/MOCK_EPOCH_IMPLEMENTATION_PLAN.md`
+1. `docs/ARCHITECTURE_LOCK.json`
+2. `docs/GAME_BLUEPRINT.md`
+3. `docs/CSV_BACKING_STATE.md`
+4. `docs/MODEL_ROLE.md`
+5. `docs/DIALOGUE_BOUNDARY.md` when communication is involved
+6. `docs/MOCK_EPOCH_IMPLEMENTATION_PLAN.md`
 
-The current repository `main` branch is authoritative. Do not reconstruct architecture from old chat assumptions, retired prototypes, generic game-engine patterns, or unrelated projects.
+The current repository `main` branch is authoritative subject to the architecture lock above. Do not reconstruct architecture from old chat assumptions, retired prototypes, generic game-engine patterns, or unrelated projects.
 
 ## Preserve the experiment
 
@@ -338,7 +353,9 @@ For lifecycle tests, prove that the next interaction works from mutated CSV-back
 
 ## Before changing the repo
 
-Read current `main` and the user's latest MochEpoch instructions.
+Read current `main`, `docs/ARCHITECTURE_LOCK.json`, and the user's latest MochEpoch instructions.
+
+Verify that `docs/GAME_BLUEPRINT.md` still matches the locked blob SHA before architecture-related work. A mismatch is a blocker, not an invitation to update the lock.
 
 Do not import architecture from retired prototypes. A retired prototype may establish examples of game objects/assets that the real game must eventually describe, but its code structure, state ownership, behavior systems, and schemas are not architectural authority.
 
