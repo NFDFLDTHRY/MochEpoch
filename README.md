@@ -8,13 +8,13 @@ Can a civilization-like game emerge from CSV world state + bounded Resolver/Gran
 
 ## Core model boundary
 
-Every model stage uses the same primitive:
+Every Granite transformation uses the same primitive:
 
 ```text
-CSV-BOUNDED TRUSTED STATE
+CSV-bounded input
         ↓
      RESOLVER
-CSV → bounded JSON parameters
+CSV-bounded input → bounded JSON parameters
         ↓
  GRANITE(stage)
    JSON → JSON
@@ -22,16 +22,26 @@ CSV → bounded JSON parameters
 UNTRUSTED JSON RESULT
         ↓
       WITNESS
-JSON → CSV-bounded trusted result or REJECT
+JSON → CSV-bounded result or REJECT
 ```
 
-Each Granite call is one transformation from a game-defined bounded population of possibilities.
+Resolver projects the CSV-bounded input needed for one transformation into JSON. Granite performs one JSON → JSON transformation and is reset at call end with respect to game truth. Witness validates that one return against the transformation's allowed structure and converts it back into a CSV-bounded result or rejects it.
 
-Resolver projects the CSV-bounded state needed for that stage into JSON. Granite performs one JSON → JSON transformation and is reset at call end with respect to game truth. Witness validates that one return against the stage's allowed structure and converts it back into CSV-bounded trusted structure or rejects it.
+**CSV-bounded does not automatically mean trusted.** Dialogue is a three-transformation pipeline. The first two Witness outputs remain untrusted intermediates. Only successful completion of the final `COMMIT` or `EMIT` transformation returns the pipeline to trusted CSV-bounded structure.
 
-If another stage is needed, it starts again from CSV-bounded state through Resolver. There are no special Witness modes or hidden conversation state.
+```text
+TRUSTED CSV INPUT
+  ↓
+transformation 1 → CSV-bounded UNTRUSTED intermediate
+  ↓
+transformation 2 → CSV-bounded UNTRUSTED intermediate
+  ↓
+transformation 3 → FINAL CSV-bounded result
+  ↓
+TRUSTED
+```
 
-Granite is a function used by the game. It has no game authority, direct CSV access, hidden world memory, or permission to execute consequences.
+There are no special Witness modes or hidden conversation authority. Granite is a function used by the game. It has no game authority, direct CSV access, hidden world memory, or permission to execute consequences.
 
 See [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for the model contract and [docs/DIALOGUE_BOUNDARY.md](docs/DIALOGUE_BOUNDARY.md) for human/NPC communication rules.
 
@@ -43,15 +53,15 @@ Referenced CSV files contain inspectable factual state. Type selects the folder 
 
 System prompts are data inside relevant CSV state. They may be specific to one entity or shared by reference.
 
-CSV files are the backing state of MochEpoch. There is no parallel active-world representation.
+CSV files are the authoritative backing state of MochEpoch. There is no parallel active-world representation.
 
 The first-person 3D client reads the CSV-described world and renders it. Classes may contain functions that read, resolve, validate, or transform CSV-backed state at explicit operation boundaries, but class instances do not own game state.
 
-MochEpoch game code must not maintain gameplay truth in JavaScript objects, Maps, an ECS, state stores, renderer objects, inventory managers, NPC caches, model context, or other parallel runtime structures.
+MochEpoch game code must not maintain authoritative gameplay truth in JavaScript objects, Maps, an ECS, state stores, renderer objects, inventory managers, NPC caches, model context, or other parallel runtime structures.
 
 Assets are discovered through CSV manifests. The referenced asset resource may use whatever file format its renderer or backend requires, but the game's knowledge of that asset, its location, role, and game-relevant metadata belongs in CSV.
 
-Transient JSON is operational structure only. Any game-relevant result that must survive an operation belongs back in CSV-backed state.
+Transient JSON is operational structure only. Intermediate CSV-bounded dialogue results remain untrusted until the full pipeline succeeds and must not be mistaken for authoritative game state.
 
 Store facts and attributed events, not designer interpretations. Trust, morality, friendship, loyalty, resentment, civilization scores, and similar abstractions are intentionally not authoritative game state. If the experiment fails to produce them, that failure is a result unless the research question itself is explicitly changed.
 
@@ -59,7 +69,7 @@ See [docs/CSV_BACKING_STATE.md](docs/CSV_BACKING_STATE.md) for the hard state bo
 
 ## Dialogue
 
-Dialogue is a sequence of repeated `Resolver → Granite → Witness` transformations, not one chatbot turn.
+Dialogue is a sequence of three repeated `Resolver → Granite → Witness` transformations, not one chatbot turn.
 
 ```text
 Human → NPC
@@ -74,25 +84,34 @@ actual utterance crosses
 INTAKE → CHECK → COMMIT
 ```
 
-Every named stage above is independently:
+Every named transformation above is independently:
 
 ```text
 Resolver → Granite(stage) → Witness
 ```
 
-`CHECK` is mandatory wherever human- or Granite-produced language can influence a later semantic/game stage. Checker asks whether the utterance is coherently matchable, even if imprecisely or factually incorrectly, to the possibilities represented by the corresponding bounded packet.
+For Human → NPC and NPC → Human, the trust pattern is always:
+
+```text
+trusted input
+→ first Witness: CSV-bounded but untrusted
+→ second Witness: CSV-bounded but untrusted
+→ final Witness: final CSV-bounded result, trusted
+```
+
+`CHECK` is mandatory wherever human- or Granite-produced language can influence the final semantic/game result. Checker asks whether the utterance is coherently matchable, even if imprecisely or factually incorrectly, to the possibilities represented by the corresponding bounded packet.
 
 Checker does not decide objective truth. A false statement about a grounded stone may be valid; automotive-engine discourse is invalid if nothing in the packet corresponds to automotive machinery.
 
-NPC-to-NPC communication crosses the actual emitted utterance. The receiving NPC never gets the sender's hidden structured intent. `intended X → said Y → interpreted Z` is allowed, including `X ≠ Z`.
+NPC-to-NPC communication crosses the actual trusted emitted utterance. The receiving NPC never gets the sender's hidden structured intent. `intended X → said Y → interpreted Z` is allowed, including `X ≠ Z`.
 
 ## First test
 
-One world. One player. One game-controlled character whose decision path may call Granite. One stone. One bounded action result. One deterministic consequence. One visible mutation.
+One world. One player. One game-controlled character whose decision path may call Granite. One stone. One final bounded action result. One deterministic consequence. One visible mutation.
 
 The current seed uses one room, the player, Ada, and one stone held by Ada. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
 
-**Pass condition:** the next interaction operates correctly from the resulting CSV-backed state without hidden model memory or hidden game state.
+**Pass condition:** the next interaction operates correctly from the resulting trusted CSV-backed state without hidden model memory or hidden game state.
 
 ## Current status
 
