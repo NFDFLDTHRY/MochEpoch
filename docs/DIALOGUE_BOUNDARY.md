@@ -4,24 +4,26 @@ This document defines how MochEpoch handles natural-language communication witho
 
 Read `docs/GAME_BLUEPRINT.md` and `docs/MODEL_ROLE.md` first.
 
-## Dialogue is just another actor-mediated operation
+`Operation` in this document is descriptive shorthand for the concrete communication/game code path being executed. It does not imply an Operation object, context, caller object, dispatcher token, registry, or other runtime abstraction.
 
-Dialogue uses the same lifecycle as every other actor-mediated game operation:
+## Dialogue is just another actor-mediated path
+
+Dialogue uses the same lifecycle as every other actor-mediated game path:
 
 ```text
 CSV-backed world
         ↓
-Witness resolves the scoped CSV and constructs one JSON call packet when Granite is needed
+Witness resolves scoped CSV and constructs one JSON call packet when Granite is needed
         ↓
 NPC or HUMAN language
         ↓
 JSON return where applicable
         ↓
-operation-local deterministic handling
+local deterministic handling
         ↓
 CSV-backed communication fact/history only when later gameplay needs it
         ↓
-next world operation
+next world transition
 ```
 
 There is no separate conversation engine.
@@ -36,6 +38,8 @@ If a later communication step requires game-specific CSV-backed configuration, a
 
 Witness has the same job here that it has everywhere else: retrieve only the scoped CSV-backed state/configuration needed by the call and construct the transient JSON packet Granite receives.
 
+Witness receives only the references/parameters the concrete call site actually supplies. It does not require a caller/current-operation object.
+
 Witness does not interpret the utterance, decide what it means, inspect Granite output, or write dialogue history.
 
 There is no separate Resolver subsystem. CSV reference resolution is ordinary packet-construction work.
@@ -46,13 +50,13 @@ The call is scoped because the packet contains only the CSV-backed world/context
 
 That does not require a human or NPC to choose from a finite set of approved utterances, speak truthfully, remain coherent, or behave socially well.
 
-Actors may say arbitrary things. A narrow return schema may be used for a particular operation. That is local configuration, not a universal dialogue ontology or a universal Granite-call requirement.
+Actors may say arbitrary things. A narrow return schema may be used for a particular call. That is local configuration, not a universal dialogue ontology or a universal Granite-call requirement.
 
 A communication call may instead use a different schema, a prompt convention, parser-specific output, or no explicit output-schema mechanism at all. Do not add `output_schema`, grammar, enum, or structured-output machinery until the concrete executed call needs it.
 
 ## There is no universal dialogue return mapper
 
-After a model call, the current communication operation uses only the deterministic handling it actually needs.
+After a model call, the concrete communication code uses only the deterministic handling it actually needs.
 
 There is no shared semantic acceptance layer, universal validator, `REJECT` state, or `accepted communication representation` that every utterance must cross.
 
@@ -61,7 +65,7 @@ Examples:
 ```text
 NPC-generated utterance JSON
         ↓
-current operation extracts the utterance field it expects
+concrete code extracts the utterance field it expects
         ↓
 deliver the actual utterance
 ```
@@ -71,18 +75,18 @@ or:
 ```text
 human utterance + scoped world
         ↓
-Granite performs the fuzzy interpretation required by this operation
+Granite performs the fuzzy interpretation required by this interaction
         ↓
 JSON result
         ↓
-current operation consumes the specific fields it understands
+concrete code consumes the specific fields it understands
         ↓
 concrete game mechanic, fact write, or no world change
 ```
 
-If the return cannot be consumed by the current operation, that operation produces no authoritative CSV transition and the failed run is evidence. Do not invent a global rejection protocol merely to name that outcome.
+If the return cannot be consumed by the concrete code, there is no authoritative CSV transition and the failed run is evidence. Do not invent a global rejection protocol merely to name that outcome.
 
-“Mapping” may be used as shorthand for a concrete operation's local conversion when useful. It is not a separate dialogue subsystem.
+“Mapping” may be used as shorthand for a concrete local conversion when useful. It is not a separate dialogue subsystem.
 
 ## What the game does not judge
 
@@ -100,7 +104,7 @@ A false statement about an existing stone can still be delivered speech. Recordi
 
 Communication does not automatically require a permanent transcript or event record.
 
-When later game operations need to know that a speech occurrence happened, that occurrence needs CSV-backed factual/attributed history.
+When later game behavior needs to know that a speech occurrence happened, that occurrence needs CSV-backed factual/attributed history.
 
 For example:
 
@@ -129,14 +133,14 @@ Granite fuzzy interpretation only when needed
         ↓
 JSON where applicable
         ↓
-operation-local deterministic handling
+local deterministic handling
         ↓
 CSV-backed result only when the game needs one persisted
 ```
 
 Do not add extra interpretation/check/commit calls unless a real run proves they are necessary.
 
-Do not require a schema/grammar layer merely because another dialogue operation uses one.
+Do not require a schema/grammar layer merely because another dialogue path uses one.
 
 ## NPC → Human
 
@@ -149,7 +153,7 @@ Granite generates the NPC utterance
         ↓
 JSON return
         ↓
-current operation extracts/delivers the actual utterance
+concrete code extracts/delivers the actual utterance
         ↓
 persist speech only when later gameplay needs it
 ```
@@ -173,9 +177,9 @@ NPC B relevant CSV world + Y
         ↓
 Witness packet only when B needs Granite
         ↓
-Granite transformation only as required by B's next operation
+Granite transformation only as required by B's next behavior
         ↓
-operation-local deterministic handling
+local deterministic handling
         ↓
 CSV only for facts/history the game actually needs
 ```
@@ -196,9 +200,9 @@ Example:
 hand_over(stone)
 ```
 
-If a concrete operation recognizes `hand_over` and the referenced stone exists, it can invoke the implemented mechanic. Deterministic mechanics then read current CSV-backed facts and decide whether anything physically happens.
+If concrete game code recognizes `hand_over` and the referenced stone exists, it can invoke the implemented mechanic. Deterministic mechanics then read current CSV-backed facts and decide whether anything physically happens.
 
-Dialogue machinery must not become a physics engine, truth engine, social-state engine, behavior corrector, semantic acceptance service, return-mapping framework, or universal structured-output layer.
+Dialogue machinery must not become a physics engine, truth engine, social-state engine, behavior corrector, semantic acceptance service, return-mapping framework, operation-object framework, or universal structured-output layer.
 
 ## Invariants
 
@@ -207,15 +211,16 @@ Dialogue machinery must not become a physics engine, truth engine, social-state 
 3. Witness is only the scoped CSV → JSON Granite-call constructor.
 4. Granite is only a call-scoped JSON → JSON transformation function.
 5. Scoped input does not imply a universal behavior or speech whitelist.
-6. Return handling belongs to the concrete operation. There is no universal mapper or rejection layer.
-7. Output schemas/grammars are optional operation-local configuration, not a dialogue-wide or Granite-wide requirement.
+6. Return handling belongs to concrete game code. There is no universal mapper or rejection layer.
+7. Output schemas/grammars are optional local configuration, not a dialogue-wide or Granite-wide requirement.
 8. Human and NPC language may remain chaotic.
 9. Communication history is persisted only when later gameplay needs it.
 10. Recording `A said Y` does not make the proposition inside `Y` objectively true.
 11. NPC-to-NPC communication crosses the actual utterance, not hidden sender structure.
 12. No fixed dialogue stage graph is part of the architecture.
-13. Additional Granite calls, retries, checks, or correction passes may be added only when execution demonstrates a concrete need.
-14. Do not build a general chatbot, agent loop, dialogue manager, semantic world model, social simulation layer, dialogue-routing framework, generic semantic validator, or universal structured-output layer.
+13. No Operation runtime object/context is implied by the word `operation` in documentation.
+14. Additional Granite calls, retries, checks, or correction passes may be added only when execution demonstrates a concrete need.
+15. Do not build a general chatbot, agent loop, dialogue manager, semantic world model, social simulation layer, dialogue-routing framework, generic semantic validator, operation framework, or universal structured-output layer.
 
 ## Evidence rule
 
@@ -224,16 +229,16 @@ For a communication test, preserve only what is needed to inspect the actual exe
 - relevant authoritative CSV-backed input;
 - the Witness packet actually sent to Granite;
 - the raw Granite return/error actually produced;
-- the operation-local deterministic handling actually performed;
+- the local deterministic handling actually performed;
 - the utterance that actually crossed between actors;
-- CSV-backed communication history only if the operation actually persisted it;
+- CSV-backed communication history only if the code actually persisted it;
 - any deterministic consequence; and
 - resulting CSV-backed state when it changed.
 
-Do not record hypothetical stages that did not run.
+Do not record hypothetical stages or operation records that did not run/exist.
 
 ## Implementation rule
 
 Implement the smallest communication path required by the next concrete game interaction.
 
-Do not freeze a universal dialogue packet, behavior whitelist, output-schema/grammar policy, event schema, stage sequence, retry policy, routing graph, return-mapping layer, rejection protocol, or model-call count before real execution proves it necessary.
+Do not freeze a universal dialogue packet, behavior whitelist, output-schema/grammar policy, event schema, stage sequence, retry policy, routing graph, operation object/context, return-mapping layer, rejection protocol, or model-call count before real execution proves it necessary.
