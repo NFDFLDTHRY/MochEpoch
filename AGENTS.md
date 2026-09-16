@@ -47,26 +47,24 @@ A browser persistence substrate may store authoritative CSV-backed documents. It
 For an actor-mediated transition:
 
 ```text
-TRUSTED CSV WORLD
+AUTHORITATIVE CSV WORLD
         ↓
-resolve relevant state / function configuration
+Witness resolves the scoped CSV and constructs one JSON operation packet
         ↓
-bounded JSON packet
+NPC or HUMAN behavior
+(Granite only where fuzzy generation/mapping is required)
         ↓
-NPC or HUMAN
-(action / natural-language dialogue)
+raw JSON expression/result
         ↓
-JSON expression/result
+deterministic parse / map / accept or REJECT
         ↓
-map / validate against CSV-defined possibilities
-        ↓
-write accepted actor expression/event to CSV-backed state
+write any durable actor expression/event to CSV-backed state
         ↓
 deterministic game consequence where applicable
         ↓
-write resulting durable facts/events to CSV
+write resulting durable facts/events to CSV-backed state
         ↓
-TRUSTED CSV WORLD'
+AUTHORITATIVE CSV WORLD'
 ```
 
 Do not turn the harness into a planner, agent framework, semantic world model, behavior tree, social simulation layer, orchestration platform, dialogue manager, or second ECS.
@@ -85,12 +83,12 @@ Game-specific wiring belongs in CSV-backed configuration.
 
 CSV-backed configuration may select/reference, as actual operations require:
 
-- the operation being performed;
+- the operation/function being performed;
 - the generic function/system to call;
 - Granite/model configuration when that function is Granite;
-- required world/entity/system references;
+- caller/actor/world/system references;
 - the applicable system prompt;
-- bounded input populations;
+- scoped input facts/populations for Witness to retrieve;
 - required output shape/population; and
 - the next operation/function edge when real execution requires one.
 
@@ -119,7 +117,7 @@ CSV → deterministic function → CSV
 ### Actor-mediated transition
 
 ```text
-CSV → JSON → NPC / HUMAN → JSON → bounded mapping / deterministic consequence → CSV
+CSV → JSON → NPC / HUMAN → JSON → deterministic mapping → CSV → deterministic consequence → CSV
 ```
 
 Do not force Granite into direct deterministic controls or systems that do not need fuzzy generation/mapping.
@@ -130,11 +128,11 @@ The harness asks what an action/dialogue corresponds to in the currently represe
 
 It does not ask whether behavior is true, wise, moral, polite, socially appropriate, or optimal.
 
-Language or behavior cannot create game ontology by mentioning it. If the bounded world contains no spaceship, saying `use the spaceship` does not create one.
+Language or behavior cannot create game ontology by mentioning it. If the current operation contains no spaceship, saying `use the spaceship` does not create one.
 
-Semantic validity and mechanical success are different. `hand_over(stone)` may be a legal expressed action even when deterministic mechanics later reject the consequence because the actor does not currently hold the stone.
+Mapping and mechanical success are different. `hand_over(stone)` may be a valid expressed action even when deterministic mechanics later reject the consequence because the actor does not currently hold the stone.
 
-Preserve behavioral freedom. Constrain only the boundary between expression and authoritative world state.
+Preserve behavioral freedom. Constrain only what can become authoritative CSV-backed state.
 
 ## Player and NPC symmetry
 
@@ -148,43 +146,50 @@ Direct deterministic controls do not need Granite merely because Granite exists.
 
 Do not create separate hidden semantic universes for human and NPC behavior.
 
+## Witness role
+
+Witness is the scoped CSV → JSON Granite-call constructor.
+
+A Witness call:
+
+1. receives the caller/operation and CSV-backed references/configuration selected for that call;
+2. resolves only that scoped CSV state;
+3. includes the system prompt, model/function configuration, current situation, bounded possibilities, and required output shape actually requested; and
+4. constructs the transient JSON packet Granite receives.
+
+Witness owns no state. It does not inspect Granite output, decide consequences, repair output, maintain NPC memory, or mutate CSV.
+
+There is no required separate `Resolver` architecture. CSV reference resolution is ordinary generic work performed during Witness packet construction.
+
+Do not turn Witness into a model wrapper framework or stateful service. It is just the outbound edge of the harness.
+
 ## Granite role
 
 Granite is a bounded JSON → JSON game function.
 
 Its exact role is:
 
-> Generate or evaluate actions and natural-language dialogue against the finite behavioral possibilities exposed by the current CSV-described world.
+> Generate or evaluate actions and natural-language dialogue from the bounded game possibilities supplied in one operation packet.
 
-Granite does not own an NPC, own world state, read arbitrary CSV, choose its own scope, decide objective truth, execute physical consequences, mutate arbitrary world state, write directly to UI, or carry hidden game truth between calls.
+Granite does not own an NPC, own world state, read arbitrary CSV, choose its own scope, decide objective truth, execute physical consequences, mutate CSV, write directly to UI, or carry hidden game truth between calls.
 
-One Granite call uses:
+## Return edge
+
+Granite returns raw JSON. That JSON is non-authoritative until the deterministic harness maps it into the configured game representation and explicitly writes any durable result into CSV-backed state.
 
 ```text
-CSV-backed world / bounded transient input
+raw JSON
         ↓
-Resolver
+parse / validate / map against configured output bounds
         ↓
-bounded JSON parameters
+accepted game representation or REJECT
         ↓
-Granite(operation)
-        ↓
-untrusted JSON result
-        ↓
-Witness
-        ↓
-bounded transient result or REJECT
+CSV-backed write when persistent
 ```
 
-Resolver projects only the input permitted for one transformation.
+Do not create another named subsystem merely for this return edge.
 
-Granite performs one requested JSON → JSON transformation.
-
-Witness validates the raw Granite return against the operation's schema, allowed values/references, identity, scope, and other deterministic bounds. Witness does not execute consequences or create ontology.
-
-`CSV-bounded` means constrained to possibilities defined from trusted CSV. It does not mean the intermediate is authoritative CSV-backed state.
-
-Only an explicit accepted write into CSV-backed state changes continuing game truth/history.
+The return edge must not become a behavior corrector, truth engine, or social-state interpreter.
 
 ## Dialogue boundary
 
@@ -192,7 +197,7 @@ Natural-language communication is not a separate subsystem. It is another actor-
 
 There is no mandatory `INTAKE → CHECK → COMMIT`, `COMPOSE → CHECK → EMIT`, or other fixed dialogue stage graph.
 
-Start with the smallest mapping that completes the real interaction. If one Granite transformation is sufficient, use one. Add another transformation, check, retry, or correction pass only when an executed case demonstrates a concrete need. Any additional routing belongs in CSV-backed function configuration.
+Start with the smallest mapping that completes the real interaction. If one Granite transformation is sufficient, use one. Add another transformation, retry, check, or correction pass only when an executed case demonstrates a concrete need. Any additional routing belongs in CSV-backed function configuration.
 
 For NPC-to-NPC communication, the actual utterance crosses between actors. Never replace the delivered utterance with hidden sender-side structured data.
 
@@ -202,7 +207,7 @@ See `docs/DIALOGUE_BOUNDARY.md`.
 
 ## Deterministic consequence boundary
 
-Granite may generate/evaluate a valid expressed action. The accepted actor expression/event returns through CSV. Deterministic game code then decides what physically happens from current CSV-backed facts.
+Granite may generate/evaluate a game-defined expressed action. The deterministic return edge maps it into the game. Deterministic mechanics then decide what physically happens from current CSV-backed facts.
 
 Do not encode physical success into Granite merely to prevent failed attempts.
 
@@ -232,7 +237,7 @@ The backing state must eventually be able to describe whatever implemented mecha
 - built world: shelters, houses, storage, workshops, fires, walls, doors, bridges, roads, farms, wells, furniture, construction-in-progress;
 - game actions/transformations: only those actually implemented by game assets/mechanics;
 - factual events/history: actor expressions, speech, transfers, observations, construction, destruction, extraction, injury/death, and other events actual mechanics require;
-- systems/functions: deterministic mechanics, model configuration, prompts, bounded inputs/outputs, function routing; and
+- systems/functions: deterministic mechanics, model configuration, prompts, scoped inputs/outputs, function routing; and
 - asset/resource references: models, rigs, terrain, textures, materials, animation, audio, shaders, generators, model resources, and other backend assets.
 
 These are ontology categories, not fixed CSV schemas.
@@ -291,7 +296,7 @@ A free tier is not permission.
 
 Save only enough evidence to establish the operation being tested.
 
-For a Granite transformation, preserve the relevant CSV-backed input, Resolver packet, raw Granite output/error, Witness result/rejection, accepted CSV-backed actor expression/event, deterministic consequence if any, and resulting CSV-backed state if it changed.
+For a Granite-backed actor operation, preserve the relevant CSV-backed input, the actual Witness packet, the raw Granite output/error, the deterministic map/accept/reject result, any accepted CSV-backed actor expression/event, deterministic consequence if any, and resulting CSV-backed state if it changed.
 
 For communication tests, preserve the actual executed model calls and the utterance that crossed. Do not invent evidence for hypothetical stages that did not run.
 
