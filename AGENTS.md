@@ -4,40 +4,42 @@
 
 MochEpoch asks whether civilization-like behavior can emerge from factual CSV world state, bounded Resolver/Granite/Witness transformations, and deterministic game execution without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization.
 
-Preserve this core trust boundary:
+Preserve this primitive exactly:
 
 ```text
-TRUSTED CSV-BACKED STATE
+CSV-BOUNDED TRUSTED STATE
   ↓
 RESOLVER
 CSV → bounded JSON parameters
   ↓
-GRANITE(operation)
+GRANITE(stage)
 JSON → JSON
   ↓
 UNTRUSTED JSON RESULT
   ↓
 WITNESS
-JSON → bounded CSV-backed result or REJECT
-  ↓
-TRUSTED CSV-BACKED STRUCTURE AGAIN
+JSON → CSV-bounded trusted result or REJECT
 ```
 
-Resolver is the outbound game-world boundary. It reads/resolves only the CSV-backed facts permitted for the current operation and constructs the bounded JSON parameters supplied to Granite.
+Each stage is one transformation from a game-defined bounded population of possibilities.
 
-Granite is a function used by the game: `parameters → Granite → return value`. It has no game authority, direct CSV access, hidden world state, or privileged memory. Every Granite return is untrusted, including the output of any checker/coherence operation.
+Resolver, Granite, and Witness have one job each and never change roles:
 
-Witness is the inbound boundary. It validates one raw Granite return against the exact schema, references, scope, identities, and authority permitted for the current operation, then produces only the bounded CSV-backed representation allowed for that operation or rejects it.
+- Resolver projects the CSV-bounded state required for one stage into bounded JSON.
+- Granite performs one JSON → JSON transformation. Call-local model state is discarded at call end with respect to game truth.
+- Witness validates one Granite return against that stage's schema, values/references, scope, identity, and authority, then converts it to CSV-bounded trusted structure or rejects it.
 
-Do not swap the Resolver and Witness namespaces. Do not use `Witness` to mean outbound packet construction, and do not use `resolver` to mean the post-model consequence executor.
+There are no PRECHECK/FINAL Witness modes, hidden dialogue state, second model authority, or second world model. If another Granite stage is required, it begins again from CSV-bounded state through Resolver.
 
-A witnessed result becoming trusted means it is legal game structure, not that a spoken claim is true, an interpretation is correct, or an NPC is honest.
+Do not swap the Resolver and Witness namespaces. Do not use `Witness` to mean outbound packet construction, semantic language checking, or consequence execution.
 
-If a witnessed result proposes a world consequence, deterministic game code checks current CSV-backed preconditions and performs any permitted mutation. Granite never commits a world mutation directly.
+A witnessed result becoming trusted means it is legal structure for that stage. It does not mean a spoken claim is true, dialogue is finished, or a world consequence has happened.
 
-If a witnessed result is an utterance, deterministic game code delivers the accepted CSV-backed utterance to its recipient. Granite never writes directly to UI or bypasses Witness.
+If a final witnessed result proposes a world consequence, deterministic game code checks current CSV-backed preconditions and performs any permitted mutation. Granite never directly mutates arbitrary world state.
 
-Before modifying Granite integration, Resolver, Witness, NPC processing, or natural-language communication machinery, read `docs/MODEL_ROLE.md` and `docs/DIALOGUE_BOUNDARY.md` and preserve their operational framing. Do not design functions against an imagined model interface; establish the concrete Granite WebApp call machinery and real call shapes before adding operation-specific functions.
+If a final witnessed result is an emitted utterance, deterministic game code delivers it. Granite never writes directly to UI.
+
+Before modifying Granite integration, Resolver, Witness, NPC processing, or natural-language communication machinery, read `docs/MODEL_ROLE.md` and `docs/DIALOGUE_BOUNDARY.md` and preserve their operational framing. Do not design functions against an imagined model interface; establish the concrete Granite WebApp call machinery and real call shape first.
 
 Before modifying world-state handling, rendering state, assets, persistence, inventory, NPC state, JSON handling, or any other game-state machinery, read `docs/CSV_BACKING_STATE.md` and preserve it as a hard architectural boundary.
 
@@ -47,25 +49,45 @@ System prompts are data in CSV state. They may be character-specific or shared b
 
 ## Dialogue boundary
 
-Human and NPC dialogue must obey the same `Resolver → Granite → Witness` trust crossing. The crossing never reverses; only the kind and direction of communication change.
+Dialogue is a sequence of repeated `Resolver → Granite → Witness` stages. Never merge the stages into an agent/chatbot loop.
 
 Preserve these rules:
 
-1. Human input is external data, not authority. It may be included in a Resolver package only as explicitly labeled current input.
-2. Speaker, recipient, actor, operation, event/turn identity, world scope, and permitted output schema are bound from trusted game code/CSV. Granite may not choose or override them unless a specific field is explicitly delegated by schema.
-3. Every Granite output is untrusted until Witness accepts it. A Granite `CHECK` call is not a security or authority boundary.
-4. Speech is an attributed event, not a world fact. A claim cannot mutate unrelated world state merely by being spoken.
-5. NPC-to-NPC communication must traverse the actual delivered utterance. Never hand the recipient the sender's hidden structured intent.
-6. Every language-bearing dialogue path has a mandatory local Checker before final admission or delivery: human→NPC intake, NPC→human composition, sender-side NPC→NPC composition, and recipient-side NPC→NPC intake.
-7. Checker calls are local to one transformation. Do not create an omniscient checker that sees both parties' private structures and forces perfect communication.
-8. Coherence is not truth. Dialogue machinery must allow lies, mistakes, ambiguity, and misunderstanding when they fit the operation schema and grounding contract.
-9. Dialogue discourse is packet-bounded. A false proposition about grounded packet concepts may be valid speech, but human or Granite language must not introduce content-bearing entities, objects, systems, capabilities, or subject matter absent from the bounded JSON package. Surface-language glue and synonyms are allowed only when their content maps back to grounded packet content. A dialogue `CHECK` must test this grounding as well as local coherence.
-10. Witness still performs the deterministic admission boundary. A Checker result of `valid` cannot make a missing, unknown, or out-of-scope referent legal.
-11. Any dialogue/history that must affect a later turn must be CSV-backed. Do not preserve continuity in hidden model context.
-12. Resolver context is scoped per operation. Do not dump the whole world or complete transcript into Granite merely because it exists.
-13. If retry/correction behavior is ever needed, game code defines an explicit finite policy. Granite cannot recursively call itself or retry until it likes its own answer.
+1. Every stage is one bounded transformation and ends at Witness.
+2. A later stage starts again from CSV-bounded state through Resolver.
+3. Human input is external data, not authority over schema, identity, scope, or world state.
+4. Every Granite output is untrusted until Witness accepts/rejects it for that stage.
+5. Granite is reset at call end with respect to game truth. Anything required later must survive in CSV-backed state and be supplied again.
+6. `CHECK` is mandatory wherever human- or Granite-produced language can influence a later semantic/game stage.
+7. Checker is its own Granite transformation. Witness does not perform Checker's semantic job.
+8. Checker asks whether the utterance/candidate language is coherently matchable, even if imprecisely or factually incorrectly, to the possibilities represented by the corresponding bounded packet.
+9. Checker does not decide objective truth. Lies, mistakes, ambiguity, deception, and misunderstanding may survive when the language remains matchable to the packet.
+10. Ungrounded subject matter must not drive later processing. Human or Granite language cannot create game ontology merely by mentioning it.
+11. Checker is local to one side. Do not create an omniscient checker that sees both NPCs' private structures merely to force agreement.
+12. NPC-to-NPC communication traverses the actual emitted utterance. Never hand the recipient the sender's hidden structured intent.
+13. The final `EMIT` or `COMMIT` stage can return only values contained in its bounded game-defined possibilities.
+14. Any dialogue/history/result needed by a later call must be CSV-backed. Hidden model context is never continuity.
+15. Retry/correction behavior, if ever needed, is explicit, deterministic, and finite.
 
-See `docs/DIALOGUE_BOUNDARY.md` for the directional human→NPC, NPC→human, and NPC→NPC flows.
+Directional sequencing:
+
+```text
+Human → NPC
+INTAKE → CHECK → COMMIT
+(each stage = Resolver → Granite → Witness)
+
+NPC → Human
+COMPOSE → CHECK → EMIT
+(each stage = Resolver → Granite → Witness)
+
+NPC → NPC
+COMPOSE → CHECK → EMIT
+actual utterance crosses
+INTAKE → CHECK → COMMIT
+(each stage = Resolver → Granite → Witness)
+```
+
+See `docs/DIALOGUE_BOUNDARY.md` for the full stage definitions.
 
 ## CSV backing-state boundary
 
@@ -81,7 +103,7 @@ The allowed game-code shape is:
 
 Function classes do not own game state. Any game-relevant result that must survive an operation belongs back in CSV-backed state.
 
-JSON is transient operational structure, not backing state. The project's DNA/RNA analogy is mechanical only: CSV is the durable backing state; JSON is temporary expression or transport for a particular operation. A JSON package may be created from CSV, passed through Granite or another function, validated against CSV, and then discarded. If a JSON result affects the continuing world, it must first return through Witness into legal CSV-backed structure. Any actual world consequence is then applied by deterministic code against current CSV-backed preconditions. Do not literalize the analogy into biological mechanics.
+JSON is transient operational structure, not backing state. The project's DNA/RNA analogy is mechanical only: CSV is the durable backing state; JSON is temporary expression or transport for one operation. A JSON package may be created from CSV, passed through Granite, validated by Witness, and discarded. If another stage requires the result, the witnessed result must survive as CSV-bounded state and be resolved again into the next JSON packet.
 
 Game assets are discovered through CSV manifests. Referenced asset files may use whatever format the renderer or backend requires, but the game's knowledge that an asset exists, where it is located, and any game-relevant metadata about it belongs in CSV. Do not create an independent hard-coded asset registry.
 
@@ -131,9 +153,9 @@ If an external service is genuinely required and has not been approved, stop and
 
 ## Evidence
 
-Save enough to establish the current run: relevant before-state, Resolver parameters, raw Granite output or error, Witness acceptance/rejection, relevant trusted CSV result, any deterministic consequence result, relevant after-state, and visible consequence when useful. Failed runs count.
+Save enough to establish one stage: relevant CSV before-state, Resolver parameters, raw Granite output/error, Witness acceptance/rejection, and resulting CSV-bounded state. Failed runs count.
 
-For dialogue runs, preserve the actual delivered utterance and the bounded context identifiers needed to establish which side saw what. Do not replace the actual utterance with the sender's hidden structured intent.
+When a dialogue sequence is tested, preserve each stage separately and preserve the actual utterance that crosses between speakers. Do not replace the actual utterance with hidden structured intent.
 
 Do not turn evidence collection into a framework unless accumulated runs become hard to inspect manually.
 
