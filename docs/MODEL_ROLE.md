@@ -53,13 +53,17 @@ Granite receives only the bounded parameters supplied by Resolver and returns JS
 
 Every Granite return is untrusted, including the output of any coherence/checking operation.
 
+For natural-language operations, Granite may assist with interpretation, composition, coherence, and proposed grounding labels or referents. Granite's judgment never establishes that an utterance is grounded in game state. Grounding admission is deterministic and belongs to Witness.
+
 ### Witness
 
 Witness is the inbound boundary from untrusted Granite JSON back to bounded CSV-backed game structure. Witness validates the exact operation schema, permitted references, scope, and authority. It accepts only a representation the current operation is allowed to produce, or rejects the result.
 
-Witness does not reason, infer missing meaning, silently repair malformed output, or grant world authority to plausible model text.
+For dialogue operations, schema validity alone is insufficient. Any content-bearing referents required by the operation must resolve deterministically against the Resolver-bounded JSON population before the utterance, interpretation, or checked result may become CSV-backed dialogue. Granite may propose those referents, but Witness establishes whether they are actually permitted.
 
-A result becoming trusted after Witness means only that it is structurally and authoritatively legal for the game to represent. It does not mean a claim is true, an interpretation is correct, or an NPC is honest.
+Witness does not reason, infer missing meaning, silently repair malformed output, invent world facts, or grant world authority to plausible model text.
+
+A result becoming trusted after Witness means only that it is structurally, referentially, and authoritatively legal for the game to represent. It does not mean a claim is true, an interpretation is correct, or an NPC is honest.
 
 See `docs/DIALOGUE_BOUNDARY.md` for the dialogue-specific rules and directional flows.
 
@@ -95,13 +99,15 @@ Human and NPC communication use the same trust primitive: `Resolver → Granite 
 
 The primitive does not reverse. What changes is whether language is entering the structured game world or being composed for delivery out of it.
 
-Human-to-NPC intake uses the human utterance as explicitly labeled external input plus recipient-bounded CSV context. A Granite `INTAKE` call may propose a structured interpretation; Witness accepts or rejects that proposal into CSV-backed communication structure.
+Human-to-NPC intake uses the human utterance as explicitly labeled external input plus recipient-bounded CSV context. A Granite `INTAKE` call may propose a structured interpretation and its content-bearing referents; Witness accepts or rejects that proposal into CSV-backed communication structure only after those referents resolve against the permitted bounded population.
 
-NPC-to-human composition begins from trusted NPC-side communicative structure in CSV. A Granite `COMPOSE` call may propose surface language; Witness accepts or rejects the candidate into trusted dialogue CSV before deterministic delivery.
+NPC-to-human composition begins from trusted NPC-side communicative structure in CSV. A Granite `COMPOSE` call may propose surface language and its content-bearing referents; Witness accepts or rejects the candidate into trusted dialogue CSV only after deterministic referent resolution, before deterministic delivery.
 
 NPC-to-NPC communication must traverse the actual delivered utterance. Do not pass one NPC's hidden structured intent directly to another NPC. The sender may compose an utterance; that utterance is delivered; the recipient then performs its own intake against its own bounded context. Misunderstanding is therefore possible and is not automatically a failure.
 
-A Granite `CHECK` operation may be used to ask a bounded coherence question about a particular transformation. It is not omniscient, it receives only the context permitted for that side of the communication, and its return is still untrusted until Witness accepts it. Checker output is not a security boundary and must not enforce perfect mutual understanding.
+A Granite `CHECK` operation may be used to ask a bounded coherence and grounding question about a particular transformation. It is not omniscient, it receives only the context permitted for that side of the communication, and its return is still untrusted until Witness accepts it. Checker output is not a security boundary, cannot establish grounding by itself, and must not enforce perfect mutual understanding.
+
+Packet-bounded discourse is a hard admission rule. A candidate may be false, mistaken, deceptive, imprecise, or ambiguous about concepts grounded in the permitted bounded population, but content-bearing entities, objects, systems, capabilities, or subject matter absent from that population must not enter CSV-backed dialogue. Surface-language glue, pronouns, morphology, and synonyms need not be literal CSV tokens so long as their content maps back to permitted grounded referents.
 
 Speech is an attributed event, not a world fact. A character may say something false without the statement mutating unrelated authoritative state.
 
@@ -123,6 +129,6 @@ A witnessed utterance may become trusted dialogue CSV. Deterministic game code p
 
 Do not add semantic abstractions, conversational memory hidden in model context, relationship scores, or model-centered interpretations of intelligence because they seem conceptually useful.
 
-Do not let dialogue controls turn into a truth engine. Coherence is not truth. Claims, lies, mistakes, ambiguity, and misunderstanding may all be valid game events if represented within the permitted schema.
+Do not let dialogue controls turn into a truth engine. Coherence is not truth. Claims, lies, mistakes, ambiguity, and misunderstanding may be valid game events only when their content remains grounded in the operation's permitted bounded population and passes the deterministic Witness admission boundary. Schema validity alone does not admit natural-language content.
 
 The deeper hypothesis being tested by MochEpoch is intentionally unspecified here. Do not infer it, encode it, or optimize the implementation toward a presumed conclusion. Preserve the apparatus and let observed runs establish what emerges.
