@@ -35,16 +35,16 @@ NPC or HUMAN behavior
         ↓
 JSON expression/result where applicable
         ↓
-deterministic map / resolve or REJECT
+operation-local deterministic handling
         ↓
-write only the resulting game-relevant CSV facts/history required by the operation
+CSV facts/history actually produced by the operation, if any
         ↓
 AUTHORITATIVE CSV WORLD'
 ```
 
 The human or NPC may lie, misunderstand, contradict themselves, make a bad decision, attempt an impossible action, use strange wording, cooperate, refuse, or otherwise behave unpredictably. That variation is part of the experiment.
 
-The harness does not decide whether behavior is sensible, moral, truthful, socially appropriate, optimal, or likely to succeed. It asks what the behavior maps to in the currently represented world.
+The harness does not decide whether behavior is sensible, moral, truthful, socially appropriate, optimal, or likely to succeed.
 
 Language or behavior cannot create authoritative world ontology by mention alone.
 
@@ -56,7 +56,7 @@ That does not require actors to choose from a universal finite behavior menu.
 
 The current fixture's `hand_over | wait` output enum is a local test constraint, not MochEpoch's general behavior ontology.
 
-Granite or a human may produce arbitrary language or behavior. The game only cares whether the result can map back into the CSV-described world and an implemented mechanic.
+Granite or a human may produce arbitrary language or behavior. A concrete operation only consumes what its implemented code understands.
 
 ## Function graph
 
@@ -80,15 +80,15 @@ Add more CSV-backed call/configuration references only when a real executable op
 These are descriptions, not runtime operation types:
 
 ```text
-projection:            CSV → renderer / audio / UI
+projection:      CSV → renderer / audio / UI
 
-deterministic:         CSV → deterministic function → CSV
+deterministic:   CSV → deterministic function → CSV
 
-actor-mediated:        CSV → JSON when needed → NPC / HUMAN
-                       → JSON when needed → deterministic mapping/resolution → CSV
+actor-mediated: CSV → JSON when needed → NPC / HUMAN
+                → JSON when needed → operation-local deterministic handling → CSV
 ```
 
-Do not create an operation-type enum, dispatcher, scheduler, or class hierarchy merely to encode those descriptions.
+Do not create an operation-type enum, dispatcher, scheduler, class hierarchy, or orchestration layer merely to encode those descriptions.
 
 ## Witness
 
@@ -112,7 +112,25 @@ Its job is to generate or evaluate actor actions and natural-language dialogue f
 
 Granite does not own an NPC, own world state, read arbitrary CSV directly, choose its own scope, decide objective truth, execute physical consequences, mutate CSV, or carry hidden game truth between calls.
 
-The return JSON is non-authoritative until deterministic harness code maps it back into the current CSV-described world and resolves the corresponding game operation.
+## Return handling is local to the real operation
+
+There is no universal semantic mapper, acceptance stage, `REJECT` state, generic validator, or `accepted game representation` layer.
+
+For the current fixture the return path can be as small as:
+
+```text
+Granite → {"action":"hand_over"}
+        ↓
+parse this fixture's expected JSON
+        ↓
+run hand_over mechanic
+        ↓
+check current CSV facts
+        ↓
+write holder change OR no world change
+```
+
+If the return cannot be consumed by that operation, there is no authoritative CSV write and the failed run is evidence.
 
 See [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for the model contract.
 
@@ -120,9 +138,9 @@ See [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for the model contract.
 
 The player and NPCs enter the same behavioral boundary.
 
-NPC behavior may use Granite to generate/evaluate actions or dialogue from the scoped current CSV-backed world/context.
+NPC behavior may use Granite to generate/evaluate actions or dialogue from scoped current CSV-backed world/context.
 
-Human behavior enters as external action/dialogue and may use Granite when fuzzy mapping or natural-language interpretation is actually required.
+Human behavior enters as external action/dialogue and may use Granite when fuzzy interpretation or natural-language transformation is actually required.
 
 Direct deterministic controls do not need Granite merely because Granite exists.
 
@@ -132,7 +150,7 @@ Natural-language communication is not a separate dialogue architecture. It uses 
 
 There is no mandatory `INTAKE → CHECK → COMMIT`, `COMPOSE → CHECK → EMIT`, or other fixed stage graph.
 
-Start with the smallest mapping that completes the real interaction. Add another transformation, retry, check, or correction pass only when execution demonstrates a concrete need.
+Start with the smallest transformation that completes the real interaction. Add another transformation, retry, check, or correction pass only when execution demonstrates a concrete need.
 
 For NPC-to-NPC communication, the actual utterance crosses between actors. Never replace what was actually said with hidden sender-side structured data.
 
@@ -168,7 +186,7 @@ Scene objects, meshes, GPU buffers, animation mixers, particles, shadows, fog, c
 
 ## No encoded civilization
 
-Store the factual state and factual/attributed history the game actually needs, not designer interpretations.
+Store factual state and factual/attributed history the game actually needs, not designer interpretations.
 
 Do not add authoritative trust, morality, friendship, loyalty, resentment, faction sentiment, civilization scores, or similar social abstractions merely because they seem useful.
 
@@ -178,11 +196,11 @@ Failure to produce civilization-like behavior is valid experimental evidence.
 
 ## First test
 
-One world. One player. One game-controlled character whose decision path may call Granite. One stone. One Witness call. One real Granite JSON return. One deterministic return mapping/resolution. One CSV-backed world mutation. One visible consequence.
+One world. One player. One game-controlled character whose decision path may call Granite. One stone. One Witness call. One real Granite JSON return. One operation-local deterministic consumer. One deterministic mechanic. One CSV-backed world mutation. One visible consequence.
 
 The current seed uses one room, the player, Ada, and one stone held by Ada. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
 
-No event log, graph table, operation-type enum, or actor-history record is required for this first fixture unless the run itself demonstrates a need.
+No event log, graph table, operation-type enum, return-mapping layer, rejection state, or actor-history record is required for this first fixture unless the run itself demonstrates a need.
 
 **Pass condition:** the next interaction operates correctly from the resulting authoritative CSV-backed state without hidden model memory or hidden game state.
 
@@ -198,7 +216,13 @@ The real Chrome read/resolve/render milestone passed on public commit-pinned Git
 
 These checks establish current CSV read/reference-resolution/projection behavior. They do not establish a Granite call, Witness packet, actor-mediated gameplay mutation, persistence, or the complete first-test loop.
 
-The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real scoped JSON-in → JSON-out call. Then build the thinnest actual `CSV → Witness JSON → Granite → JSON → deterministic map/resolve → CSV` path the proven interface requires.
+The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real scoped JSON-in → JSON-out call. Then build the thinnest actual:
+
+```text
+CSV → Witness JSON → Granite → JSON → operation-local deterministic handling → CSV
+```
+
+path the proven interface requires.
 
 Do not freeze future world/ECS/packet/dialogue/history schemas before execution reveals them.
 
