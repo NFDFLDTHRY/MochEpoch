@@ -2,6 +2,8 @@
 
 Evidence exists to answer the operation being tested, not to create a reporting framework.
 
+Evidence files are historical records of what a particular run established at a particular repository state. They are not architectural authority and may describe superseded code or next steps. Current architecture comes from `AGENTS.md` and the authoritative documents under `docs/`, led by `docs/GAME_BLUEPRINT.md`.
+
 For a Granite-backed actor operation, save only what is needed to establish what actually happened:
 
 - relevant authoritative CSV-backed state before the operation;
