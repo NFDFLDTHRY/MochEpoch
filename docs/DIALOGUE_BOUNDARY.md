@@ -77,12 +77,34 @@ transformation 3
         ↓
 final accepted bounded result
         ↓
-delivery / deterministic consequence / attributed-event write as applicable
+WRITE ATTRIBUTED RESULT / EVENT TO CSV-BACKED STATE
         ↓
-authoritative CSV-backed state changes only if something durable is written
+TRUSTED GAME EVENT / STATE
+        ↓
+delivery or deterministic consequence as applicable
 ```
 
 Do not create PRECHECK/FINAL Witness implementations or special Witness modes. The same Witness operation follows every Granite call.
+
+The trust return occurs when the completed bounded result is admitted into authoritative CSV-backed state, not merely because an intermediate passed Witness.
+
+## Speech as fact, speech content as attribution
+
+When an accepted utterance occurs in the game, the fact that it was spoken/heard/interpreted is game history and returns through the harness into CSV-backed state.
+
+That does **not** make the proposition inside the utterance objectively true.
+
+For example, the game may authoritatively store the factual event:
+
+```text
+Ada said: "I already gave you the stone."
+```
+
+while the current object state still authoritatively says Ada holds the stone.
+
+The attributed speech event is true as an event. The claim inside it may be false.
+
+Exact CSV schemas for speech, hearing, interpretation, or event history are intentionally not fixed yet. The invariant is that completed communication which occurs in the game maps back to CSV-backed factual/attributed state rather than living only in model context or transient JSON.
 
 ## Bounded transformation rule
 
@@ -156,13 +178,13 @@ checked interpretation + game-valid possibilities
 Resolver → Granite.COMMIT → Witness
         ↓
 final accepted bounded structured result
+        ↓
+write accepted attributed utterance / recipient result to CSV-backed state
 ```
 
-`COMMIT` does not directly mutate arbitrary world state.
+`COMMIT` does not directly mutate arbitrary physical world state.
 
-If the result expresses a game action, deterministic mechanics evaluate current CSV-backed physical preconditions and compute the consequence.
-
-If the result needs to persist for future actor behavior/history, write the appropriate factual/attributed result into CSV-backed state.
+The completed communication returns to CSV-backed game history/state first. If the committed result expresses or causes a game action, deterministic mechanics then evaluate current CSV-backed physical preconditions and compute any permitted physical consequence, which also returns to CSV.
 
 ## NPC → Human
 
@@ -192,14 +214,14 @@ Resolver → Granite.EMIT → Witness
         ↓
 final accepted emitted utterance/result
         ↓
+write attributed speech event to CSV-backed state
+        ↓
 deterministic delivery to human
 ```
 
 The emitted utterance is allowed to be false, strange, rude, contradictory, inefficient, manipulative, mistaken, or otherwise unexpected as long as it remains coherently grounded in the bounded speaker-side world.
 
-Delivery alone does not automatically make the content of the utterance an objective world fact.
-
-If later operations need the fact that the utterance was spoken/heard, store an attributed speech/observation event in CSV-backed state.
+The fact that the utterance occurred is authoritative as an attributed CSV-backed event. The semantic claim inside the utterance is not thereby promoted to objective world truth.
 
 ## NPC → NPC
 
@@ -220,9 +242,11 @@ bounded transient checked candidate
         ↓
 EMIT
         ↓
-actual emitted utterance Y
+final utterance Y
         ↓
-deterministic delivery
+write A-said-Y attributed event to CSV-backed state
+        ↓
+deterministic delivery of Y
         ↓
 NPC B receives Y as external language input
         ↓
@@ -236,7 +260,9 @@ bounded transient checked interpretation
         ↓
 COMMIT
         ↓
-final accepted bounded result for B
+final accepted bounded result Z for B
+        ↓
+write B-heard/interpreted-Z attributed result/event to CSV-backed state
 ```
 
 Never give the recipient the sender's hidden candidate/structured representation.
@@ -269,7 +295,7 @@ expressed action: hand_over(stone)
 
 The expression may map correctly because `hand_over` and `stone` exist in the bounded world.
 
-Deterministic mechanics then check the actual current CSV-backed state. If the actor no longer holds the stone, the physical hand-over fails according to the implemented mechanic.
+The accepted actor expression can return to CSV as an attributed action/event. Deterministic mechanics then check the actual current CSV-backed state. If the actor no longer holds the stone, the physical hand-over fails according to the implemented mechanic, and that resulting factual state/event is likewise CSV-backed if durable.
 
 Do not make CHECK or Witness into a physical consequence engine.
 
@@ -296,7 +322,7 @@ The communication boundary cares about mapping to the represented world, not des
 
 ## Dialogue invariants
 
-1. CSV-backed state remains the only authoritative continuing game state.
+1. CSV-backed state remains the only authoritative continuing game state/history.
 2. JSON and dialogue-stage intermediates are transient operational structure.
 3. Resolver, Granite, and Witness keep the same single responsibility at every transformation.
 4. Every raw Granite return is untrusted.
@@ -307,9 +333,9 @@ The communication boundary cares about mapping to the represented world, not des
 9. Falsehood, ambiguity, imprecision, deception, contradiction, and misunderstanding are permitted when grounded.
 10. Ungrounded subject matter cannot create authoritative game ontology by mention alone.
 11. NPC-to-NPC communication crosses the actual emitted utterance, never hidden sender structure.
-12. Deterministic game code decides physical consequences from current CSV-backed facts.
-13. An emitted utterance is not automatically an objective world fact.
-14. Durable speech/history/observation belongs in CSV only when future operations need the attributed event.
+12. A completed communication that occurs in the game returns to CSV-backed factual/attributed state.
+13. Recording `A said Y` does not make the proposition expressed by `Y` objectively true.
+14. Deterministic game code decides physical consequences from current CSV-backed facts.
 15. Retry/correction behavior, if later required, must be explicit, deterministic, finite, and justified by an observed failure.
 16. Do not replace these small transformations with a general chatbot, agent loop, semantic world model, or orchestration subsystem.
 
@@ -323,8 +349,9 @@ For a communication test, save enough to inspect what actually happened:
 - Witness result/rejection;
 - actual utterance that crossed between speakers;
 - final accepted bounded result;
+- CSV-backed attributed communication event/result;
 - deterministic consequence if any; and
-- resulting CSV-backed state if durable facts/events changed.
+- resulting CSV-backed physical state if it changed.
 
 Report what the run established. Do not infer social meaning that the run did not encode or demonstrate.
 
@@ -332,4 +359,4 @@ Report what the run established. Do not infer social meaning that the run did no
 
 Implement only the next concrete communication transformation required by the current executable operation.
 
-Do not freeze a universal dialogue packet schema before the real Granite interface and real game interactions prove what fields are necessary.
+Do not freeze a universal dialogue/event packet schema before the real Granite interface and real game interactions prove what fields are necessary.
