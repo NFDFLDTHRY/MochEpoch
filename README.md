@@ -4,7 +4,7 @@ Tiny Model Civilizations Browser Game.
 
 ## Question
 
-Can a civilization-like game emerge from CSV world state + scoped Witness calls + Granite 350M JSON reasoning + deterministic game execution, without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization?
+Can a civilization-like game emerge from CSV world state + scoped Witness calls + Granite 350M JSON reasoning + deterministic browser game execution, without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization?
 
 ## Design
 
@@ -116,7 +116,7 @@ The current seed uses one room, the player, Ada, and one stone held by Ada. The 
 
 Local checks of the corrected CSV functions passed for the original seed, a changed stone holder using the same class and execution context, and a missing referenced file. All six CSV files matched an independent Python CSV read, including the quoted prompt/schema fields. Restoring the seed and creating a fresh execution context reproduced the original facts. These checks did not execute the browser entry point or renderer. See [the run evidence and remaining checks](evidence/read-render.md).
 
-The earlier connected-browser attempt blocked the local URL. The subsequent Chrome run reached the commit-pinned GitHack URL, but GitHack returned its own 404 before the game loaded; GitHub confirmed the repository is private. Those delivery blockers were not retested by the CSV correction. The three visible Chrome checks remain unverified.
+The earlier connected-browser attempt blocked the local URL. The subsequent Chrome run reached the commit-pinned GitHack URL, but GitHack returned its own 404 before the game loaded because the repository was private. The owner has now chosen to make MochEpoch public so the existing commit-pinned GitHack development path can be used directly. The three visible Chrome checks remain unverified until that visibility change is complete and the public snapshot is exercised.
 
 Finish the real Chrome read/resolve/render verification before establishing the concrete Granite 350M WebApp call machinery. Witness functions are built only after that real Granite interface is proven. The deterministic resolver, gameplay mutation, and persistence remain unimplemented. The complete first-test pass condition has not been established.
 
@@ -130,13 +130,11 @@ The development URL convention is:
 https://raw.githack.com/NFDFLDTHRY/MochEpoch/<full-commit-sha>/index.html
 ```
 
-[Current application snapshot: db7be78](https://raw.githack.com/NFDFLDTHRY/MochEpoch/db7be782418816d54ddc65310d76ec3c43d2d864/index.html). This URL currently returns GitHack's delivery error because the source repository is private; it is not yet a working game link.
-
 Use a full commit SHA and keep `index.html` at the repository root so its relative `app.js` and `world/` requests use the same committed snapshot. A reload reruns that snapshot. To test changed CSVs, commit the temporary variant on a test branch, open its new commit-pinned URL, and reload. Restore the original seed afterward. Reloading an old commit URL cannot pick up a newer commit.
 
 GitHack serves source files with browser-appropriate content types and caches responses. Its HTML confirmation may appear before the game: verify the repository and commit, then choose **Open the page**. See [GitHack's delivery and caching documentation](https://raw.githack.com/).
 
-This path requires source files that GitHack can retrieve without GitHub account credentials. Changing repository visibility or publishing a public source copy requires the owner's explicit authorization. Do not put credentials into a GitHack URL.
+This path requires source files that GitHack can retrieve without GitHub account credentials. Do not put credentials into a GitHack URL.
 
 No helper, build system, backend, manifest, or service worker is needed for this development URL. Installability will be tested in its own later operation.
 
