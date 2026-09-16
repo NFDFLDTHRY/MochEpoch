@@ -53,20 +53,20 @@ Witness resolves scoped CSV and constructs one JSON packet when Granite is neede
         ↓
 NPC or HUMAN behavior
         ↓
-raw JSON expression/result where applicable
+JSON expression/result where applicable
         ↓
-deterministic parse / map / resolve or REJECT
+operation-local deterministic handling
         ↓
-write only the resulting game-relevant CSV facts/history required by the operation
+CSV facts/history actually produced by the operation, if any
         ↓
 AUTHORITATIVE CSV WORLD'
 ```
 
-Do not insert a mandatory actor-event write between mapping and deterministic resolution.
+Do not insert a mandatory actor-event write between actor/model output and the concrete mechanic.
 
-The mapped result may directly mutate current state, persist factual/attributed history, do both, or produce no world change. The concrete mechanic determines the minimum authoritative write.
+The operation may directly mutate current state, persist factual/attributed history, do both, or produce no world change. The concrete mechanic determines the minimum authoritative write.
 
-Do not turn the harness into a planner, agent framework, semantic world model, behavior tree, social simulation layer, orchestration platform, dialogue manager, event bus, or second ECS.
+Do not turn the harness into a planner, agent framework, semantic world model, behavior tree, social simulation layer, orchestration platform, dialogue manager, event bus, generic validator, return mapper, or second ECS.
 
 ## The function graph is an execution shape
 
@@ -100,27 +100,25 @@ That is the current fixture arrangement, not a frozen final topology. Preserve i
 Projection, direct deterministic transitions, and actor-mediated transitions are documentation views of paths through the same lifecycle. They are not runtime types, enums, dispatch categories, or required primitives.
 
 ```text
-projection:            CSV → renderer / audio / UI
+projection:      CSV → renderer / audio / UI
 
-deterministic:         CSV → deterministic function → CSV
+deterministic:   CSV → deterministic function → CSV
 
-actor-mediated:        CSV → JSON when needed → NPC / HUMAN
-                       → JSON when needed → deterministic mapping/resolution → CSV
+actor-mediated: CSV → JSON when needed → NPC / HUMAN
+                → JSON when needed → operation-local deterministic handling → CSV
 ```
 
-Do not create an `operation_type`, dispatcher, scheduler, or class hierarchy merely because these descriptions are useful.
+Do not create an `operation_type`, dispatcher, scheduler, class hierarchy, or orchestration layer merely because these descriptions are useful.
 
-Do not force Granite into direct deterministic controls or systems that do not need fuzzy generation/mapping.
+Do not force Granite into direct deterministic controls or systems that do not need fuzzy generation/evaluation.
 
 ## Behavioral freedom and ontology boundary
 
-The harness asks what an action/dialogue corresponds to in the currently represented world.
+The harness does not judge whether actor behavior is true, wise, moral, polite, socially appropriate, optimal, or likely to succeed.
 
-It does not ask whether behavior is true, wise, moral, polite, socially appropriate, optimal, or likely to succeed.
+Language or behavior cannot create authoritative game ontology by mention alone. If the current CSV-described world and implemented mechanics contain nothing corresponding to a spaceship, saying `use the spaceship` does not create one.
 
-Language or behavior cannot create authoritative game ontology by mention alone. If the current world/mechanics contain nothing corresponding to a spaceship, saying `use the spaceship` does not create one.
-
-Mapping and mechanical success are different. `hand_over(stone)` may map successfully even when deterministic mechanics later reject the consequence because the actor does not currently hold the stone.
+Understanding an expressed action and physical success are different. If the current operation recognizes `hand_over(stone)`, it may invoke the `hand_over` mechanic even when that mechanic later produces no holder change because the actor does not currently possess the stone.
 
 The failed attempt itself needs CSV-backed history only if later implemented behavior requires that fact.
 
@@ -130,19 +128,19 @@ Preserve behavioral freedom. Constrain only what can become authoritative CSV-ba
 
 Witness gives Granite a scoped slice of CSV-backed world/configuration plus whatever prompt/resource/return constraints the current call actually needs.
 
-That scope limits the information supplied and the authoritative mapping back into the game. It does not require the actor to choose from a universal finite menu of acceptable behavior.
+That limits the information supplied. It does not require the actor to choose from a universal finite menu of acceptable behavior.
 
 A particular fixture may use a narrow enum such as `hand_over | wait`. That is fixture data, not the general architecture.
 
-Granite or a human may produce arbitrary language or behavior. The only authoritative question is whether the result can map back into the CSV-described world and an implemented mechanic.
+Granite or a human may produce arbitrary language or behavior. A concrete operation consumes only what its implemented code understands. Anything else remains non-authoritative unless a later executable requirement defines different handling.
 
 ## Player and NPC symmetry
 
 The player and NPCs enter the same behavioral boundary from the perspective of game truth.
 
-NPC behavior may use Granite to generate/evaluate actions or dialogue from the scoped current CSV-backed world/context.
+NPC behavior may use Granite to generate/evaluate actions or dialogue from scoped current CSV-backed world/context.
 
-Human behavior enters as external action/dialogue and may use Granite when fuzzy mapping or natural-language interpretation is required.
+Human behavior enters as external action/dialogue and may use Granite when fuzzy interpretation or natural-language transformation is required.
 
 Direct deterministic controls do not need Granite merely because Granite exists.
 
@@ -177,27 +175,29 @@ Its exact role is:
 
 Granite does not own an NPC, own world state, read arbitrary CSV, choose its own scope, decide objective truth, execute physical consequences, mutate CSV, write directly to UI, or carry hidden game truth between calls.
 
-## Return edge
+## Return handling is operation-local
 
-Granite returns raw JSON. That JSON is non-authoritative until the deterministic harness maps it back into the current CSV-described world and resolves the corresponding game operation.
+Granite returns JSON. That JSON is non-authoritative.
+
+There is no universal semantic mapper, acceptance stage, generic validator, `REJECT` state, or `accepted game representation` layer.
+
+The concrete operation uses only the deterministic code it actually needs to consume the return and run the corresponding mechanic.
 
 ```text
 raw JSON
         ↓
-parse / map against the current world and implemented mechanic
+current operation parses only what it needs
         ↓
-accepted game representation or REJECT
+concrete mechanic / delivery / fact write
         ↓
-deterministic operation / consequence
-        ↓
-CSV-backed write(s) actually required by the operation
+CSV-backed write(s) only if that operation produces them
 ```
 
-Do not create another named subsystem merely for this return edge.
+If the operation cannot consume the return, it performs no authoritative CSV write and the failure is evidence.
 
-Do not require a separate CSV event record for every accepted expression. Persist action attempts, utterances, observations, or other history only when later game operations need them.
+Do not create another named subsystem merely for this side of the lifecycle.
 
-The return edge must not become a behavior corrector, truth engine, or social-state interpreter.
+The return handling must not become a behavior corrector, truth engine, social-state interpreter, or universal semantic gate.
 
 ## Dialogue boundary
 
@@ -205,7 +205,7 @@ Natural-language communication is not a separate subsystem. It is another actor-
 
 There is no mandatory `INTAKE → CHECK → COMMIT`, `COMPOSE → CHECK → EMIT`, or other fixed dialogue stage graph.
 
-Start with the smallest mapping that completes the real interaction. If one Granite transformation is sufficient, use one. Add another transformation, retry, check, or correction pass only when an executed case demonstrates a concrete need.
+Start with the smallest transformation that completes the real interaction. If one Granite transformation is sufficient, use one. Add another transformation, retry, check, or correction pass only when an executed case demonstrates a concrete need.
 
 If a later communication step needs game-specific CSV-backed configuration, add only the minimum reference required then. Do not prebuild dialogue routing fields or a dialogue graph.
 
@@ -215,25 +215,15 @@ If later operations need to know `A said Y`, persist that factual occurrence in 
 
 See `docs/DIALOGUE_BOUNDARY.md`.
 
-## Deterministic consequence boundary
-
-Granite may generate/evaluate an expressed action that maps into the game. Deterministic mechanics then decide what physically happens from current CSV-backed facts.
-
-Do not encode physical success into Granite merely to prevent failed attempts.
-
-Do not let Granite directly mutate arbitrary world state.
-
-Do not let deterministic mechanics invent social interpretations that were never factual state.
-
 ## Backing structure must fall out of the game
 
-Do not freeze the final CSV topology, ECS schema, packet schema, spatial index, component model, file-per-entity policy, event schema, event log, function-graph/routing schema, or world database in advance.
+Do not freeze the final CSV topology, ECS schema, packet schema, spatial index, component model, file-per-entity policy, event schema, event log, function-graph/routing schema, return-mapping framework, rejection protocol, or world database in advance.
 
 Lock the authority boundary and the categories the game must be able to describe. Let concrete schemas emerge as actual first-person game assets and mechanics are forced through the real lifecycle.
 
 Use this test:
 
-> If Granite, the player, an NPC, deterministic mechanics, or a later operation may need to refer to a fact after the current operation ends, that fact needs a CSV-backed representation.
+> If Granite, the player, an NPC, deterministic mechanics, or a later operation needs a fact after the current operation ends, that fact needs a CSV-backed representation.
 
 Rendering-only detail does not need independent authoritative state.
 
@@ -254,7 +244,7 @@ These are ontology categories, not fixed CSV schemas.
 
 ## No encoded civilization
 
-Store the factual state and factual/attributed history the game actually needs, not designer interpretations.
+Store factual state and factual/attributed history the game actually needs, not designer interpretations.
 
 Do not add authoritative trust, morality, friendship, loyalty, resentment, faction sentiment, civilization scores, or similar social abstractions unless the user explicitly changes the research question.
 
@@ -306,9 +296,9 @@ A free tier is not permission.
 
 Save only enough evidence to establish the operation being tested.
 
-For a Granite-backed actor operation, preserve the relevant CSV-backed input, actual Witness packet, raw Granite output/error, deterministic map/resolve result, deterministic consequence, and resulting CSV-backed state. Preserve an actor expression/history record only when the operation actually persisted one.
+For a Granite-backed actor operation, preserve the relevant CSV-backed input, actual Witness packet, raw Granite output/error, operation-local deterministic handling, deterministic consequence, and resulting CSV-backed state. Preserve actor expression/history only when the operation actually persisted it.
 
-For communication tests, preserve the actual executed model calls and the utterance that crossed. Do not invent evidence for hypothetical stages, routing edges, or history records that did not run/exist.
+For communication tests, preserve the actual executed model calls and the utterance that crossed. Do not invent evidence for hypothetical stages, routing edges, rejection objects, or history records that did not run/exist.
 
 For lifecycle tests, prove that the next operation works from mutated CSV-backed state with transient runtime/model state discarded or irrelevant.
 
