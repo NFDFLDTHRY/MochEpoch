@@ -16,7 +16,9 @@ JSON parameters → Granite → JSON return
 
 Its job is:
 
-> Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet, subject only to whatever return shape the current call actually requires.
+> Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet and return JSON in whatever concrete form that operation actually uses.
+
+A JSON Schema, enum, grammar, constrained decoder, or other explicit return-shape mechanism is optional operation-local machinery. It is not part of Granite's universal MochEpoch contract.
 
 Granite may generate an NPC action, generate NPC language, transform human language into a game-relevant representation, transform a fuzzy human action, or perform another narrowly defined JSON → JSON transformation only when an executable operation proves it necessary.
 
@@ -28,7 +30,9 @@ The call is scoped because Witness selects the CSV-backed state/configuration su
 
 That limits the information available to the call. It does not require the represented actor to choose from a universal finite action menu, behave sensibly, or stay within a designer-approved social script.
 
-A particular operation may deliberately use a narrow return schema. The current fixture's `hand_over | wait` enum is one such local constraint. It is not the general MochEpoch behavior ontology.
+A particular operation may deliberately use a narrow return schema. The current fixture's `hand_over | wait` enum is one such local constraint. It is not the general MochEpoch behavior ontology and does not imply that every Granite call needs an output schema.
+
+Another concrete call may use a different schema, a prompt convention, a parser-specific format, or no explicit output-schema mechanism at all.
 
 Granite may produce strange, false, contradictory, foolish, hostile, cooperative, impossible, or otherwise surprising actor behavior.
 
@@ -40,8 +44,10 @@ A Witness call does only this:
 
 1. receive the caller/current operation and whatever CSV-backed references the implemented call actually uses;
 2. resolve only that scoped CSV state/configuration;
-3. include only the prompt, situation, facts/context, model/resource information, and return constraint the real call actually needs; and
+3. include only the prompt, situation, facts/context, model/resource information, and any operation-specific output guidance/configuration the real call actually uses; and
 4. construct the transient JSON packet passed to Granite.
+
+No output-schema, enum, grammar, or return-constraint field is mandatory merely because Witness exists.
 
 ```text
 scoped CSV-backed state/configuration
@@ -73,7 +79,7 @@ Ada decision_system = interaction
 interaction.csv supplies system_prompt + output_schema
 ```
 
-Do not infer a universal operation record, model registry, function-routing table, next-step field, or output-population schema from that fixture.
+The `output_schema` key belongs to this fixture. Do not infer a universal output-schema field, return-constraint field, operation record, model registry, function-routing table, next-step field, or output-population schema from it.
 
 If the real Granite browser interface proves another model/resource reference is required, add the minimum reference then. If a later operation proves another call must follow, add only the minimum game-specific reference required by that operation.
 
@@ -119,6 +125,8 @@ mechanic checks current CSV facts
 write holder change OR make no world change
 ```
 
+That parser exists because the current fixture explicitly defines `output_schema`. It does not establish schema validation or structured-output machinery as a universal return step.
+
 If the return is malformed, outside the current fixture's schema, references something this operation cannot use, or otherwise cannot be consumed:
 
 ```text
@@ -133,7 +141,7 @@ record the failed run as evidence
 
 That failure does not require a universal `REJECT` object or state.
 
-A later operation may need a different parser, reference lookup, language transformation, or deterministic mechanic. Build only what that operation proves necessary.
+A later operation may need a different parser, reference lookup, language transformation, deterministic mechanic, or no explicit schema machinery at all. Build only what that operation proves necessary.
 
 “Mapping” is acceptable shorthand for an operation-local conversion when useful. It is not the name of a shared subsystem or universal semantic judgment.
 
@@ -195,6 +203,8 @@ Persist speech/history only when later game behavior needs it. See `docs/DIALOGU
 
 The behavioral contract is fixed. The serialization shape is not.
 
-First establish the concrete Granite 350M browser/WebApp calling interface. Then build the smallest Witness packet and operation-local deterministic return handling required by the real operation. Let later packet fields, history representation, parsers, mechanics, and additional calls emerge only from later executable operations.
+The current fixture has an `output_schema`; MochEpoch as a whole does not require one for every Granite call.
 
-Do not design a general model protocol, behavior whitelist, graph protocol, return-mapping framework, rejection layer, or event layer merely because it might be useful.
+First establish the concrete Granite 350M browser/WebApp calling interface. Then build the smallest Witness packet and operation-local deterministic return handling required by the real operation. Let later packet fields, optional output guidance/schema, history representation, parsers, mechanics, and additional calls emerge only from later executable operations.
+
+Do not design a general model protocol, universal output-schema layer, behavior whitelist, graph protocol, return-mapping framework, rejection layer, or event layer merely because it might be useful.
