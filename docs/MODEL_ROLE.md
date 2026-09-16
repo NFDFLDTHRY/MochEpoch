@@ -24,12 +24,11 @@ That is the model contract.
 
 When an operation requires fuzzy generation or correspondence, Granite may:
 
-- select/generate an NPC action from a bounded current possibility-space;
-- generate NPC natural-language dialogue from a bounded current possibility-space;
+- generate/select an NPC action from the bounded current possibility-space;
+- generate NPC natural-language dialogue from bounded current world/context;
 - map human natural-language input into game-defined possibilities;
-- map a fuzzy human action into game-defined possibilities when required;
-- check whether supplied/generated language is coherently matchable to the bounded packet; and
-- perform another narrowly defined JSON → JSON actor-behavior transformation if an executable operation proves it necessary.
+- map a fuzzy human action into game-defined possibilities when required; and
+- perform another narrowly defined JSON → JSON actor-behavior transformation only when an executable operation proves it necessary.
 
 A direct deterministic player control or deterministic world mechanic does not require Granite merely because the model is available.
 
@@ -39,15 +38,15 @@ Granite is a callable node in the CSV-described function graph.
 
 CSV-backed configuration may determine/reference, as the proven operation requires:
 
-- the operation/stage being performed;
+- the operation being performed;
 - the model/runtime resource;
 - the actor/context references;
 - the system prompt;
 - the CSV-backed facts/populations Resolver may project;
 - the required output shape/population; and
-- the next function/operation edge.
+- the next function/operation edge when execution proves one is needed.
 
-Executable code provides the generic call machinery. Do not hard-code a second NPC/game-specific control architecture around Granite.
+Executable code provides generic call machinery. Do not hard-code a second NPC/game-specific control architecture around Granite.
 
 The exact CSV and JSON schemas are not fixed yet. They must fall out of the real browser call and real game operations.
 
@@ -82,7 +81,7 @@ Resolver
         ↓
 bounded JSON parameters
         ↓
-Granite(stage)
+Granite(operation)
         ↓
 untrusted JSON result
         ↓
@@ -93,7 +92,7 @@ bounded transient result or REJECT
 
 Every Granite call is one bounded JSON → JSON transformation.
 
-Stage names describe the requested transformation. They do not create separate model agents or model-owned subsystems.
+Operation names describe only the requested transformation. They do not create agents, subsystems, privileged stages, or a fixed dialogue pipeline.
 
 ## Resolver
 
@@ -101,22 +100,11 @@ Resolver does one thing:
 
 > Read/resolve only the CSV-backed facts and bounded transient inputs permitted for the current transformation and project them into the JSON packet Granite receives.
 
-Resolver may include only what the current operation requires, such as:
+Resolver may include only what the current operation requires, such as actor identity, relevant actors/objects/resources/structures, current factual state, available behaviors, system prompt, required output shape/population, and external human action/dialogue when applicable.
 
-- actor identity;
-- relevant nearby/known actors;
-- relevant objects/resources/structures;
-- current factual state;
-- available actions/behaviors;
-- grounded dialogue concepts;
-- system prompt;
-- operation/stage identity;
-- required output shape/population;
-- external human action/dialogue when applicable.
+This is conceptual, not a frozen JSON schema.
 
-This list is conceptual, not a frozen JSON schema.
-
-Resolver does not interpret Granite output, perform semantic CHECK, own game state, execute consequences, or mutate authoritative state.
+Resolver does not interpret Granite output, own game state, execute consequences, or mutate authoritative state.
 
 ## Granite
 
@@ -136,14 +124,9 @@ Witness does one thing:
 
 > Deterministically validate one raw Granite return against that transformation's schema, allowed values/references, identity, scope, and other game-defined bounds, then return the corresponding bounded transient result or reject it.
 
-Witness does not:
+Witness does not invent missing meaning, silently repair malformed output, enlarge the allowed world population, execute consequences, or turn a transient intermediate into authoritative world state merely because it passed validation.
 
-- perform the semantic natural-language judgment assigned to Granite `CHECK`;
-- invent missing meaning;
-- silently repair malformed output;
-- enlarge the allowed world population;
-- execute consequences;
-- turn a transient intermediate into authoritative world state merely because it passed validation.
+If the operation itself asks Granite to perform fuzzy semantic correspondence, that semantic work belongs to that configured Granite transformation. It is not a permanently named `CHECK` subsystem.
 
 ## CSV-bounded versus CSV-backed
 
@@ -191,7 +174,7 @@ Example:
 Granite return representing Ada's expression: hand_over(stone)
 ```
 
-That may be a semantically valid expressed action because `hand_over` and `stone` are represented in the operation's bounded population.
+That may be a valid expressed action because `hand_over` and `stone` are represented in the operation's bounded population.
 
 The accepted actor expression can be written to CSV-backed factual/attributed state. Deterministic mechanics may then make the physical action fail if current CSV-backed state says the actor does not hold the stone.
 
@@ -201,15 +184,7 @@ Do not make Granite pre-solve every physical precondition merely to avoid failed
 
 Each Granite call operates over a game-defined finite population of possibilities supplied by Resolver.
 
-Depending on the operation, that population may contain relevant:
-
-- actors;
-- objects/resources/structures;
-- systems/actions/behaviors;
-- properties/relations;
-- factual state;
-- grounded dialogue concepts;
-- output choices/references.
+Depending on the operation, that population may contain relevant actors, objects/resources/structures, systems/actions/behaviors, properties/relations, factual state, dialogue concepts, and output choices/references.
 
 Granite may combine, select, phrase, or evaluate within the supplied operation, but it does not enlarge authoritative world ontology by mentioning unsupported concepts.
 
@@ -244,9 +219,7 @@ For a human:
 ```text
 CSV world slice + external human action/dialogue
  ↓
-bounded operation
- ↓
-Granite mapping/evaluation when fuzzy interpretation is needed
+Granite mapping/evaluation only when fuzzy interpretation is needed
  ↓
 JSON game representation
  ↓
@@ -261,66 +234,17 @@ CSV-backed resulting facts/events
 
 Granite is machinery used by the game on either side where fuzzy transformation is required. It is not synonymous with NPC control.
 
-## Dialogue transformations
+## Communication
 
-Natural-language communication may use these sequences:
+Natural-language communication has no fixed Granite stage graph.
 
-```text
-Human → NPC
-INTAKE → CHECK → COMMIT
+The smallest valid communication operation is one bounded transformation when one transformation can complete the required mapping.
 
-NPC → Human
-COMPOSE → CHECK → EMIT
+If an executed case proves that an additional model transformation is required, the CSV-described function graph may route through another ordinary `Resolver → Granite(operation) → Witness` call. That extra call must solve a concrete observed requirement, not exist because a general dialogue architecture seems useful.
 
-NPC → NPC
-COMPOSE → CHECK → EMIT
-actual utterance crosses
-INTAKE → CHECK → COMMIT
-```
-
-Every named stage is independently:
-
-```text
-Resolver → Granite(stage) → Witness
-```
-
-Intermediate stage outputs are bounded transient structures. They do not become authoritative CSV-backed state merely because Witness validated them.
-
-The completed communication returns through the harness into CSV-backed factual/attributed state. Recording that `A said Y` is authoritative as an event does not make the proposition inside `Y` objectively true.
+For NPC-to-NPC communication, the actual utterance delivered by the sender crosses to the recipient. Never substitute a hidden sender-side structured candidate for what the recipient actually received.
 
 See `docs/DIALOGUE_BOUNDARY.md` for the communication contract.
-
-## CHECK role
-
-`Granite.CHECK` asks:
-
-> Is this utterance/candidate language coherently matchable, even if imprecisely or factually incorrectly, to the possibilities represented by this bounded packet?
-
-CHECK does not decide objective truth.
-
-A false statement about an existing stone can pass.
-
-Automotive-engine discourse must fail when the bounded packet contains nothing corresponding to automotive machinery.
-
-Lies, mistakes, ambiguity, deception, and misunderstanding are allowed when the language remains grounded in the supplied possibilities.
-
-CHECK is local to the side being checked. Do not provide omniscient hidden state merely to force two speakers to understand one another identically.
-
-Witness validates CHECK's structured return. Witness does not reproduce CHECK's semantic task.
-
-## NPC-to-NPC communication
-
-The recipient receives the actual emitted utterance, never the sender's hidden candidate/structured representation.
-
-Preserve:
-
-```text
-sender candidate expression X → said Y → recipient interpreted Z
-```
-
-including `X ≠ Z`.
-
-The `said Y` event and recipient-side accepted interpretation/result return through CSV-backed attributed state. The difference between X, Y, and Z is allowed experimental behavior.
 
 ## Consequence boundary
 
@@ -330,21 +254,21 @@ The accepted actor expression/event returns through CSV-backed state. Determinis
 
 Granite may produce a return representing proposed actor behavior. Deterministic mechanics decide what actually happens.
 
-For dialogue, the factual event that an utterance occurred is CSV-backed game history. The semantic claim inside that utterance remains attributed speech and is not automatically objective world truth.
+For dialogue, the factual event that an utterance occurred may be CSV-backed game history. The semantic claim inside that utterance remains attributed speech and is not automatically objective world truth.
 
 ## Schema rule
 
 Do not freeze the final Granite packet shape before the real browser model integration is executed.
 
-The behavioral contract is fixed. The serialization shape is not.
+The behavioral contract is fixed. The serialization shape and model-call count are not.
 
-First establish the concrete Granite 350M browser/WebApp calling interface. Then build the smallest Resolver/Witness and packet needed for a real operation. Let later packet fields emerge from later executable operations.
+First establish the concrete Granite 350M browser/WebApp calling interface. Then build the smallest Resolver/Witness and packet needed for a real operation. Let later packet fields and additional calls emerge only from later executable operations.
 
 Do not design a general model protocol merely because it might be useful.
 
 ## Preserve the experiment
 
-Do not add hidden conversational memory, relationship scores, personality engines, social-state abstractions, model-owned memories, or generic agent frameworks because they seem useful.
+Do not add hidden conversational memory, relationship scores, personality engines, social-state abstractions, model-owned memories, fixed dialogue stage pipelines, or generic agent frameworks because they seem useful.
 
 Do not optimize away lies, failed attempts, misunderstandings, strange choices, or conflict.
 
