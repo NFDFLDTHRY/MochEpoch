@@ -10,15 +10,15 @@ CSV-backed state is the game truth.
 
 There is no second authoritative game-state representation.
 
-The renderer may project the world, functions may transform it, Granite may generate/evaluate actor behavior, and the browser/model runtime may maintain transient backend machinery, but none of those become a second source of continuing game facts.
+The renderer may project the world, functions may transform it, Granite may generate/evaluate actor behavior, and the browser/model runtime may maintain transient backend machinery, but none of those become a second source of continuing game facts/history.
 
-If a game-relevant fact must survive the current operation, it needs a CSV-backed representation.
+If a game-relevant fact or event must survive the current operation, it needs a CSV-backed representation.
 
 ## CSV and JSON
 
 The project's DNA/RNA analogy is mechanical:
 
-- CSV is DNA: durable, inspectable, authoritative backing state/configuration.
+- CSV is DNA: durable, inspectable, authoritative backing state/history/configuration.
 - JSON is RNA: temporary operational expression/transport for one operation or transformation.
 
 Do not import biological semantics beyond that analogy.
@@ -29,11 +29,13 @@ The core relationship is:
 CSV → JSON → operation / actor → JSON → accepted CSV transition
 ```
 
+For actor-mediated behavior, the accepted expression/event returns to CSV before any later operation depends on it.
+
 Dynamic JSON is never authoritative merely because it exists, parses, passes a schema, or was returned by Granite.
 
 A JSON packet may be built from CSV-backed facts, passed through Granite or another function, validated, compared, used by another bounded transformation, and then discarded.
 
-Only an explicit accepted update to CSV-backed state changes continuing game truth.
+Only an explicit accepted update to CSV-backed state changes continuing game truth/history.
 
 ## `CSV-bounded` is not the same as `CSV-backed`
 
@@ -44,14 +46,35 @@ CSV-bounded
 = a transient value constrained to possibilities derived from trusted CSV
 
 CSV-backed
-= authoritative continuing state/configuration represented in CSV
+= authoritative continuing state/history/configuration represented in CSV
 ```
 
 A Witness result may be CSV-bounded and still remain a transient intermediate for the next transformation.
 
 Do not silently promote such an intermediate into authoritative state.
 
+Trust returns to the game when the completed accepted result is admitted into CSV-backed state.
+
 This distinction is especially important in multi-stage natural-language communication.
+
+## Actor expressions are factual events
+
+When an actor-mediated action or utterance successfully crosses the harness boundary, the accepted actor expression/result returns to CSV-backed factual/attributed state.
+
+Examples:
+
+```text
+Ada attempted hand_over(stone)
+Ada said Y
+Player said Y
+B interpreted Z
+```
+
+Recording `Ada said Y` means the game authoritatively knows that Ada said Y. It does **not** mean the proposition inside Y is objectively true.
+
+Likewise, recording an attempted action does not mean the physical action succeeded. Deterministic mechanics separately resolve physical consequences from current CSV-backed facts.
+
+The exact event schema and retention policy are intentionally not fixed yet.
 
 ## Game-relevance test
 
@@ -59,7 +82,7 @@ The backing structure should fall out of the game as real first-person assets an
 
 Use this test:
 
-> If Granite, the player, an NPC, deterministic mechanics, or a future operation may need to refer to a fact after the current operation ends, that fact needs a CSV-backed representation.
+> If Granite, the player, an NPC, deterministic mechanics, or a future operation may need to refer to a fact/event after the current operation ends, that fact/event needs a CSV-backed representation.
 
 If something exists only to produce pixels, sound, animation, GPU work, inference, decoding, or another backend effect, it is rendering/resource machinery rather than independent game truth.
 
@@ -74,9 +97,9 @@ These examples do not prescribe file-per-entity storage, ECS tables, components,
 
 ## Do not freeze the topology early
 
-The repository may define the categories of game-relevant things that must eventually be describable, but the exact CSV files, columns, indexes, references, packet shapes, entity/component arrangement, and spatial structures must emerge from executable operations.
+The repository may define the categories of game-relevant things that must eventually be describable, but the exact CSV files, columns, indexes, references, packet shapes, function-graph representation, entity/component arrangement, event representation, and spatial structures must emerge from executable operations.
 
-Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, or spatial index because it sounds useful.
+Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, or spatial index because it sounds useful.
 
 Build the actual game asset/mechanic, force it through the lifecycle, and add only the minimum backing representation the run proves necessary.
 
@@ -174,29 +197,43 @@ This is not an implementation checklist.
 
 ### Events / history
 
-Persist factual or attributed information only when later operations need it, such as:
+Actor-mediated behavior that successfully crosses the harness returns to CSV-backed factual/attributed state.
 
+Examples include:
+
+- attempted/accepted actor actions;
+- speech events;
+- recipient interpretations/observations;
 - transfers;
 - construction/destruction;
 - resource extraction;
 - crafting;
 - injury/death;
-- speech events;
-- observations attributed to an actor;
 - other mechanically relevant events.
 
-Do not precompute social interpretations from these events.
+Do not precompute social interpretations such as trust, friendship, morality, loyalty, resentment, or civilization from these events.
+
+The exact event schema and retention policy are not fixed yet.
 
 ### Systems / function configuration
 
-CSV-backed configuration may describe:
+Game-specific wiring is CSV-backed configuration.
+
+As proven operations require, CSV may describe/reference:
 
 - deterministic mechanics;
+- operation/stage identity;
+- generic function/system selection;
 - model/runtime selection;
+- actor/world/system references;
 - system prompts;
 - bounded inputs and output populations/schemas;
 - function-graph routing;
 - other configuration proven necessary by an operation.
+
+Executable functions remain generic/stateless with respect to game truth.
+
+Do not freeze a universal function-graph schema before real execution proves the smallest correct representation.
 
 ### Assets / resources
 
@@ -220,8 +257,8 @@ The asset file itself may use whatever format its backend requires. The game's k
 MochEpoch game code is limited to these roles unless a concrete execution failure proves another is required:
 
 1. first-person 3D rendering/audio/UI that projects the CSV-described world;
-2. CSV-backed documents that describe authoritative game state/configuration and resource references;
-3. deterministic functions that read/resolve/transform CSV-backed state; and
+2. CSV-backed documents that describe authoritative game state/history/configuration and resource references;
+3. generic deterministic functions that read/resolve/transform CSV-backed state according to CSV-selected operations; and
 4. transient JSON/model/backend machinery required to execute an operation.
 
 Function classes own no game state.
@@ -257,7 +294,7 @@ Granite weights/runtime may remain loaded for performance.
 
 Call-local prompts, JSON packets, decoder state, model context, KV cache, workers, or similar inference machinery are not authoritative game state.
 
-If a later actor operation needs a fact, that fact must come from CSV-backed state rather than hidden model memory.
+If a later actor operation needs a fact/event, that fact/event must come from CSV-backed state rather than hidden model memory.
 
 ## Runtime persistence
 
@@ -265,7 +302,7 @@ A Chrome WebApp cannot directly rewrite repository files. That is a persistence-
 
 Repository CSV files may be seed/default state.
 
-The eventual browser persistence mechanism must preserve authoritative world state as CSV-backed documents. Do not turn CSV into import/export around a different authoritative object model.
+The eventual browser persistence mechanism must preserve authoritative world state/history/configuration as CSV-backed documents. Do not turn CSV into import/export around a different authoritative object model.
 
 Do not build a backend merely to make repository CSV files writable.
 
@@ -291,9 +328,9 @@ At any point, discard:
 - workers;
 - backend handles.
 
-Then reconstruct from authoritative CSV-backed state plus referenced resources.
+Then reconstruct from authoritative CSV-backed state/history/configuration plus referenced resources.
 
-No continuing game-relevant fact may disappear or change merely because transient runtime machinery was discarded.
+No continuing game-relevant fact/event may disappear or change merely because transient runtime machinery was discarded.
 
 ## Implementation instruction
 
