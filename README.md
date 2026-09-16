@@ -49,7 +49,7 @@ write resulting durable facts/events to CSV
 TRUSTED CSV WORLD'
 ```
 
-The player or Granite may lie, misunderstand, contradict themselves, make a bad decision, attempt an impossible action, use strange wording, cooperate, refuse, or otherwise behave unpredictably. That behavioral variation is part of the experiment.
+The player or an NPC may lie, misunderstand, contradict themselves, make a bad decision, attempt an impossible action, use strange wording, cooperate, refuse, or otherwise behave unpredictably. That behavioral variation is part of the experiment.
 
 The harness does not decide whether behavior is sensible, moral, truthful, socially appropriate, or optimal. It asks what the behavior corresponds to in the currently represented world. Language or behavior cannot create new game ontology merely by mentioning it.
 
@@ -140,7 +140,7 @@ Completed communication returns through the harness into CSV-backed factual/attr
 
 `CHECK` asks whether language is coherently matchable to the corresponding bounded world packet. It does not decide objective truth. Lies, mistakes, ambiguity, deception, contradiction, and misunderstanding are allowed when language remains grounded in the supplied possibilities.
 
-NPC-to-NPC communication crosses the actual emitted utterance. Preserve `A intended X → said Y → B interpreted Z`, including `X ≠ Z`.
+NPC-to-NPC communication crosses the actual emitted utterance. Preserve `A candidate expression X → said Y → B interpreted Z`, including `X ≠ Z`.
 
 See [docs/DIALOGUE_BOUNDARY.md](docs/DIALOGUE_BOUNDARY.md) for the communication contract.
 
@@ -155,6 +155,8 @@ If a game-relevant fact/event must survive the current operation, it needs a CSV
 If something exists only to turn those facts into pixels, sound, animation, GPU work, inference, or another backend representation, it is rendering/resource machinery rather than independent game truth.
 
 The concrete CSV topology is intentionally not fixed in advance. World assets and mechanics reveal the smallest correct backing structure as they are built and forced through the actual lifecycle.
+
+The current fixture uses `world/world.csv` as its search list for what exists or matters. In the current probe, each `type,name` entry resolves the corresponding CSV-backed record. That is the current executable arrangement, not a promise that the finished game's backing topology must keep the same file-per-name shape.
 
 The backing state must eventually be able to describe the game-relevant world categories actual mechanics require: world/space, actors, physical actor state, natural resources/objects, built structures, actions/transformations, factual/attributed events/history, system/function/model configuration, and asset/resource references. These are ontology categories, not a preselected ECS or file-per-entity schema.
 
@@ -184,7 +186,7 @@ Failure to produce civilization-like behavior is valid experimental evidence.
 
 One world. One player. One game-controlled character whose decision path may call Granite. One stone. One bounded action result. One CSV-backed actor event. One deterministic consequence. One CSV-backed world mutation. One visible consequence.
 
-The current seed uses one room, the player, Ada, and one stone held by Ada. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
+The current seed uses one room, the player, Ada, and one stone held by Ada. `world/world.csv` is the current seed search list. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
 
 **Pass condition:** the next interaction operates correctly from the resulting authoritative CSV-backed state without hidden model memory or hidden game state.
 
