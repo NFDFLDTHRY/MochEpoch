@@ -47,9 +47,11 @@ write resulting durable facts/events to CSV
 TRUSTED CSV WORLD'
 ```
 
-The player or Granite may behave chaotically. They may lie, misunderstand, contradict themselves, make a poor choice, attempt an impossible action, use strange language, cooperate, refuse, or otherwise surprise the designer.
+The player or an NPC may behave chaotically. They may lie, misunderstand, contradict themselves, make a poor choice, attempt an impossible action, use strange language, cooperate, refuse, or otherwise surprise the designer.
 
-Do not add machinery merely to normalize that behavior. The variation is part of the experiment.
+Granite is machinery that may generate or evaluate the representation of that NPC/player behavior where fuzzy transformation is required. Do not treat Granite itself as the in-world actor.
+
+Do not add machinery merely to normalize actor behavior. The variation is part of the experiment.
 
 The harness constrains what behavior can map back into the represented world. It does not decide whether that behavior is wise, moral, truthful, socially appropriate, or optimal.
 
@@ -210,7 +212,7 @@ Falsehood, ambiguity, deception, mistakes, contradiction, and misunderstanding a
 For NPC → NPC communication, preserve:
 
 ```text
-A intended X → said Y → B interpreted Z
+A candidate expression X → said Y → B interpreted Z
 ```
 
 including `X ≠ Z`.
@@ -316,7 +318,11 @@ Failure is valid experimental evidence.
 
 ## CURRENT FIXTURE
 
-The current seed is intentionally tiny:
+The current seed is intentionally tiny.
+
+`world/world.csv` is the current search list for what exists or matters in the fixture. Its current `type,name` entries resolve the current system/character/object CSV records through the diagnostic probe. That lookup arrangement is evidence for the current seed only, not the finished game's final topology.
+
+Current seed:
 
 ```text
 world: one room
@@ -330,9 +336,9 @@ bounded action output: hand_over | wait
 
 The fixture is plumbing evidence, not the final game ontology.
 
-Ada is game-controlled. Granite may be called by her configured operation as an ordinary function. Granite does not embody Ada.
+Ada is game-controlled. `ada.csv` points to `interaction` as the current configured decision system. `interaction.csv` currently contains the seed's narrow system prompt and `hand_over | wait` output schema. That proves only the present fixture configuration. It is not a universal dialogue schema, actor schema, Granite protocol, or final function-graph schema.
 
-Do not generalize the current `interaction.csv` shape into the final game architecture merely because it exists first.
+Granite may be called by Ada's configured operation as an ordinary function. Granite does not embody Ada.
 
 ## CURRENT EVIDENCE
 
