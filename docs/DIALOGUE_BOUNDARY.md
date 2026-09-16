@@ -33,7 +33,7 @@ A Resolver function:
 
 - reads only the CSV-backed facts permitted for the current operation;
 - resolves referenced CSV state needed by that operation;
-- binds trusted call metadata such as operation, actor, speaker, recipient, turn/event identity, and required output schema;
+- binds trusted call metadata such as operation, actor, speaker, recipient, turn/event identity, required output schema, and the operation's allowed grounding population;
 - includes current external human input only as explicitly labeled input data when the operation needs it; and
 - returns one bounded JSON parameter package.
 
@@ -49,7 +49,7 @@ parameters → Granite → return value
 
 Every call is treated as independent and stateless with respect to game truth. Granite receives only the parameters supplied by Resolver and returns JSON. It has no authority to inspect CSV directly, remember prior calls, choose its own world scope, change game state, or make its return authoritative.
 
-Every Granite return is untrusted, including returns from a coherence/checking call.
+Every Granite return is untrusted, including returns from a coherence/grounding check.
 
 Operation names such as `INTAKE`, `CHECK`, `COMPOSE`, `DECIDE`, or `FINALIZE` describe the transformation requested from Granite. They do not create agents, subsystems, or privileged model roles.
 
@@ -62,22 +62,55 @@ A Witness function:
 - accepts the raw untrusted JSON returned by Granite;
 - requires the exact schema for the current operation;
 - rejects extra fields, invalid types, invalid enums, unresolved references, out-of-scope references, and authority the operation was not granted;
+- for dialogue operations, requires the operation-defined structured grounding map/reference fields and rejects every grounding reference that is not present in the Resolver-bounded population;
 - binds the accepted result to the trusted operation/speaker/recipient/event identity supplied by game code rather than trusting Granite to choose those identities; and
 - writes or returns only the bounded CSV-backed representation allowed for that operation.
 
-Witness does not infer missing meaning, silently repair malformed output, invent world facts, or make an invalid result valid because it appears plausible.
+Witness does not infer missing meaning, silently repair malformed output, invent world facts, create new ontology from free-form language, or make an invalid result valid because it appears plausible.
 
 Returning through Witness makes a result trusted in the architectural sense: it is now a legal bounded game representation. It does **not** mean a spoken claim is true, a model interpretation is correct, or an NPC is honest.
+
+## Hard dialogue grounding contract
+
+Free-form language is never sufficient authority to introduce game structure.
+
+Every dialogue operation that may place an utterance, interpretation, communicative intent, or other language-derived result into CSV-backed state must use an operation-specific schema containing explicit structured grounding alongside the free-form language. The exact field shape may differ by operation, but the mechanical rule does not:
+
+```text
+bounded JSON population from Resolver
+                ↓
+       candidate language/result
+                ↓
+ explicit structured grounding references
+                ↓
+      Witness deterministic match
+                ↓
+      ACCEPT into CSV or REJECT
+```
+
+The grounding structure may point to permitted entities, objects, systems, events, properties, actions/capabilities, or other operation-defined references contained in the Resolver package. It may not create a new reference by naming it in text.
+
+A candidate cannot become CSV-backed dialogue merely because Granite says it is grounded. `Granite.CHECK` is a probabilistic semantic/coherence test. The hard structural admission condition is that the required grounding structure exists and every reference in it deterministically resolves inside the operation's Resolver-bounded population.
+
+The operation schema must make grounding mandatory wherever free-form content could otherwise introduce game-relevant subject matter. Witness rejects missing grounding fields, unknown references, references outside the bounded population, or structural claims outside the operation's authority.
+
+Human and Granite language are treated identically at this boundary. A human cannot expand the game's ontology by typing a new subject, and Granite cannot expand it by producing fluent text. External human text remains external input until an intake/check result has crossed Witness. Granite-composed text remains an untrusted candidate until its dialogue operation has crossed Witness.
+
+Falsehood is different from ontology drift. An utterance may be imprecise, mistaken, deceptive, or false while remaining grounded in allowed packet content. For example, `I already gave you the stone` can be admissible when `Ada`, `player`, and `stone` are grounded even if the current stone holder makes the proposition false. `The carburetor needs a richer jet` is not admissible when no automotive engine, carburetor, or corresponding permitted concept exists in the bounded package.
+
+Surface-language glue does not require one-to-one CSV tokens. Pronouns, morphology, ordinary grammar, and synonyms may express grounded content. What matters is that content-bearing discourse is matchable to the permitted structured grounding and that no content-bearing ontology can reach CSV only through an unchecked string.
+
+A semantic model error can still produce a bad interpretation of grounded material. That is experimental/model-quality evidence. It is not permission to create a new entity, system, capability, or game fact outside the verified grounding references.
 
 ## Dialogue invariants
 
 1. **CSV remains authority.** Any dialogue history, interpretation, intention, claim, or event that must affect a later turn must exist in CSV-backed state. Hidden model memory is never continuity.
 
-2. **Human input is data, not authority.** A human utterance may enter a Resolver package as current external input. The text may contain arbitrary instructions or claims; it cannot change the harness, schema, world scope, speaker identity, recipient identity, or game state by saying that it can.
+2. **Human input is data, not authority.** A human utterance may enter a Resolver package as current external input. The text may contain arbitrary instructions or claims; it cannot change the harness, schema, grounding population, world scope, speaker identity, recipient identity, or game state by saying that it can.
 
 3. **Model output is always untrusted.** No Granite operation, including `CHECK`, bypasses Witness.
 
-4. **Identity is not model-selectable.** Speaker, recipient, actor, operation, turn/event identity, and permitted schema come from trusted game code/CSV. Granite may populate only fields the schema explicitly delegates to it.
+4. **Identity is not model-selectable.** Speaker, recipient, actor, operation, turn/event identity, grounding population, and permitted schema come from trusted game code/CSV. Granite may populate only fields the schema explicitly delegates to it.
 
 5. **Speech is an attributed event, not a world fact.** `Ada said "I gave you the stone"` may be a valid dialogue event while `stone.holder_name` remains `ada`. Claims, promises, lies, mistakes, and misunderstandings do not mutate unrelated facts merely by being spoken.
 
@@ -89,19 +122,21 @@ Returning through Witness makes a result trusted in the architectural sense: it 
 
 9. **Checker is local, not omniscient.** A `CHECK` call receives only the bounded context appropriate to the transformation being checked. It may test whether an interpretation is coherent with the heard utterance and recipient context, or whether a composed utterance is coherent with the supplied speaker-side structure. It must not secretly compare both characters' private structures to enforce perfect communication.
 
-10. **Checker is not a security boundary.** Its result is another probabilistic Granite return and is untrusted until Witness accepts its exact schema. Deterministic schema/reference/authority checks remain outside Granite.
+10. **Checker is not the hard boundary.** Its result is another probabilistic Granite return and is untrusted until Witness accepts its exact schema. `CHECK` may assess semantic correspondence and whether the candidate appears to stay within the packet, but deterministic schema/reference/authority enforcement and grounding-reference membership remain Witness responsibilities.
 
-11. **Coherence is not truth.** Dialogue control checks structural correspondence and bounded contextual coherence. It does not force characters to be truthful, agreeable, rational, or mutually understood. False claims and mistaken interpretations may be valid game events.
+11. **Coherence is not truth.** Dialogue control checks structural correspondence and bounded contextual coherence. It does not force characters to be truthful, agreeable, rational, or mutually understood. False claims and mistaken interpretations may be valid game events when their discourse remains grounded.
 
-12. **Discourse is packet-bounded.** A candidate utterance or interpretation may make a false, mistaken, deceptive, or ambiguous proposition about concepts grounded in the operation's bounded JSON package, but it must not introduce new content-bearing entities, objects, systems, capabilities, or subject matter that have no grounding in that package. Surface-language glue, pronouns, morphology, and synonyms need not be literal CSV tokens, but the content they express must map back to grounded packet content. For example, an utterance about who has the stone may be false and still be valid dialogue; an utterance about a carburetor or automotive engine is invalid when the bounded packet contains no corresponding concept.
+12. **Discourse is packet-bounded.** A candidate utterance or interpretation may make a false, mistaken, deceptive, or ambiguous proposition about concepts grounded in the operation's bounded JSON package, but it must not introduce new content-bearing entities, objects, systems, capabilities, or subject matter that have no grounding in that package.
 
-13. **Grounding applies to both human and model speech.** Human input does not gain permission to expand the game's ontology merely because a person typed it, and Granite output does not gain permission merely because it is fluent. When a `CHECK` operation is used for dialogue control, the check must explicitly ask whether the candidate's content-bearing discourse remains grounded in the supplied bounded package as well as whether it is coherent with the relevant utterance or structured intent.
+13. **Grounding is explicit and structurally checked.** Any language-derived result admitted to CSV must carry the operation-required structured grounding. Witness must deterministically verify each grounding reference against the Resolver-bounded population before admission. A fluent string or a `CHECK` result saying `valid` is insufficient by itself.
 
-14. **Ambiguity is allowed to remain ambiguity.** If a model result cannot be accepted under the operation schema, Witness rejects it or records an explicitly allowed unresolved/ambiguous result. It must not silently manufacture certainty.
+14. **Grounding applies to both human and model speech.** Human input does not gain permission to expand the game's ontology merely because a person typed it, and Granite output does not gain permission merely because it is fluent.
 
-15. **Retries must be explicit and bounded.** If an operation later requires retry/correction behavior, deterministic game code defines the finite policy. Granite cannot recursively call itself or continue until it likes its own answer.
+15. **Ambiguity is allowed to remain ambiguity.** If a model result cannot be accepted under the operation schema, Witness rejects it or records an explicitly allowed unresolved/ambiguous result whose own grounding is valid. It must not silently manufacture certainty.
 
-16. **Context is scoped per operation.** Resolver must not dump the whole world or entire conversation history into a call merely because it exists. Supply only the CSV-backed state required and permitted for that actor and operation.
+16. **Retries must be explicit and bounded.** If an operation later requires retry/correction behavior, deterministic game code defines the finite policy. Granite cannot recursively call itself or continue until it likes its own answer.
+
+17. **Context is scoped per operation.** Resolver must not dump the whole world or entire conversation history into a call merely because it exists. Supply only the CSV-backed state required and permitted for that actor and operation.
 
 ## Directional dialogue
 
@@ -117,10 +152,11 @@ human utterance + recipient-bounded CSV
        Granite.INTAKE
                 ↓
         untrusted JSON
+  interpretation + grounding
                 ↓
              Witness
                 ↓
- trusted interpretation/event CSV
+ trusted grounded interpretation/event CSV
 ```
 
 If a coherence/grounding pass is required for the operation:
@@ -139,7 +175,7 @@ utterance + witnessed interpretation + recipient-bounded CSV
  trusted checked-result CSV
 ```
 
-The check asks whether the proposed interpretation is a coherent interpretation of what this recipient actually received within the recipient's bounded context and whether the content-bearing discourse is grounded in that bounded package. It does not ask whether the human's statement is objectively true.
+The check asks whether the proposed interpretation is a coherent interpretation of what this recipient actually received within the recipient's bounded context and whether the content-bearing discourse corresponds to the supplied grounding. It does not ask whether the human's statement is objectively true. Regardless of the check's opinion, admission still requires Witness to verify the structured grounding references against the bounded population.
 
 ### NPC → Human composition
 
@@ -153,17 +189,18 @@ NPC communicative structure + speaker-bounded CSV
        Granite.COMPOSE
                 ↓
         untrusted JSON
+    utterance + grounding
                 ↓
              Witness
                 ↓
-       trusted utterance CSV
+       trusted grounded utterance CSV
                 ↓
       deterministic delivery
                 ↓
               human
 ```
 
-A speaker-side `CHECK` may be inserted before delivery when the operation requires it. It receives the intended structure, candidate utterance, and only the speaker-side bounded context required to ask whether the candidate coherently expresses that structure and stays grounded in the supplied packet. Its return still passes through Witness.
+A speaker-side `CHECK` may be inserted before delivery when the operation requires it. It receives the intended structure, candidate utterance, candidate grounding, and only the speaker-side bounded context required to ask whether the candidate coherently expresses that structure and whether the language corresponds to its grounding. Its return still passes through Witness.
 
 ### NPC → NPC communication
 
@@ -178,7 +215,7 @@ NPC A trusted communicative structure
                 ↓
              Witness
                 ↓
-      trusted utterance CSV
+ trusted grounded utterance CSV
                 ↓
       deterministic delivery
                 ↓
@@ -190,16 +227,16 @@ Resolver with NPC B's bounded context
                 ↓
              Witness
                 ↓
- NPC B trusted interpretation CSV
+ NPC B trusted grounded interpretation CSV
 ```
 
-Optional speaker-side and recipient-side `CHECK` operations remain separate and bounded to their respective sides. Each check enforces packet-bounded discourse for the side it sees; neither side receives the other's hidden structure.
+Optional speaker-side and recipient-side `CHECK` operations remain separate and bounded to their respective sides. Each side must independently satisfy its own grounding contract; neither side receives the other's hidden structure.
 
 ## Emit versus commit
 
 `emit` and `commit` are consequences outside Granite, not privileges granted to the model.
 
-A Granite operation may return an untrusted candidate describing what kind of result it proposes. Witness may accept that candidate into a bounded CSV-backed structure only if the operation schema permits it.
+A Granite operation may return an untrusted candidate describing what kind of result it proposes. Witness may accept that candidate into a bounded CSV-backed structure only if the operation schema and grounding contract permit it.
 
 After Witness:
 
@@ -216,4 +253,6 @@ Any later emit or commit consumes the trusted CSV result. Granite never emits di
 
 ## Implementation rule
 
-Do not build a general conversation framework. Implement only the next concrete Resolver/Granite/Witness operation required by the current fixture. Each model call must expose its exact bounded input JSON, raw output JSON, Witness acceptance/rejection, and resulting CSV-backed structure as inspectable evidence.
+Do not build a general conversation framework. Implement only the next concrete Resolver/Granite/Witness operation required by the current fixture. For every language-bearing operation, define the smallest explicit grounding schema needed by that operation rather than introducing a global semantic ontology.
+
+Each model call must expose its exact bounded input JSON, raw output JSON, grounding references, Witness acceptance/rejection, and resulting CSV-backed structure as inspectable evidence.
