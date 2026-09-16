@@ -79,6 +79,14 @@ CSV₂
 
 Do not add a second world model to make this graph easier to execute.
 
+## Current fixture search root
+
+The current executable seed uses `world/world.csv` as the search list for what exists or matters.
+
+In the current probe, each `type,name` row resolves a referenced CSV-backed record. This establishes the current fixture's lookup path only. It does not freeze a permanent file-per-entity topology, ECS schema, component model, or final world index.
+
+Preserve the current arrangement until a real executable operation proves a different minimum representation is required.
+
 ## CSV-described function graph
 
 Game-specific wiring belongs in CSV-backed configuration rather than a hidden hard-coded per-entity runtime architecture.
@@ -343,7 +351,7 @@ Intermediate stage results are bounded transient structures. They are not author
 For NPC → NPC communication, only the actual emitted utterance crosses between actors. Preserve:
 
 ```text
-A intended X → said Y → B interpreted Z
+A candidate expression X → said Y → B interpreted Z
 ```
 
 including `X ≠ Z`.
@@ -368,7 +376,7 @@ The accepted `hand_over(stone)` expression can be recorded as an attributed CSV-
 
 Deterministic mechanics then check actual current CSV facts. If the NPC no longer holds the stone, the physical consequence fails or becomes a no-op according to the implemented mechanic.
 
-Granite is allowed to propose failure-prone behavior. Deterministic mechanics decide what actually happens.
+Granite may return failure-prone actor behavior. Deterministic mechanics decide what actually happens.
 
 ## Backing-state discovery rule
 
