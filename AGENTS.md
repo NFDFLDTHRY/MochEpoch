@@ -75,6 +75,12 @@ Do not turn the harness into a planner, agent framework, semantic world model, b
 
 A local operation can be tree-shaped or DAG-shaped because it resolves several CSV references/functions. The full game is a graph because systems/entities reference each other and accepted state transitions feed later operations.
 
+## Current fixture root
+
+The current executable fixture uses `world/world.csv` as its search list for what exists or matters. In the current probe, `type,name` resolves the referenced CSV record.
+
+That is the current fixture arrangement, not a frozen final topology. Preserve it until an executable operation requires a different minimum representation. Do not generalize the current file-per-name resolver into a permanent world schema merely because it exists first.
+
 ## CSV-described function graph
 
 Game-specific wiring belongs in CSV-backed configuration rather than hard-coded per-entity control flow where practical.
@@ -218,7 +224,7 @@ NPC-to-NPC communication traverses the actual emitted utterance. Never give the 
 Preserve:
 
 ```text
-A intended X → said Y → B interpreted Z
+A candidate expression X → said Y → B interpreted Z
 ```
 
 including `X ≠ Z`.
