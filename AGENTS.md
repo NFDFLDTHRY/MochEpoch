@@ -7,10 +7,10 @@ MochEpoch asks whether civilization-like behavior can emerge from factual CSV wo
 Preserve this primitive exactly:
 
 ```text
-CSV-BOUNDED TRUSTED STATE
+CSV-bounded input
   ↓
 RESOLVER
-CSV → bounded JSON parameters
+CSV-bounded input → bounded JSON parameters
   ↓
 GRANITE(stage)
 JSON → JSON
@@ -18,26 +18,38 @@ JSON → JSON
 UNTRUSTED JSON RESULT
   ↓
 WITNESS
-JSON → CSV-bounded trusted result or REJECT
+JSON → CSV-bounded result or REJECT
 ```
-
-Each stage is one transformation from a game-defined bounded population of possibilities.
 
 Resolver, Granite, and Witness have one job each and never change roles:
 
-- Resolver projects the CSV-bounded state required for one stage into bounded JSON.
+- Resolver projects the CSV-bounded input required for one transformation into bounded JSON.
 - Granite performs one JSON → JSON transformation. Call-local model state is discarded at call end with respect to game truth.
-- Witness validates one Granite return against that stage's schema, values/references, scope, identity, and authority, then converts it to CSV-bounded trusted structure or rejects it.
+- Witness validates one Granite return against that transformation's schema, values/references, scope, identity, and authority, then converts it to a CSV-bounded result or rejects it.
 
-There are no PRECHECK/FINAL Witness modes, hidden dialogue state, second model authority, or second world model. If another Granite stage is required, it begins again from CSV-bounded state through Resolver.
+**Do not equate CSV-bounded with trusted.** In a three-transformation dialogue pipeline, the first two Witness outputs remain untrusted intermediates. Only successful completion of the final `COMMIT` or `EMIT` transformation returns the pipeline to trusted CSV-bounded structure.
 
-Do not swap the Resolver and Witness namespaces. Do not use `Witness` to mean outbound packet construction, semantic language checking, or consequence execution.
+The trust shape is:
 
-A witnessed result becoming trusted means it is legal structure for that stage. It does not mean a spoken claim is true, dialogue is finished, or a world consequence has happened.
+```text
+TRUSTED CSV INPUT
+  ↓
+transformation 1 → CSV-bounded UNTRUSTED intermediate
+  ↓
+transformation 2 → CSV-bounded UNTRUSTED intermediate
+  ↓
+transformation 3 → FINAL CSV-bounded result
+  ↓
+TRUSTED
+```
 
-If a final witnessed result proposes a world consequence, deterministic game code checks current CSV-backed preconditions and performs any permitted mutation. Granite never directly mutates arbitrary world state.
+There are no PRECHECK/FINAL Witness modes, hidden dialogue authority, second model authority, or second world model. The Witness operation itself does not change between intermediate and final transformations.
 
-If a final witnessed result is an emitted utterance, deterministic game code delivers it. Granite never writes directly to UI.
+Do not swap the Resolver and Witness namespaces. Do not use `Witness` to mean outbound packet construction, semantic language checking, trust promotion by itself, or consequence execution.
+
+If a final trusted result proposes a world consequence, deterministic game code checks current CSV-backed preconditions and performs any permitted mutation. Granite never directly mutates arbitrary world state.
+
+If a final trusted result is an emitted utterance, deterministic game code delivers it. Granite never writes directly to UI.
 
 Before modifying Granite integration, Resolver, Witness, NPC processing, or natural-language communication machinery, read `docs/MODEL_ROLE.md` and `docs/DIALOGUE_BOUNDARY.md` and preserve their operational framing. Do not design functions against an imagined model interface; establish the concrete Granite WebApp call machinery and real call shape first.
 
@@ -49,49 +61,56 @@ System prompts are data in CSV state. They may be character-specific or shared b
 
 ## Dialogue boundary
 
-Dialogue is a sequence of repeated `Resolver → Granite → Witness` stages. Never merge the stages into an agent/chatbot loop.
+Dialogue is a three-transformation pipeline built from repeated `Resolver → Granite → Witness` transformations. Never merge the transformations into an agent/chatbot loop.
 
 Preserve these rules:
 
-1. Every stage is one bounded transformation and ends at Witness.
-2. A later stage starts again from CSV-bounded state through Resolver.
-3. Human input is external data, not authority over schema, identity, scope, or world state.
-4. Every Granite output is untrusted until Witness accepts/rejects it for that stage.
-5. Granite is reset at call end with respect to game truth. Anything required later must survive in CSV-backed state and be supplied again.
-6. `CHECK` is mandatory wherever human- or Granite-produced language can influence a later semantic/game stage.
-7. Checker is its own Granite transformation. Witness does not perform Checker's semantic job.
-8. Checker asks whether the utterance/candidate language is coherently matchable, even if imprecisely or factually incorrectly, to the possibilities represented by the corresponding bounded packet.
-9. Checker does not decide objective truth. Lies, mistakes, ambiguity, deception, and misunderstanding may survive when the language remains matchable to the packet.
-10. Ungrounded subject matter must not drive later processing. Human or Granite language cannot create game ontology merely by mentioning it.
-11. Checker is local to one side. Do not create an omniscient checker that sees both NPCs' private structures merely to force agreement.
-12. NPC-to-NPC communication traverses the actual emitted utterance. Never hand the recipient the sender's hidden structured intent.
-13. The final `EMIT` or `COMMIT` stage can return only values contained in its bounded game-defined possibilities.
-14. Any dialogue/history/result needed by a later call must be CSV-backed. Hidden model context is never continuity.
-15. Retry/correction behavior, if ever needed, is explicit, deterministic, and finite.
+1. Each Granite call is one bounded transformation and ends at Witness.
+2. A dialogue pipeline begins from trusted CSV and returns to trusted CSV only after the third successful transformation.
+3. The first two Witness outputs are CSV-bounded but remain untrusted.
+4. Human input is external data, not authority over schema, identity, scope, or world state.
+5. Every Granite output is untrusted.
+6. Granite is reset at call end with respect to game truth.
+7. `CHECK` is mandatory wherever human- or Granite-produced language can influence the final semantic/game result.
+8. Checker is its own Granite transformation. Witness does not perform Checker's semantic job.
+9. Checker asks whether the utterance/candidate language is coherently matchable, even if imprecisely or factually incorrectly, to the possibilities represented by the corresponding bounded packet.
+10. Checker does not decide objective truth. Lies, mistakes, ambiguity, deception, and misunderstanding may survive when the language remains matchable to the packet.
+11. Ungrounded subject matter must not reach the final trusted result. Human or Granite language cannot create game ontology merely by mentioning it.
+12. Checker is local to one side. Do not create an omniscient checker that sees both NPCs' private structures merely to force agreement.
+13. NPC-to-NPC communication traverses the actual emitted utterance. Never hand the recipient the sender's hidden structured intent.
+14. The final `EMIT` or `COMMIT` transformation can return only values contained in its bounded game-defined possibilities.
+15. Any durable authoritative dialogue/history/result belongs in CSV-backed state only after the pipeline has returned to trust.
+16. Retry/correction behavior, if ever needed, is explicit, deterministic, and finite.
 
 Directional sequencing:
 
 ```text
 Human → NPC
-INTAKE → CHECK → COMMIT
-(each stage = Resolver → Granite → Witness)
+TRUSTED CSV + human utterance
+INTAKE → untrusted CSV-bounded intermediate
+CHECK  → untrusted CSV-bounded intermediate
+COMMIT → final trusted CSV-bounded result
+(each transformation = Resolver → Granite → Witness)
 
 NPC → Human
-COMPOSE → CHECK → EMIT
-(each stage = Resolver → Granite → Witness)
+TRUSTED NPC CSV state
+COMPOSE → untrusted CSV-bounded intermediate
+CHECK   → untrusted CSV-bounded intermediate
+EMIT    → final trusted CSV-bounded result
+(each transformation = Resolver → Granite → Witness)
 
 NPC → NPC
 COMPOSE → CHECK → EMIT
-actual utterance crosses
+actual trusted emitted utterance crosses
 INTAKE → CHECK → COMMIT
-(each stage = Resolver → Granite → Witness)
+(each side is its own trust → untrusted → trust pipeline)
 ```
 
-See `docs/DIALOGUE_BOUNDARY.md` for the full stage definitions.
+See `docs/DIALOGUE_BOUNDARY.md` for the full definitions.
 
 ## CSV backing-state boundary
 
-CSV files are the backing state of MochEpoch. There is no second game-state representation.
+CSV files are the backing state of MochEpoch. There is no second authoritative game-state representation.
 
 Do not create or maintain an active in-memory world model, ECS, state store, object graph, inventory store, relationship graph, NPC state cache, renderer-owned gameplay state, or other parallel gameplay state. CSV is not merely an import/export format.
 
@@ -101,17 +120,19 @@ The allowed game-code shape is:
 2. CSV files that describe world, system, entity, asset, communication, event, and other game-relevant backing state; and
 3. classes that contain functions which read, resolve, validate, or transform that CSV backing state at explicit operation boundaries.
 
-Function classes do not own game state. Any game-relevant result that must survive an operation belongs back in CSV-backed state.
+Function classes do not own game state. Any durable authoritative game-relevant result belongs back in CSV-backed state.
 
-JSON is transient operational structure, not backing state. The project's DNA/RNA analogy is mechanical only: CSV is the durable backing state; JSON is temporary expression or transport for one operation. A JSON package may be created from CSV, passed through Granite, validated by Witness, and discarded. If another stage requires the result, the witnessed result must survive as CSV-bounded state and be resolved again into the next JSON packet.
+JSON is transient operational structure, not backing state. The project's DNA/RNA analogy is mechanical only: CSV is the durable backing state; JSON is temporary expression or transport for one transformation.
+
+A CSV-bounded intermediate is not automatically authoritative merely because Witness constrained it. It remains untrusted until the complete dialogue pipeline succeeds.
 
 Game assets are discovered through CSV manifests. Referenced asset files may use whatever format the renderer or backend requires, but the game's knowledge that an asset exists, where it is located, and any game-relevant metadata about it belongs in CSV. Do not create an independent hard-coded asset registry.
 
 Transient state is permitted only when specifically required by third-party backend machinery such as the browser, Three.js/WebGPU, model inference, decoding, or another explicitly used backend. Backend-required transient machinery must never become authoritative gameplay state and must not contain a game fact that exists nowhere in CSV.
 
-A Chrome WebApp cannot directly rewrite repository files. That limitation does not authorize a non-CSV runtime world model. The eventual browser persistence mechanism is a storage substrate for CSV-backed documents. Repository CSV files may be seed/default state; runtime-mutated state must still remain CSV-backed.
+A Chrome WebApp cannot directly rewrite repository files. That limitation does not authorize a non-CSV runtime world model. The eventual browser persistence mechanism is a storage substrate for authoritative CSV-backed documents. Repository CSV files may be seed/default state; runtime-mutated authoritative state must still remain CSV-backed.
 
-If renderer internals, model-runtime internals, caches, workers, function-class instances, and transient JSON packages are discarded, the continuing world must still be reconstructable from the CSV backing state plus referenced resource files.
+If renderer internals, model-runtime internals, caches, workers, function-class instances, and transient JSON packages are discarded, the continuing authoritative world must still be reconstructable from the CSV backing state plus referenced resource files.
 
 Do not build a backend merely to make static repository CSV files writable.
 
@@ -153,9 +174,9 @@ If an external service is genuinely required and has not been approved, stop and
 
 ## Evidence
 
-Save enough to establish one stage: relevant CSV before-state, Resolver parameters, raw Granite output/error, Witness acceptance/rejection, and resulting CSV-bounded state. Failed runs count.
+Save enough to establish one transformation: relevant input state, Resolver parameters, raw Granite output/error, Witness result/rejection, and resulting CSV-bounded representation. Failed runs count.
 
-When a dialogue sequence is tested, preserve each stage separately and preserve the actual utterance that crosses between speakers. Do not replace the actual utterance with hidden structured intent.
+For dialogue tests, record the trust status explicitly. The first two outputs are untrusted intermediates; only the completed final result is trusted. Preserve the actual utterance that crosses between speakers.
 
 Do not turn evidence collection into a framework unless accumulated runs become hard to inspect manually.
 
