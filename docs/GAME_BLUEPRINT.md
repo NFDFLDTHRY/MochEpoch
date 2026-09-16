@@ -2,7 +2,7 @@
 
 This document is the architectural blueprint for MochEpoch.
 
-It fixes the authority boundary and game lifecycle while allowing concrete CSV files, JSON packet shapes, assets, mechanics, persistence details, and rendering structures to fall out of executable game work.
+It fixes the authority boundary and lifecycle while allowing concrete CSV files, JSON packet shapes, assets, mechanics, persistence details, and rendering structures to fall out of executable game work.
 
 ## One game truth
 
@@ -12,7 +12,7 @@ JSON is temporary operational structure.
 
 The player, NPCs, Granite, renderer, model runtime, scene graph, caches, JavaScript objects, and function instances are not independent sources of game truth.
 
-The compact game lifecycle is:
+The compact lifecycle is:
 
 ```text
 CSV → JSON → NPC / HUMAN → JSON → CSV
@@ -25,56 +25,77 @@ For an actor-mediated transition:
 ```text
 AUTHORITATIVE CSV WORLD
         ↓
-Witness resolves scoped CSV and constructs the JSON operation packet
+Witness resolves scoped CSV and constructs the JSON packet needed for this call
         ↓
 NPC or HUMAN behavior
-(Granite is called where fuzzy generation/mapping is required)
+(Granite is called only where fuzzy generation/mapping is required)
         ↓
 raw JSON expression/result
         ↓
 deterministic parse / map / resolve or REJECT
         ↓
-write only the resulting game-relevant facts/events required by this operation
+write only the resulting game-relevant CSV facts/history required by this operation
         ↓
 AUTHORITATIVE CSV WORLD'
 ```
 
-There is no mandatory intermediate actor-event write between JSON mapping and game resolution.
-
-The mapped behavior may lead directly to a state mutation, may persist an attributed event/history fact, may do both, or may produce no world change. The actual mechanic decides which CSV-backed result is required.
+The mapped behavior may directly mutate current state, persist factual/attributed history when later behavior needs it, do both, or produce no world change. The actual mechanic decides the minimum CSV-backed result.
 
 ## The harness is the game lifecycle
 
 The harness has a small job:
 
-1. read the CSV-described operation/function wiring;
-2. use Witness to resolve only the scoped CSV-backed inputs needed for a model call and construct transient JSON;
+1. read the CSV-backed facts/configuration required by the current operation;
+2. use Witness to resolve the scoped CSV inputs needed for a Granite call and construct transient JSON;
 3. accept human behavior directly or call Granite where fuzzy generation/mapping is required;
-4. deterministically parse/map the resulting JSON against the configured output contract and current CSV-described possibilities;
-5. run the deterministic game operation required by that mapped result; and
-6. write only the durable facts/events the operation actually produces back to CSV-backed state.
+4. deterministically parse/map the returned JSON against what the current operation actually allows;
+5. run the deterministic game operation required by the mapped result; and
+6. write only the durable facts/history the operation actually produces back to CSV-backed state.
 
 Rendering then projects the resulting CSV world.
 
 That is the entire authoritative loop.
 
-A local operation may look tree-shaped or DAG-shaped because it resolves several CSV references/functions before converging on a result. The whole game is a graph because systems/entities reference each other and accepted state transitions feed later operations.
+## The function graph is descriptive, not a required data structure
+
+A real operation can look tree-shaped or DAG-shaped because several CSV references and generic functions may feed one result. Repeated operations form the game's larger graph because resulting CSV state becomes input to later operations.
 
 ```text
 CSV₀
  ↓
-operation graph
+actual operation path
  ↓
 CSV₁
  ↓
-operation graph
+actual operation path
  ↓
 CSV₂
  ↓
 ...
 ```
 
-Do not add a second world model to make this graph easier to execute.
+This does **not** require a universal stored graph, routing table, operation-id field, next-edge field, or graph executor.
+
+The graph is simply the shape formed by the references and function calls a real implemented operation actually uses.
+
+Game-specific choices that must survive outside executable code belong in CSV-backed configuration. But add each such reference only when the concrete operation needs it.
+
+For example, the current fixture already has a minimal game-specific reference:
+
+```text
+Ada CSV
+  decision_system = interaction
+        ↓
+interaction.csv
+  system_prompt = ...
+  output_schema = hand_over | wait
+```
+
+That establishes a real CSV-backed call relationship. It does **not** establish a universal operation record, function-routing schema, model registry, next-step pointer, or output-population table.
+
+If a future operation proves that another game-specific reference is required, add the minimum reference then.
+
+Executable classes/functions are generic machinery. They do not own game state and do not become a second game-specific control graph.
 
 ## Current fixture search root
 
@@ -84,28 +105,9 @@ In the current probe, each `type,name` row resolves a referenced CSV-backed reco
 
 Preserve the current arrangement until a real executable operation proves a different minimum representation is required.
 
-## CSV-described function graph
-
-Game-specific wiring belongs in CSV-backed configuration rather than a hidden hard-coded per-entity runtime architecture.
-
-CSV-backed configuration may select/reference, as actual operations require:
-
-- the operation/function being performed;
-- the generic function/system to call;
-- Granite/model/runtime resources when that function is Granite;
-- caller/actor/world/system references;
-- the system prompt;
-- the input facts/populations Witness should retrieve;
-- the required output shape/population; and
-- the next function/operation edge when execution proves one is needed.
-
-Executable classes/functions are generic machinery. They do not own game state and do not become a second game-specific control graph.
-
-Do not freeze a universal function-graph schema before real execution reveals the minimum representation.
-
 ## Three operation shapes
 
-Unless execution proves another primitive is required, every game operation reduces to one of these shapes.
+Unless execution proves another primitive is required, game work reduces to these shapes.
 
 ### Projection
 
@@ -126,11 +128,11 @@ CSV → deterministic function → CSV
 ```text
 CSV
  ↓
-JSON operation packet
+JSON packet when needed
  ↓
 NPC / HUMAN behavior
  ↓
-JSON
+JSON when needed
  ↓
 deterministic mapping + operation resolution
  ↓
@@ -170,7 +172,7 @@ The player and NPCs occupy the same behavioral slot from the perspective of auth
 ```text
 CSV world slice
  ↓
-Witness JSON packet
+Witness packet when Granite is needed
  ↓
 Granite-generated/evaluated behavior
  ↓
@@ -186,7 +188,7 @@ CSV
 ```text
 CSV world slice + external human action / utterance
  ↓
-Witness JSON packet only when fuzzy mapping is required
+Witness packet only when fuzzy mapping is required
  ↓
 Granite mapping only when needed
  ↓
@@ -207,7 +209,7 @@ Granite is a bounded JSON → JSON game function used for fuzzy actor behavior.
 
 Its role is:
 
-> Generate or evaluate actions and natural-language dialogue from the bounded game possibilities supplied in one operation packet.
+> Generate or evaluate actions and natural-language dialogue from the bounded game possibilities supplied in one call packet.
 
 Granite may help with generating/selecting NPC actions, generating NPC dialogue, mapping human language into game-defined possibilities, or another narrowly defined fuzzy actor-behavior transformation proven necessary by execution.
 
@@ -217,17 +219,15 @@ Granite input/output JSON is disposable operational structure. Model weights/run
 
 ## Witness is the CSV → JSON edge
 
-Witness is not an inbound validator and not a separate simulation subsystem.
-
-Witness does one generic outbound job:
+Witness is the project name for one generic outbound operation used when Granite is called:
 
 ```text
-CSV-backed operation/world/configuration
+scoped CSV-backed state/configuration
         ↓
 Witness
 retrieve scoped CSV + construct packet
         ↓
-bounded JSON packet
+JSON packet
         ↓
 Granite
 ```
@@ -235,6 +235,8 @@ Granite
 Witness owns no state. It does not interpret Granite output, decide consequences, repair output, or mutate CSV.
 
 There is no required separate Resolver architecture. Reference resolution is simply work Witness performs while constructing the packet using generic CSV machinery.
+
+Witness packet shape is not frozen. Build only the packet fields the proven Granite interface and current game operation require.
 
 ## JSON → CSV return edge
 
@@ -245,13 +247,13 @@ The deterministic harness/game runner performs only the return work required by 
 ```text
 raw JSON
  ↓
-parse / validate / map against configured output bounds
+parse / validate / map against the current operation's actual bounds
  ↓
 accepted game representation or REJECT
  ↓
 deterministic operation/resolution
  ↓
-CSV-backed facts/events required by that operation
+CSV-backed facts/history required by that operation
 ```
 
 The accepted game representation may remain transient while deterministic mechanics resolve it. It does not need to be written as a separate actor event merely to cross the harness.
@@ -260,15 +262,15 @@ Persist an attributed action, utterance, observation, or other event only when t
 
 Do not invent another named subsystem around this edge unless execution proves one is needed.
 
-If a later Granite transformation is actually required, its input may include a transient prior result, but intermediate JSON remains disposable unless explicitly written into CSV-backed state.
-
 ## Communication is not a separate architecture
 
 Natural-language communication is another actor-mediated transition through the same harness.
 
 There is no mandatory `INTAKE → CHECK → COMMIT`, `COMPOSE → CHECK → EMIT`, or other fixed dialogue stage graph.
 
-Start with the smallest transformation that completes the real interaction. If one Granite call is sufficient, use one. Add another model transformation only when an executed case demonstrates a concrete need. Any additional routing belongs in the CSV-described function graph.
+Start with the smallest transformation that completes the real interaction. If one Granite call is sufficient, use one. Add another model transformation only when an executed case demonstrates a concrete need.
+
+If a later communication operation genuinely requires game-specific routing between calls, encode only the minimum CSV-backed reference needed by that operation at that time. Do not prebuild dialogue routing machinery.
 
 For NPC-to-NPC communication, the actual utterance that crossed the world is what the recipient receives. Never substitute hidden sender-side structured data.
 
@@ -276,7 +278,7 @@ If later operations need to know that `A said Y`, that speech occurrence must be
 
 Do not add extra checks, retries, correction passes, dialogue stages, or universal conversation history merely to normalize behavior.
 
-## Deterministic consequence boundary
+## Mapping versus physical success
 
 Mapping an actor expression into the game and physically succeeding are different things.
 
@@ -307,7 +309,7 @@ The repository should lock:
 - the categories the game must be able to describe; and
 - Granite's behavioral contract.
 
-It should allow concrete CSV files, columns, indexes, references, function-graph representation, event representation, and JSON packet shapes to emerge from executable operations.
+It should allow concrete CSV files, columns, indexes, references, call configuration, history representation, and JSON packet shapes to emerge from executable operations.
 
 Use this practical test:
 
@@ -322,7 +324,7 @@ Examples:
 - an individual branch that can be picked up, carried, discussed, stored, burned, or revisited needs game-relevant identity/state represented in CSV somehow;
 - an individual tree that can be chopped, damaged, named, harvested, blocked by, discussed, or revisited needs enough CSV-backed identity/state for those operations.
 
-Do not infer a particular file-per-entity, ECS table, component schema, event schema, or spatial index from these examples. Execution determines the smallest correct representation.
+Do not infer a particular file-per-entity, ECS table, component schema, event schema, routing table, or spatial index from these examples. Execution determines the smallest correct representation.
 
 ## World categories the backing state must eventually be able to describe
 
@@ -362,11 +364,13 @@ An operation may instead require only the resulting current-state mutation.
 
 Recording an attributed event does not turn its semantic content into objective truth.
 
-The exact event schema and retention policy are not fixed yet.
+### Systems / function configuration
 
-### Systems / function definitions
+CSV-backed configuration describes only the game-specific function choices and parameters that implemented operations actually need to preserve outside executable code.
 
-CSV-backed configuration may describe deterministic mechanics, model/function selection, system prompts, required input references, bounded populations, output schemas, function-graph routing, and other configuration required by proven operations.
+The current fixture proves only a narrow relationship such as `Ada → interaction` plus `interaction` prompt/schema data.
+
+Future operations may prove a need for additional model/resource references, scoped input references, mechanic selection, or call chaining. Add those references only when proven. Do not assume a universal operation identity, routing field, next edge, output-population field, or graph schema.
 
 ### Assets / referenced resources
 
@@ -395,7 +399,7 @@ Failure to produce civilization-like behavior is a valid experimental result.
 ```text
 seed or persisted CSV
  ↓
-resolve references / function configuration
+resolve the references actually used by implemented systems/assets
  ↓
 load referenced resources / backend machinery
  ↓
