@@ -50,11 +50,13 @@ Language or behavior cannot create authoritative world ontology by mention alone
 
 ## Scoped does not mean behavior-whitelisted
 
-Witness gives Granite a scoped slice of CSV-backed world/configuration plus whatever prompt/resource/return constraints the current call actually needs.
+Witness gives Granite a scoped slice of CSV-backed world/configuration plus whatever prompt/resource information and operation-specific output guidance the concrete call actually uses.
 
 That does not require actors to choose from a universal finite behavior menu.
 
-The current fixture's `hand_over | wait` output enum is a local test constraint, not MochEpoch's general behavior ontology.
+The current fixture's `hand_over | wait` output enum and `output_schema` key are local test configuration, not MochEpoch's general behavior ontology or a universal Granite-call requirement.
+
+A different concrete call may use a different schema, a prompt convention, parser-specific output, or no explicit output-schema mechanism at all.
 
 Granite or a human may produce arbitrary language or behavior. A concrete operation only consumes what its implemented code understands.
 
@@ -64,7 +66,7 @@ The harness may look tree-shaped or DAG-shaped during a particular operation bec
 
 That is an execution shape, not a required graph data structure.
 
-Do not infer a universal operation record, graph table, routing table, next-edge field, node schema, output-population table, or graph executor.
+Do not infer a universal operation record, graph table, routing table, next-edge field, node schema, output-population table, output-schema field, or graph executor.
 
 The current fixture proves only a narrow relationship:
 
@@ -100,6 +102,8 @@ Witness owns no game state. It does not inspect Granite output, decide consequen
 
 There is no required separate Resolver subsystem.
 
+Witness does not require an `output_schema` or return-constraint field merely because the current fixture has one.
+
 ## Granite
 
 Granite is used like another game function:
@@ -108,7 +112,9 @@ Granite is used like another game function:
 JSON parameters → Granite → JSON return
 ```
 
-Its job is to generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet, subject only to whatever return shape that call actually requires.
+Its job is to generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet and return JSON in whatever concrete form that operation actually uses.
+
+An explicit JSON Schema, enum, grammar, constrained decoder, or other return-shape mechanism is optional operation-local machinery, not a universal Granite contract.
 
 Granite does not own an NPC, own world state, read arbitrary CSV directly, choose its own scope, decide objective truth, execute physical consequences, mutate CSV, or carry hidden game truth between calls.
 
@@ -129,6 +135,8 @@ check current CSV facts
         ↓
 write holder change OR no world change
 ```
+
+That fixture parser exists because `interaction.csv` explicitly defines an `output_schema`. It is not evidence that every Granite call needs schema validation or structured-output machinery.
 
 If the return cannot be consumed by that operation, there is no authoritative CSV write and the failed run is evidence.
 
@@ -200,7 +208,7 @@ One world. One player. One game-controlled character whose decision path may cal
 
 The current seed uses one room, the player, Ada, and one stone held by Ada. Ada is game-controlled; Granite is an ordinary function used by her configured decision path.
 
-No event log, graph table, operation-type enum, return-mapping layer, rejection state, or actor-history record is required for this first fixture unless the run itself demonstrates a need.
+No event log, graph table, operation-type enum, universal output-schema layer, return-mapping layer, rejection state, or actor-history record is required for this first fixture unless the run itself demonstrates a need.
 
 **Pass condition:** the next interaction operates correctly from the resulting authoritative CSV-backed state without hidden model memory or hidden game state.
 
@@ -216,7 +224,9 @@ The real Chrome read/resolve/render milestone passed on public commit-pinned Git
 
 These checks establish current CSV read/reference-resolution/projection behavior. They do not establish a Granite call, Witness packet, actor-mediated gameplay mutation, persistence, or the complete first-test loop.
 
-The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real scoped JSON-in → JSON-out call. Then build the thinnest actual:
+The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real scoped JSON-in → JSON-out call. That proof should use only whatever output convention the real runtime and smallest test actually require; it does not need a structured-output or schema layer merely because the current game fixture has `output_schema`.
+
+Then build the thinnest actual:
 
 ```text
 CSV → Witness JSON → Granite → JSON → operation-local deterministic handling → CSV
@@ -224,7 +234,7 @@ CSV → Witness JSON → Granite → JSON → operation-local deterministic hand
 
 path the proven interface requires.
 
-Do not freeze future world/ECS/packet/dialogue/history schemas before execution reveals them.
+Do not freeze future world/ECS/packet/dialogue/history/output-schema structures before execution reveals them.
 
 ## Development in Chrome through GitHack
 
