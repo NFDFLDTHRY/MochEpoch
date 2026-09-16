@@ -33,7 +33,7 @@ JSON is never authoritative merely because it exists, parses, matches a schema, 
 
 Only an explicit accepted write into CSV-backed state changes continuing game truth/history.
 
-If an operation uses multiple model/function calls, intermediate JSON remains disposable unless the game explicitly writes a durable result into CSV-backed state.
+If an operation uses multiple model/function calls, intermediate JSON remains disposable unless the game explicitly needs some result to persist.
 
 ## Witness does not own state
 
@@ -45,25 +45,26 @@ Witness does not own state, interpret Granite output, decide consequences, or mu
 
 There is no required separate Resolver architecture. Reference resolution is ordinary generic CSV work performed while constructing the packet.
 
-The JSON → CSV return edge belongs to the deterministic harness/game runner: parse/map the returned JSON against the configured output contract, reject it when it cannot map, and write only accepted durable facts/events into CSV-backed state.
+The JSON → CSV return edge belongs to the deterministic harness/game runner: parse/map the returned JSON against the configured output contract, reject it when it cannot map, execute the required deterministic operation, and write only the resulting durable facts/events into CSV-backed state.
 
-## Actor expressions and events
+## No mandatory event layer
 
-When an actor-mediated action or utterance crosses the harness and later operations need to know it happened, the accepted expression/result may return to CSV-backed factual/attributed state.
+An accepted actor expression does not automatically require a separate event record.
 
-Examples may include:
+The mapped result may:
 
-```text
-Ada attempted hand_over(stone)
-Ada said Y
-Player said Y
-```
+- directly mutate current CSV state;
+- write factual/attributed history when later behavior needs that history;
+- do both; or
+- produce no CSV change.
 
-Recording `Ada said Y` means the game authoritatively knows that Ada said Y. It does not mean the proposition inside `Y` is objectively true.
+For example, `hand_over(stone)` may map successfully and then directly drive deterministic holder mutation. The attempt itself needs a history record only if a later implemented operation must know that the attempt happened.
 
-Likewise, recording an attempted action does not mean the physical action succeeded. Deterministic mechanics separately resolve physical consequences from current CSV-backed facts.
+Likewise, speech such as `Ada said Y` needs CSV-backed history only when later game behavior must reference that occurrence.
 
-The exact event schema and retention policy are intentionally not fixed yet.
+If recorded, the occurrence of the speech is factual. The proposition inside `Y` is not thereby objective world truth.
+
+There is no universal event ledger, mandatory actor-event admission step, or required event schema.
 
 ## Game-relevance test
 
@@ -86,9 +87,9 @@ These examples do not prescribe file-per-entity storage, ECS tables, components,
 
 ## Do not freeze the topology early
 
-The repository may define categories of game-relevant things that must eventually be describable, but exact CSV files, columns, indexes, references, packet shapes, function-graph representation, event representation, and spatial structures must emerge from executable operations.
+The repository may define categories of game-relevant things that must eventually be describable, but exact CSV files, columns, indexes, references, packet shapes, function-graph representation, history/event representation, and spatial structures must emerge from executable operations.
 
-Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, or spatial index because it sounds useful.
+Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, event log, or spatial index because it sounds useful.
 
 Build the actual game asset/mechanic, force it through the lifecycle, and add only the minimum backing representation the run proves necessary.
 
@@ -126,9 +127,11 @@ This is not an implementation checklist.
 
 ### Events / history
 
-Actor-mediated behavior that later operations need may be CSV-backed factual/attributed history: attempted actions, speech events, transfers, observations, construction/destruction, resource extraction, crafting, injury/death, and other mechanically relevant events.
+Optional factual/attributed history only when later implemented operations need it, such as speech, observations, attempted actions, transfers, construction/destruction, resource extraction, crafting, injury/death, and other mechanically relevant occurrences.
 
-Do not precompute social interpretations such as trust, friendship, morality, loyalty, resentment, or civilization from these events.
+An operation may need only its resulting current-state mutation and no historical event record.
+
+Do not precompute social interpretations such as trust, friendship, morality, loyalty, resentment, or civilization from history.
 
 ### Systems / function configuration
 
@@ -150,8 +153,8 @@ MochEpoch game code is limited to these roles unless a concrete execution failur
 
 1. first-person 3D rendering/audio/UI that projects the CSV-described world;
 2. CSV-backed documents that describe authoritative game state/history/configuration and resource references;
-3. generic deterministic functions that read/resolve/transform CSV-backed state according to CSV-selected operations;
-4. Witness packet construction and other transient JSON/model/backend machinery needed to execute an operation.
+3. generic deterministic functions that read/resolve/transform CSV-backed state according to CSV-selected operations; and
+4. Witness packet construction plus other transient JSON/model/backend machinery needed to execute an operation.
 
 Function classes own no game state.
 
@@ -185,11 +188,11 @@ Do not build a backend merely to make repository CSV files writable.
 
 ## No encoded civilization
 
-Store facts and attributed events, not designer interpretations.
+Store the factual state and factual/attributed history the actual game needs, not designer interpretations.
 
 Do not add authoritative trust, friendship, loyalty, morality, resentment, faction sentiment, civilization scores, or similar social abstractions unless the research question is explicitly changed.
 
-A world may contain houses, paths, stored food, tools, fields, speech events, transfers, conflict, cooperation, construction, and other factual consequences without storing a `civilization` variable.
+A world may contain houses, paths, stored food, tools, fields, speech where relevant, transfers, conflict, cooperation, construction, and other factual consequences without storing a `civilization` variable.
 
 Failure to produce civilization-like behavior is valid evidence.
 
