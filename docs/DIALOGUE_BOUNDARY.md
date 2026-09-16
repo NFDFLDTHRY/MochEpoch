@@ -270,7 +270,7 @@ Never give the recipient the sender's hidden candidate/structured representation
 Preserve:
 
 ```text
-NPC A intended X
+NPC A candidate expression X
       ↓
 said Y
       ↓
