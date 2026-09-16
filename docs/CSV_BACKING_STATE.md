@@ -4,6 +4,8 @@ This document is a hard architectural constraint for MochEpoch.
 
 Read `docs/GAME_BLUEPRINT.md` first for the complete game lifecycle.
 
+Where this document uses `operation`, it means the concrete game code path/state transition being executed. It does not establish an Operation runtime object, context, caller object, registry, dispatcher token, or operation record.
+
 ## Hard rule
 
 CSV-backed state is the game truth.
@@ -12,34 +14,36 @@ There is no second authoritative game-state representation.
 
 The renderer may project the world, deterministic functions may transform it, Witness may construct model-call packets, Granite may generate/evaluate actor behavior, and browser/model runtimes may maintain transient backend machinery, but none of those become a second source of continuing game facts/history.
 
-If a game-relevant fact or history item must survive the current operation, it needs a CSV-backed representation.
+If a game-relevant fact or history item must survive the current executing path, it needs a CSV-backed representation.
 
 ## CSV and JSON
 
 The project's DNA/RNA analogy is mechanical:
 
 - CSV is DNA: durable, inspectable, authoritative backing state/history/configuration.
-- JSON is RNA: temporary operational expression/transport for one operation or transformation.
+- JSON is RNA: temporary operational expression/transport for one call, behavior, or transformation.
 
 Do not import biological semantics beyond that analogy.
 
 The core relationship is:
 
 ```text
-CSV → JSON → operation / actor → JSON → CSV
+CSV → JSON → actor / function → JSON → CSV
 ```
 
 JSON is never authoritative merely because it exists, parses, matches a schema, or was returned by Granite.
 
-Only an explicit write into CSV-backed state by the concrete game operation changes continuing game truth/history.
+Only an explicit write into CSV-backed state by concrete game code changes continuing game truth/history.
 
-If an operation uses multiple model/function calls, intermediate JSON remains disposable unless the game explicitly needs some result to persist.
+If one game path uses multiple model/function calls, intermediate JSON remains disposable unless the game explicitly needs some result to persist.
 
 ## Witness does not own state
 
-Witness is the scoped CSV → JSON call constructor used when an operation calls Granite.
+Witness is the scoped CSV → JSON call constructor used when concrete game code calls Granite.
 
-Witness may read the current call's CSV-backed references/configuration, resolve only that scoped state, and construct the transient JSON packet.
+Witness may read the actual CSV-backed references/configuration supplied by that call site, resolve only that scoped state, and construct the transient JSON packet.
+
+Witness does not require a caller/current-operation object, operation id, or operation context.
 
 Witness does not own state, interpret Granite output, decide consequences, or mutate CSV.
 
@@ -47,25 +51,25 @@ There is no required separate Resolver architecture. Reference resolution is ord
 
 ## Return handling does not create another architecture
 
-The JSON → CSV side belongs to the concrete deterministic game operation.
+The JSON → CSV side belongs to the concrete deterministic game code that consumes the return.
 
 There is no universal semantic mapper, acceptance stage, rejection object/state, or shared validator that every Granite return must cross.
 
-The current operation parses only what it actually needs and either uses that data to perform its implemented mechanic or produces no authoritative write.
+Concrete code parses only what it actually needs and either uses that data to perform its implemented mechanic or produces no authoritative write.
 
 Example:
 
 ```text
 Granite → {"action":"hand_over"}
         ↓
-current interaction operation parses that action
+current fixture code parses that action
         ↓
 hand_over mechanic reads current CSV facts
         ↓
 write holder change OR no state change
 ```
 
-If the current operation cannot consume the return:
+If the concrete code cannot consume the return:
 
 ```text
 unusable JSON
@@ -75,7 +79,7 @@ no authoritative CSV write
 failed run remains evidence
 ```
 
-A different future operation may require different deterministic handling. Build only what that operation proves necessary.
+A different future game path may require different deterministic handling. Build only what execution proves necessary.
 
 “Mapping” is shorthand only when useful for a concrete local conversion. It is not an architectural subsystem.
 
@@ -83,14 +87,14 @@ A different future operation may require different deterministic handling. Build
 
 An actor expression does not automatically require a separate event record before a mechanic runs.
 
-The concrete operation may:
+Concrete game code may:
 
 - directly mutate current CSV state;
 - write factual/attributed history when later behavior needs that history;
 - do both; or
 - produce no CSV change.
 
-For example, `hand_over(stone)` may cause the current operation to invoke the `hand_over` mechanic and directly change the holder. The attempt itself needs a history record only if a later implemented operation must know the attempt happened.
+For example, `hand_over(stone)` may cause the current code path to invoke the `hand_over` mechanic and directly change the holder. The attempt itself needs a history record only if later implemented behavior must know the attempt happened.
 
 Likewise, speech such as `Ada said Y` needs CSV-backed history only when later game behavior must reference that occurrence.
 
@@ -104,7 +108,7 @@ The backing structure should fall out of the game as real first-person assets an
 
 Use this test:
 
-> If Granite, the player, an NPC, deterministic mechanics, or a later operation needs a fact after the current operation ends, that fact needs a CSV-backed representation.
+> If Granite, the player, an NPC, deterministic mechanics, or later game behavior needs a fact after the current executing path ends, that fact needs a CSV-backed representation.
 
 If something exists only to produce pixels, sound, animation, GPU work, inference, decoding, or another backend effect, it is rendering/resource machinery rather than independent game truth.
 
@@ -112,16 +116,16 @@ Examples:
 
 - thousands of decorative grass instances may correspond to one game-relevant terrain/vegetation description;
 - a forest can be represented by a region/generator/seed until individual trees need game-relevant identity/state;
-- a branch that can be picked up, carried, discussed, stored, burned, or revisited needs enough CSV-backed identity/state for those operations;
-- a tree that can be chopped, damaged, named, harvested, blocked by, discussed, or revisited needs enough CSV-backed identity/state for those operations.
+- a branch that can be picked up, carried, discussed, stored, burned, or revisited needs enough CSV-backed identity/state for those behaviors;
+- a tree that can be chopped, damaged, named, harvested, blocked by, discussed, or revisited needs enough CSV-backed identity/state for those behaviors.
 
 These examples do not prescribe file-per-entity storage, ECS tables, components, or any other final schema.
 
 ## Do not freeze the topology early
 
-The repository may define categories of game-relevant things that must eventually be describable, but exact CSV files, columns, indexes, references, packet shapes, call-configuration representation, history representation, and spatial structures must emerge from executable operations.
+The repository may define categories of game-relevant things that must eventually be describable, but exact CSV files, columns, indexes, references, packet shapes, call-configuration representation, history representation, and spatial structures must emerge from executable work.
 
-Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, event log, routing table, universal function graph, return-mapping framework, rejection layer, or spatial index because it sounds useful.
+Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, event log, routing table, universal function graph, operation-object/context schema, return-mapping framework, rejection layer, or spatial index because it sounds useful.
 
 Build the actual game asset/mechanic, force it through the lifecycle, and add only the minimum backing representation the run proves necessary.
 
@@ -144,7 +148,7 @@ interaction.csv
 
 That is authoritative configuration because those CSV facts select/configure Ada's current decision path.
 
-Nothing in the current evidence proves a need for a generic operation-id column, function-id column, model registry, next-edge field, routing table, output-population table, or function-graph CSV.
+Nothing in the current evidence proves a need for a generic operation-id column, function-id column, model registry, next-edge field, routing table, output-population table, operation context, or function-graph CSV.
 
 If a real browser call or later mechanic requires an additional game-specific reference, add that minimum reference at that time.
 
@@ -184,9 +188,9 @@ This is not an implementation checklist.
 
 ### Events / history
 
-Optional factual/attributed history only when later implemented operations need it, such as speech, observations, attempted actions, transfers, construction/destruction, resource extraction, crafting, injury/death, and other mechanically relevant occurrences.
+Optional factual/attributed history only when later implemented behavior needs it, such as speech, observations, attempted actions, transfers, construction/destruction, resource extraction, crafting, injury/death, and other mechanically relevant occurrences.
 
-An operation may need only its resulting current-state mutation and no historical record.
+A state transition may need only its resulting current-state mutation and no historical record.
 
 Do not precompute social interpretations such as trust, friendship, morality, loyalty, resentment, or civilization from history.
 
@@ -208,8 +212,8 @@ MochEpoch game code is limited to these roles unless a concrete execution failur
 
 1. first-person 3D rendering/audio/UI that projects the CSV-described world;
 2. CSV-backed documents that describe authoritative game state/history/configuration and resource references;
-3. generic deterministic functions that read/resolve/transform CSV-backed state according to the current implemented operation; and
-4. Witness packet construction plus other transient JSON/model/backend machinery needed to execute an operation.
+3. generic deterministic functions that read/resolve/transform CSV-backed state according to concrete implemented mechanics/behavior; and
+4. Witness packet construction plus other transient JSON/model/backend machinery needed by actual calls.
 
 Function classes own no game state.
 
@@ -229,7 +233,7 @@ Granite weights/runtime may remain loaded for performance.
 
 Call-local prompts, JSON packets, decoder state, model context, KV cache, workers, or similar inference machinery are not authoritative game state.
 
-If a later actor operation needs a fact/history item, that information must come from CSV-backed state rather than hidden model memory.
+If later actor behavior needs a fact/history item, that information must come from CSV-backed state rather than hidden model memory.
 
 ## Runtime persistence
 
