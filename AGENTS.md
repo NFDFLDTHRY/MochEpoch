@@ -2,49 +2,67 @@
 
 ## Preserve the experiment
 
-Mock Epoch asks whether civilization-like behavior can emerge from factual CSV world state, scoped Witness calls, Granite 350M JSON reasoning, and deterministic game execution without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization.
+MochEpoch asks whether civilization-like behavior can emerge from factual CSV world state, bounded Resolver/Granite/Witness transformations, and deterministic game execution without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization.
 
-Preserve this machine:
+Preserve this core trust boundary:
 
 ```text
-PLAYER
+TRUSTED CSV-BACKED STATE
   ↓
-GAME RUNNER
+RESOLVER
+CSV → bounded JSON parameters
   ↓
-WORLD.CSV search list
+GRANITE(operation)
+JSON → JSON
   ↓
-type + name resolve referenced CSV state
+UNTRUSTED JSON RESULT
   ↓
-WITNESS class functions: scoped CSV access + packet construction
+WITNESS
+JSON → bounded CSV-backed result or REJECT
   ↓
-ONE Granite calling packet
-  ↓
-GRANITE 350M JSON → JSON
-  ↓
-MODEL OUTPUT
-  ↓
-IF / ELSE / THEN resolver
-  ↓
-GAME RUNNER updates CSV-backed state
-  ↓
-NEXT WORLD
+TRUSTED CSV-BACKED STRUCTURE AGAIN
 ```
 
-The one Granite packet contains the world descriptive summation, system prompt from CSV, current situational state, and output JSON schema together.
+Resolver is the outbound game-world boundary. It reads/resolves only the CSV-backed facts permitted for the current operation and constructs the bounded JSON parameters supplied to Granite.
 
-Witness is only a class containing the small set of ordinary functions needed for scoped CSV access and Granite packet construction. It is not an architectural subsystem and does not reason about the world.
+Granite is a function used by the game: `parameters → Granite → return value`. It has no game authority, direct CSV access, hidden world state, or privileged memory. Every Granite return is untrusted, including the output of any checker/coherence operation.
 
-Granite only processes the supplied packet and returns JSON. It does not own world state or execute consequences.
+Witness is the inbound boundary. It validates one raw Granite return against the exact schema, references, scope, identities, and authority permitted for the current operation, then produces only the bounded CSV-backed representation allowed for that operation or rejects it.
 
-Before modifying Granite integration, Witness, NPC processing, or natural-language communication machinery, read `docs/MODEL_ROLE.md` and preserve its operational framing. Do not design Witness functions against an imagined model interface; establish the concrete Granite WebApp call machinery first, then make the class functions feed that proven interface.
+Do not swap the Resolver and Witness namespaces. Do not use `Witness` to mean outbound packet construction, and do not use `resolver` to mean the post-model consequence executor.
+
+A witnessed result becoming trusted means it is legal game structure, not that a spoken claim is true, an interpretation is correct, or an NPC is honest.
+
+If a witnessed result proposes a world consequence, deterministic game code checks current CSV-backed preconditions and performs any permitted mutation. Granite never commits a world mutation directly.
+
+If a witnessed result is an utterance, deterministic game code delivers the accepted CSV-backed utterance to its recipient. Granite never writes directly to UI or bypasses Witness.
+
+Before modifying Granite integration, Resolver, Witness, NPC processing, or natural-language communication machinery, read `docs/MODEL_ROLE.md` and `docs/DIALOGUE_BOUNDARY.md` and preserve their operational framing. Do not design functions against an imagined model interface; establish the concrete Granite WebApp call machinery and real call shapes before adding operation-specific functions.
 
 Before modifying world-state handling, rendering state, assets, persistence, inventory, NPC state, JSON handling, or any other game-state machinery, read `docs/CSV_BACKING_STATE.md` and preserve it as a hard architectural boundary.
-
-Deterministic code decides what actually happens. The next interaction must operate from the changed CSV-backed state without hidden model memory or hidden game state.
 
 Store facts and attributed events, not designer interpretations. Trust, morality, friendship, loyalty, resentment, civilization scores, and similar social abstractions are outside this experiment unless the user explicitly changes the research question. A failed emergence experiment is evidence, not permission to add a trust meter.
 
 System prompts are data in CSV state. They may be character-specific or shared by reference; do not centralize them in executable code merely for convenience.
+
+## Dialogue boundary
+
+Human and NPC dialogue must obey the same `Resolver → Granite → Witness` trust crossing. The crossing never reverses; only the kind and direction of communication change.
+
+Preserve these rules:
+
+1. Human input is external data, not authority. It may be included in a Resolver package only as explicitly labeled current input.
+2. Speaker, recipient, actor, operation, event/turn identity, world scope, and permitted output schema are bound from trusted game code/CSV. Granite may not choose or override them unless a specific field is explicitly delegated by schema.
+3. Every Granite output is untrusted until Witness accepts it. A Granite `CHECK` call is not a security or authority boundary.
+4. Speech is an attributed event, not a world fact. A claim cannot mutate unrelated world state merely by being spoken.
+5. NPC-to-NPC communication must traverse the actual delivered utterance. Never hand the recipient the sender's hidden structured intent.
+6. Checker calls are local to one transformation. Do not create an omniscient checker that sees both parties' private structures and forces perfect communication.
+7. Coherence is not truth. Dialogue machinery must allow lies, mistakes, ambiguity, and misunderstanding when they fit the operation schema.
+8. Any dialogue/history that must affect a later turn must be CSV-backed. Do not preserve continuity in hidden model context.
+9. Resolver context is scoped per operation. Do not dump the whole world or complete transcript into Granite merely because it exists.
+10. If retry/correction behavior is ever needed, game code defines an explicit finite policy. Granite cannot recursively call itself or retry until it likes its own answer.
+
+See `docs/DIALOGUE_BOUNDARY.md` for the directional human→NPC, NPC→human, and NPC→NPC flows.
 
 ## CSV backing-state boundary
 
@@ -55,12 +73,12 @@ Do not create or maintain an active in-memory world model, ECS, state store, obj
 The allowed game-code shape is:
 
 1. a first-person 3D client that reads the CSV-described world and renders it;
-2. CSV files that describe world, system, entity, asset, and other game-relevant backing state; and
-3. classes that contain functions which read, resolve, or transform that CSV backing state.
+2. CSV files that describe world, system, entity, asset, communication, event, and other game-relevant backing state; and
+3. classes that contain functions which read, resolve, validate, or transform that CSV backing state at explicit operation boundaries.
 
 Function classes do not own game state. Any game-relevant result that must survive an operation belongs back in CSV-backed state.
 
-JSON is transient operational structure, not backing state. The project's DNA/RNA analogy is mechanical only: CSV is the durable backing state; JSON is temporary expression or transport for a particular operation. A JSON package may be created from CSV, passed through Granite or another function, compared or validated against CSV, and then discarded. If a JSON result affects the continuing world, deterministic functions resolve it against the relevant CSV backing and write the accepted consequence into CSV-backed state. Do not literalize the analogy into biological mechanics.
+JSON is transient operational structure, not backing state. The project's DNA/RNA analogy is mechanical only: CSV is the durable backing state; JSON is temporary expression or transport for a particular operation. A JSON package may be created from CSV, passed through Granite or another function, validated against CSV, and then discarded. If a JSON result affects the continuing world, it must first return through Witness into legal CSV-backed structure. Any actual world consequence is then applied by deterministic code against current CSV-backed preconditions. Do not literalize the analogy into biological mechanics.
 
 Game assets are discovered through CSV manifests. Referenced asset files may use whatever format the renderer or backend requires, but the game's knowledge that an asset exists, where it is located, and any game-relevant metadata about it belongs in CSV. Do not create an independent hard-coded asset registry.
 
@@ -110,12 +128,14 @@ If an external service is genuinely required and has not been approved, stop and
 
 ## Evidence
 
-Save enough to establish the current run: relevant before-state, the Witness packet, raw model output or error, resolver result, relevant after-state, and visible consequence when useful. Failed runs count.
+Save enough to establish the current run: relevant before-state, Resolver parameters, raw Granite output or error, Witness acceptance/rejection, relevant trusted CSV result, any deterministic consequence result, relevant after-state, and visible consequence when useful. Failed runs count.
+
+For dialogue runs, preserve the actual delivered utterance and the bounded context identifiers needed to establish which side saw what. Do not replace the actual utterance with the sender's hidden structured intent.
 
 Do not turn evidence collection into a framework unless accumulated runs become hard to inspect manually.
 
 ## Before changing the repo
 
-Read the current repository and the user's latest Mock Epoch instructions. Do not import architecture from unrelated projects or generic best-practice templates.
+Read the current repository and the user's latest MochEpoch instructions. Do not import architecture from unrelated projects or generic best-practice templates.
 
 When unsure whether to add machinery, do not add it. Build the next missing executable operation.
