@@ -49,13 +49,13 @@ CSV-backed
 = authoritative continuing state/history/configuration represented in CSV
 ```
 
-A Witness result may be CSV-bounded and still remain a transient intermediate for the next transformation.
+A Witness result may be CSV-bounded and still remain a transient intermediate for another transformation when the actual operation requires one.
 
 Do not silently promote such an intermediate into authoritative state.
 
 Trust returns to the game when the completed accepted result is admitted into CSV-backed state.
 
-This distinction is especially important in multi-stage natural-language communication.
+This distinction applies whenever a concrete operation uses more than one transient transformation.
 
 ## Actor expressions are factual events
 
@@ -222,7 +222,7 @@ Game-specific wiring is CSV-backed configuration.
 As proven operations require, CSV may describe/reference:
 
 - deterministic mechanics;
-- operation/stage identity;
+- operation identity;
 - generic function/system selection;
 - model/runtime selection;
 - actor/world/system references;
