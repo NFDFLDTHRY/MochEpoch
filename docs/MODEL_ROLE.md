@@ -99,13 +99,21 @@ Human and NPC communication use the same trust primitive: `Resolver → Granite 
 
 The primitive does not reverse. What changes is whether language is entering the structured game world or being composed for delivery out of it.
 
-Human-to-NPC intake uses the human utterance as explicitly labeled external input plus recipient-bounded CSV context. A Granite `INTAKE` call may propose a structured interpretation and its content-bearing referents; Witness accepts or rejects that proposal into CSV-backed communication structure only after those referents resolve against the permitted bounded population.
+Every language-bearing dialogue path requires a local `Granite.CHECK` before final dialogue admission or delivery. The check is mandatory but remains probabilistic and untrusted; its result must pass through Witness, and Witness still performs deterministic grounding/reference admission.
 
-NPC-to-human composition begins from trusted NPC-side communicative structure in CSV. A Granite `COMPOSE` call may propose surface language and its content-bearing referents; Witness accepts or rejects the candidate into trusted dialogue CSV only after deterministic referent resolution, before deterministic delivery.
+### Human → NPC
 
-NPC-to-NPC communication must traverse the actual delivered utterance. Do not pass one NPC's hidden structured intent directly to another NPC. The sender may compose an utterance; that utterance is delivered; the recipient then performs its own intake against its own bounded context. Misunderstanding is therefore possible and is not automatically a failure.
+Human-to-NPC intake uses the human utterance as explicitly labeled external input plus recipient-bounded CSV context. A Granite `INTAKE` call may propose a structured interpretation and its content-bearing referents. After the intake result crosses Witness as a bounded candidate, a recipient-side `CHECK` must test the candidate against the actual utterance and recipient-bounded packet before final dialogue admission.
 
-A Granite `CHECK` operation may be used to ask a bounded coherence and grounding question about a particular transformation. It is not omniscient, it receives only the context permitted for that side of the communication, and its return is still untrusted until Witness accepts it. Checker output is not a security boundary, cannot establish grounding by itself, and must not enforce perfect mutual understanding.
+### NPC → Human
+
+NPC-to-human composition begins from trusted NPC-side communicative structure in CSV. A Granite `COMPOSE` call may propose surface language and its content-bearing referents. After the compose result crosses Witness as a bounded candidate, a speaker-side `CHECK` must test the candidate against the supplied NPC communicative structure and speaker-bounded packet. Only the final checked and witnessed utterance may be delivered to the human.
+
+### NPC → NPC
+
+NPC-to-NPC communication must traverse the actual delivered utterance. Do not pass one NPC's hidden structured intent directly to another NPC. The sender performs `COMPOSE`, then a mandatory sender-side `CHECK`, before deterministic delivery. The recipient receives that actual utterance, performs `INTAKE`, then a separate mandatory recipient-side `CHECK` against its own bounded context before final interpretation admission. Misunderstanding remains possible and is not automatically a failure.
+
+Checker calls are local to the transformation being checked. They are not omniscient, must not compare both characters' private structures to force perfect mutual understanding, and do not decide objective truth.
 
 Packet-bounded discourse is a hard admission rule. A candidate may be false, mistaken, deceptive, imprecise, or ambiguous about concepts grounded in the permitted bounded population, but content-bearing entities, objects, systems, capabilities, or subject matter absent from that population must not enter CSV-backed dialogue. Surface-language glue, pronouns, morphology, and synonyms need not be literal CSV tokens so long as their content maps back to permitted grounded referents.
 
@@ -123,12 +131,12 @@ If prior events or communication matter to a later Granite call, they must reach
 
 A witnessed action result may become a trusted action proposal. Deterministic game code decides whether the current authoritative state permits the consequence and performs the mutation if allowed.
 
-A witnessed utterance may become trusted dialogue CSV. Deterministic game code presents the accepted utterance to its recipient.
+A checked and witnessed utterance may become trusted dialogue CSV. Deterministic game code presents the accepted utterance to its recipient.
 
 ## Preserve the experiment
 
 Do not add semantic abstractions, conversational memory hidden in model context, relationship scores, or model-centered interpretations of intelligence because they seem conceptually useful.
 
-Do not let dialogue controls turn into a truth engine. Coherence is not truth. Claims, lies, mistakes, ambiguity, and misunderstanding may be valid game events only when their content remains grounded in the operation's permitted bounded population and passes the deterministic Witness admission boundary. Schema validity alone does not admit natural-language content.
+Do not let dialogue controls turn into a truth engine. Coherence is not truth. Claims, lies, mistakes, ambiguity, and misunderstanding may be valid game events only when their content remains grounded in the operation's permitted bounded population, passes the mandatory local Checker, and passes the deterministic Witness admission boundary. Schema validity alone does not admit natural-language content.
 
 The deeper hypothesis being tested by MochEpoch is intentionally unspecified here. Do not infer it, encode it, or optimize the implementation toward a presumed conclusion. Preserve the apparatus and let observed runs establish what emerges.
