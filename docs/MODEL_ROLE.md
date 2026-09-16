@@ -18,6 +18,8 @@ Its job is:
 
 > Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet and return JSON in whatever concrete form the executing game path actually uses.
 
+Here, `packet` means the one transient JSON object supplied to that Granite call. It is not a separate wrapper protocol or runtime object.
+
 A JSON Schema, enum, grammar, constrained decoder, or other explicit return-shape mechanism is optional local machinery. It is not part of Granite's universal MochEpoch contract.
 
 Granite may generate an NPC action, generate NPC language, transform human language into a game-relevant representation, transform a fuzzy human action, or perform another narrowly defined JSON → JSON transformation only when an executable game path proves it necessary.
@@ -55,7 +57,11 @@ A Witness call does only this:
 1. receive whatever CSV-backed references/parameters the concrete call site actually supplies;
 2. resolve only that scoped CSV state/configuration;
 3. include only the prompt, situation, facts/context, model/resource information, and any output guidance/configuration that this call actually uses; and
-4. construct the transient JSON packet passed to Granite.
+4. construct the one transient JSON object passed to Granite.
+
+That JSON object is what this repository calls the `packet` or `calling packet`.
+
+`Packet` does not imply a packet class, nested payload wrapper, header/body format, transport layer, fixed top-level field set, universal packet schema, stored packet record, caller metadata, or operation metadata.
 
 Witness does not require a caller object or current-operation object.
 
@@ -65,7 +71,7 @@ No output-schema, enum, grammar, return-constraint field, operation-id field, or
 scoped CSV-backed state/configuration
         ↓
 Witness
-retrieve scoped CSV + construct packet
+retrieve scoped CSV + construct call JSON
         ↓
 JSON packet
         ↓
@@ -76,9 +82,9 @@ raw JSON return
 
 Witness owns no game state. It does not reason about the world, interpret Granite output, decide consequences, repair output, maintain NPC memory, or mutate CSV.
 
-There is no required separate `Resolver` architecture. Reference resolution is ordinary generic CSV work performed while constructing the packet.
+There is no required separate `Resolver` architecture. Reference resolution is ordinary generic CSV work performed while constructing the call JSON.
 
-The Witness packet schema is not frozen before the real browser call establishes its minimum shape.
+The Witness packet shape is not frozen before the real browser call establishes its minimum fields.
 
 ## What selects a Granite call
 
@@ -91,7 +97,7 @@ Ada decision_system = interaction
 interaction.csv supplies system_prompt + output_schema
 ```
 
-The `output_schema` key belongs to this fixture. Do not infer a universal output-schema field, return-constraint field, operation record, model registry, function-routing table, next-step field, or output-population schema from it.
+The `output_schema` key belongs to this fixture. Do not infer a universal output-schema field, return-constraint field, operation record, model registry, function-routing table, next-step field, output-population schema, or universal packet envelope from it.
 
 If the real Granite browser interface proves another model/resource reference is required, add the minimum reference then. If a later game path proves another call must follow, add only the minimum game-specific reference required by that path.
 
@@ -219,4 +225,4 @@ The current fixture has an `output_schema`; MochEpoch as a whole does not requir
 
 First establish the concrete Granite 350M browser/WebApp calling interface. Then build the smallest Witness packet and local deterministic return handling required by the real game path. Let later packet fields, optional output guidance/schema, history representation, parsers, mechanics, and additional calls emerge only from later executable work.
 
-Do not design a general model protocol, universal output-schema layer, behavior whitelist, graph protocol, operation-object protocol, return-mapping framework, rejection layer, or event layer merely because it might be useful.
+Do not design a general model protocol, universal packet envelope, universal output-schema layer, behavior whitelist, graph protocol, operation-object protocol, return-mapping framework, rejection layer, or event layer merely because it might be useful.
