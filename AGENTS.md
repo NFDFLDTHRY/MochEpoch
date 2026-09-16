@@ -14,7 +14,7 @@ The current repository `main` branch is authoritative. Do not reconstruct archit
 
 ## Preserve the experiment
 
-MochEpoch asks whether civilization-like behavior can emerge from factual CSV-backed world state, bounded JSON transformations, actor behavior, and deterministic game execution without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization.
+MochEpoch asks whether civilization-like behavior can emerge from factual CSV-backed world state, bounded JSON transformations, human/NPC behavior, and deterministic execution without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization.
 
 The compact game lifecycle is:
 
@@ -22,9 +22,9 @@ The compact game lifecycle is:
 CSV → JSON → NPC / HUMAN → JSON → CSV
 ```
 
-This is not shorthand for a larger hidden agent architecture. It is the core state-transition lifecycle of the game.
+This is not shorthand for a larger hidden agent architecture. It is the game-state lifecycle.
 
-The player and NPCs may behave chaotically. Do not add machinery to make them sensible, truthful, moral, cooperative, optimal, or consistent merely because their behavior looks strange. The experiment depends on allowing that variation while constraining what becomes authoritative world state/history.
+The human and NPCs may behave chaotically. Do not add machinery to make them sensible, truthful, moral, cooperative, optimal, or consistent merely because behavior looks strange. The chaos is experimental material.
 
 ## One game truth
 
@@ -40,13 +40,11 @@ If something exists only to produce pixels, audio, animation, GPU work, model in
 
 Function/class instances own no game state.
 
-A browser persistence substrate may store authoritative CSV-backed documents. It must not replace CSV with a separate in-memory data model.
+A browser persistence substrate may store authoritative CSV-backed documents. It must not replace CSV with a separate authoritative object model.
 
 ## The harness is the game lifecycle
 
-The harness must remain small and generic.
-
-For an actor-mediated transition it does only the operations required to move from one authoritative world state to the next:
+For an actor-mediated transition:
 
 ```text
 TRUSTED CSV WORLD
@@ -71,9 +69,9 @@ write resulting durable facts/events to CSV
 TRUSTED CSV WORLD'
 ```
 
-Do not turn the harness into a planner, agent framework, semantic world model, behavior tree, social simulation layer, orchestration platform, or second ECS.
+Do not turn the harness into a planner, agent framework, semantic world model, behavior tree, social simulation layer, orchestration platform, dialogue manager, or second ECS.
 
-A local operation can be tree-shaped or DAG-shaped because it resolves several CSV references/functions. The full game is a graph because systems/entities reference each other and accepted state transitions feed later operations.
+A local operation may be tree-shaped or DAG-shaped because it resolves several CSV references/functions. The whole game is a graph because systems/entities reference each other and accepted state transitions feed later operations.
 
 ## Current fixture root
 
@@ -83,9 +81,9 @@ That is the current fixture arrangement, not a frozen final topology. Preserve i
 
 ## CSV-described function graph
 
-Game-specific wiring belongs in CSV-backed configuration rather than hard-coded per-entity control flow.
+Game-specific wiring belongs in CSV-backed configuration.
 
-CSV-backed configuration may select/reference:
+CSV-backed configuration may select/reference, as actual operations require:
 
 - the operation being performed;
 - the generic function/system to call;
@@ -94,15 +92,15 @@ CSV-backed configuration may select/reference:
 - the applicable system prompt;
 - bounded input populations;
 - required output shape/population; and
-- the next operation/function edge when the real executable loop requires one.
+- the next operation/function edge when real execution requires one.
 
 Generic executable functions implement operations. They do not own the world or encode a second game-specific state machine.
 
-Do not freeze a universal function-graph CSV schema before real execution reveals the minimal required shape.
+Do not freeze a universal function-graph CSV schema before real execution reveals the minimum required shape.
 
-## Three allowed operation shapes
+## Three operation shapes
 
-Unless an executable failure proves another primitive is required, reduce game work to these shapes.
+Unless execution proves another primitive is required, reduce game work to:
 
 ### Projection
 
@@ -128,19 +126,15 @@ Do not force Granite into direct deterministic controls or systems that do not n
 
 ## Behavioral freedom and ontology boundary
 
-Do not police actor behavior for sensibility.
+The harness asks what an action/dialogue corresponds to in the currently represented world.
 
-An NPC or human may lie, misunderstand, contradict themselves, make a poor choice, attempt an impossible action, use strange language, refuse, cooperate, or behave unexpectedly.
-
-The harness asks what the action/dialogue corresponds to in the currently represented world.
-
-It does not ask whether the behavior is true, wise, moral, polite, socially appropriate, or optimal.
+It does not ask whether behavior is true, wise, moral, polite, socially appropriate, or optimal.
 
 Language or behavior cannot create game ontology by mentioning it. If the bounded world contains no spaceship, saying `use the spaceship` does not create one.
 
 Semantic validity and mechanical success are different. `hand_over(stone)` may be a legal expressed action even when deterministic mechanics later reject the consequence because the actor does not currently hold the stone.
 
-Preserve behavioral freedom. Constrain only the boundary between actor expression and authoritative world state.
+Preserve behavioral freedom. Constrain only the boundary between expression and authoritative world state.
 
 ## Player and NPC symmetry
 
@@ -164,20 +158,20 @@ Its exact role is:
 
 Granite does not own an NPC, own world state, read arbitrary CSV, choose its own scope, decide objective truth, execute physical consequences, mutate arbitrary world state, write directly to UI, or carry hidden game truth between calls.
 
-The primitive is:
+One Granite call uses:
 
 ```text
 CSV-backed world / bounded transient input
         ↓
-RESOLVER
+Resolver
         ↓
 bounded JSON parameters
         ↓
-GRANITE(stage)
+Granite(operation)
         ↓
 untrusted JSON result
         ↓
-WITNESS
+Witness
         ↓
 bounded transient result or REJECT
 ```
@@ -186,50 +180,25 @@ Resolver projects only the input permitted for one transformation.
 
 Granite performs one requested JSON → JSON transformation.
 
-Witness validates the raw Granite return against the operation's schema, allowed values/references, identity, scope, and other deterministic bounds. Witness does not perform the semantic `CHECK` job and does not execute consequences.
+Witness validates the raw Granite return against the operation's schema, allowed values/references, identity, scope, and other deterministic bounds. Witness does not execute consequences or create ontology.
 
-`CSV-bounded` means constrained to possibilities defined from trusted CSV. It does not mean the intermediate is itself authoritative CSV-backed state.
+`CSV-bounded` means constrained to possibilities defined from trusted CSV. It does not mean the intermediate is authoritative CSV-backed state.
 
 Only an explicit accepted write into CSV-backed state changes continuing game truth/history.
 
-Do not use a bounded transient intermediate as hidden game state.
-
 ## Dialogue boundary
 
-Natural-language communication may chain several ordinary `Resolver → Granite → Witness` transformations.
+Natural-language communication is not a separate subsystem. It is another actor-mediated transition through the same harness.
 
-```text
-Human → NPC
-INTAKE → CHECK → COMMIT
+There is no mandatory `INTAKE → CHECK → COMMIT`, `COMPOSE → CHECK → EMIT`, or other fixed dialogue stage graph.
 
-NPC → Human
-COMPOSE → CHECK → EMIT
+Start with the smallest mapping that completes the real interaction. If one Granite transformation is sufficient, use one. Add another transformation, check, retry, or correction pass only when an executed case demonstrates a concrete need. Any additional routing belongs in CSV-backed function configuration.
 
-NPC → NPC
-COMPOSE → CHECK → EMIT
-actual utterance crosses
-INTAKE → CHECK → COMMIT
-```
+For NPC-to-NPC communication, the actual utterance crosses between actors. Never replace the delivered utterance with hidden sender-side structured data.
 
-Every named stage is still the same Granite-call primitive.
+A completed communication that must affect later operations returns through the harness into CSV-backed factual/attributed state. Recording `A said Y` makes the speech event factual; it does not make the proposition inside `Y` objectively true.
 
-Intermediate stage results are bounded transient structures. They are not authoritative CSV-backed world state merely because Witness accepted their structure.
-
-`CHECK` is mandatory wherever human- or Granite-produced language could drive the final semantic/game result. Checker asks whether the language is coherently matchable, even if imprecisely or factually incorrectly, to the possibilities represented by the supplied bounded packet.
-
-Checker does not decide objective truth. Lies, mistakes, ambiguity, deception, and misunderstanding may survive when language remains grounded in the packet.
-
-NPC-to-NPC communication traverses the actual emitted utterance. Never give the recipient the sender's hidden structured candidate.
-
-Preserve:
-
-```text
-A candidate expression X → said Y → B interpreted Z
-```
-
-including `X ≠ Z`.
-
-Completed communication returns through the harness into CSV-backed factual/attributed state. Store that `A said Y` as an attributed event without promoting the proposition inside `Y` to objective world truth. Recipient-side interpretation may likewise return as attributed CSV-backed state without being forced to equal the sender's hidden candidate.
+See `docs/DIALOGUE_BOUNDARY.md`.
 
 ## Deterministic consequence boundary
 
@@ -239,27 +208,19 @@ Do not encode physical success into Granite merely to prevent failed attempts.
 
 Do not let Granite directly mutate arbitrary world state.
 
-Do not let deterministic mechanics infer social interpretations that were never factual state.
+Do not let deterministic mechanics invent social interpretations that were never factual state.
 
 ## Backing structure must fall out of the game
 
-Do not freeze the final CSV topology, ECS schema, packet schema, spatial index, component model, file-per-entity policy, or world database in advance.
+Do not freeze the final CSV topology, ECS schema, packet schema, spatial index, component model, file-per-entity policy, event schema, or world database in advance.
 
 Lock the authority boundary and the categories the game must be able to describe. Let concrete schemas emerge as actual first-person game assets and mechanics are forced through the real lifecycle.
 
-The game-relevance test is:
+Use this test:
 
 > If Granite, the player, an NPC, deterministic mechanics, or a future operation may need to refer to a fact/event after the current operation ends, that fact/event needs a CSV-backed representation.
 
 Rendering-only detail does not need independent authoritative state.
-
-Examples:
-
-- thousands of decorative grass instances may correspond to one game-relevant vegetation/resource description;
-- an individual branch that can be picked up, carried, discussed, stored, burned, or revisited needs enough CSV-backed identity/state for those operations;
-- a tree only becomes individually authoritative when implemented mechanics require an individual tree to be referenced or changed.
-
-Do not turn these examples into a preselected schema.
 
 ## World categories
 
@@ -294,7 +255,7 @@ Game assets are discovered through CSV-backed references/manifests. The referenc
 
 Renderer/model backend internals such as scene objects, GPU buffers, animation mixers, workers, caches, handles, or model runtime state are disposable. They must not contain a continuing game fact that exists nowhere in CSV.
 
-If the transient runtime is discarded and rebuilt from CSV-backed state plus referenced resources, the same continuing game world must be recoverable.
+If transient runtime machinery is discarded and rebuilt from CSV-backed state plus referenced resources, the same continuing game world must be recoverable.
 
 ## Work scratchpad handshake
 
@@ -304,9 +265,7 @@ Before Work changes game code, world CSVs, project architecture, runtime machine
 
 Work may proceed only when `scratchpad/REVIEW.md` explicitly approves the same `proposal_id`, or when the user explicitly tells Work in the active Work conversation to proceed with that exact proposal. Approval is proposal-specific and is never standing permission.
 
-If approved work later requires more files, different machinery, architecture changes, a new service, cost/quota exposure, or another material scope change, Work must record the change/blocker in `scratchpad/WORK.md` and stop again.
-
-After completing approved work, Work updates `scratchpad/WORK.md` with the actual result and commit/evidence references.
+If approved work later requires more files, different machinery, architecture changes, a new service, cost/quota exposure, or another material scope change, Work must stop again.
 
 The scratchpad is communication only. It is not game state, experimental evidence, or architectural authority.
 
@@ -328,19 +287,15 @@ Without explicit approval, do not add CI/CD, scheduled cloud jobs, Codespaces, C
 
 A free tier is not permission.
 
-If an external service is genuinely required and has not been approved, stop and explain the concrete requirement and exposure.
-
 ## Evidence
 
 Save only enough evidence to establish the operation being tested.
 
 For a Granite transformation, preserve the relevant CSV-backed input, Resolver packet, raw Granite output/error, Witness result/rejection, accepted CSV-backed actor expression/event, deterministic consequence if any, and resulting CSV-backed state if it changed.
 
-For dialogue tests, preserve the actual utterance crossing between speakers, its attributed CSV-backed event/result, and enough bounded transient stage output to diagnose the run. Do not mistake intermediates for authoritative world state.
+For communication tests, preserve the actual executed model calls and the utterance that crossed. Do not invent evidence for hypothetical stages that did not run.
 
-For lifecycle tests, prove that the next operation works from the mutated CSV-backed state with transient runtime/model state discarded or irrelevant.
-
-Do not turn evidence collection into a framework unless accumulated runs become hard to inspect manually.
+For lifecycle tests, prove that the next operation works from mutated CSV-backed state with transient runtime/model state discarded or irrelevant.
 
 ## Before changing the repo
 
