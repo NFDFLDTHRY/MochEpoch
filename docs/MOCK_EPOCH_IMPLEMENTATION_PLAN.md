@@ -69,7 +69,7 @@ interaction.csv
   output_schema = hand_over | wait
 ```
 
-Do not infer more machinery from it.
+The `output_schema` key is fixture-local configuration. Do not infer a universal output-schema field, return-constraint field, or structured-output layer from it.
 
 If the real Granite browser call proves that a model/resource reference is required, add the minimum CSV-backed reference then. If a later operation proves another call must follow, add only the minimum game-specific reference needed by that operation then.
 
@@ -98,11 +98,13 @@ Granite is a call-scoped JSON → JSON game function.
 
 Its exact job is:
 
-> Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet, subject only to whatever return shape the current call actually requires.
+> Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet and return JSON in whatever concrete form that operation actually uses.
+
+A JSON Schema, enum, grammar, constrained decoder, or other explicit return-shape mechanism is optional operation-local machinery, not part of Granite's universal contract.
 
 The scope is about what information Witness supplies. It is not a universal behavior whitelist.
 
-A particular operation may use a narrow output enum. The current `hand_over | wait` fixture is one local example, not the general behavior ontology.
+A particular operation may use a narrow output enum. The current `hand_over | wait` fixture is one local example, not the general behavior ontology and not proof that every Granite call needs a schema.
 
 Granite may represent arbitrary actor language/behavior, including strange, false, contradictory, foolish, hostile, cooperative, or mechanically impossible behavior.
 
@@ -116,8 +118,10 @@ A Witness call:
 
 1. receives the caller/current operation and whatever CSV-backed references the implemented call actually uses;
 2. resolves only that scoped CSV state;
-3. includes only the prompt, situation, facts/context, model/resource information, and return constraint the real call actually needs; and
+3. includes only the prompt, situation, facts/context, model/resource information, and any operation-specific output guidance/configuration the real call actually uses; and
 4. constructs the transient JSON packet Granite receives.
+
+No `output_schema`, enum, grammar, or return-constraint field is mandatory merely because Witness exists.
 
 ```text
 scoped CSV-backed state/configuration
@@ -168,6 +172,8 @@ parse local output shape
 wait mechanic / no world mutation
 ```
 
+Those parsing steps exist because this fixture explicitly defines `output_schema`. They are not evidence that every Granite-backed operation needs schema validation or structured-output machinery.
+
 For an unusable return:
 
 ```text
@@ -180,9 +186,9 @@ no authoritative CSV write
 save failure evidence
 ```
 
-Do not build a generic return-mapping or rejection subsystem around this fixture.
+Do not build a generic return-mapping, schema-validation, or rejection subsystem around this fixture.
 
-A later operation may require a different parser, reference lookup, language transformation, mechanic selection, or write. Add only what that executed operation proves necessary.
+A later operation may require a different parser, reference lookup, language transformation, mechanic selection, explicit schema, prompt-only convention, or no schema machinery at all. Add only what that executed operation proves necessary.
 
 “Mapping” is shorthand only when useful for an operation-local conversion. It is not architecture.
 
@@ -264,6 +270,7 @@ It should not prematurely lock:
 - an event schema or universal event log;
 - a spatial index;
 - a universal Granite packet schema;
+- a universal output-schema or structured-output policy;
 - a universal dialogue schema;
 - a universal function-graph/routing schema;
 - a return-mapping/acceptance/rejection framework; or
@@ -312,7 +319,7 @@ interaction system_prompt: CSV-backed
 interaction output_schema: hand_over | wait
 ```
 
-The fixture is plumbing evidence, not the final game ontology or function configuration schema.
+The fixture is plumbing evidence, not the final game ontology, function configuration schema, or universal Granite output policy.
 
 Ada is game-controlled. Granite may be called by her configured operation as an ordinary function. Granite does not embody Ada.
 
@@ -329,7 +336,7 @@ It did not establish:
 - actor-mediated mutation;
 - browser persistence;
 - the first-person 3D renderer;
-- final world/history/call-configuration schemas; or
+- final world/history/call-configuration/output-schema structures; or
 - civilization-like emergence.
 
 Do not report any of those as established.
@@ -341,20 +348,22 @@ Establish the concrete Granite 350M browser/WebApp calling machinery.
 The smallest useful proof is:
 
 1. load the real Granite runtime/model in the target browser path;
-2. make one real scoped JSON-in → JSON-out call;
-3. parse the actual return;
+2. make one real scoped JSON-in → JSON-out call using only whatever output convention the smallest real call actually needs;
+3. parse the actual return with only the minimum parser that call requires;
 4. record success/failure and runtime evidence;
-5. do not attach fake game authority or synthetic fallback.
+5. do not add a structured-output/schema layer merely because the current game fixture has `output_schema`; and
+6. do not attach fake game authority or synthetic fallback.
 
 After that interface is proven:
 
 1. build the thinnest Witness required to retrieve the current fixture's scoped CSV inputs and construct the proven call packet;
-2. build the smallest operation-local deterministic JSON consumer required by that same fixture;
-3. connect the current fixture through `CSV → Witness JSON → Granite → JSON → operation-local deterministic handling → CSV`;
-4. render the changed CSV-backed result; and
-5. prove the next interaction reads the mutated CSV-backed world without hidden model/runtime game state.
+2. use the current fixture's `output_schema` only if the concrete connected operation actually needs/uses it;
+3. build the smallest operation-local deterministic JSON consumer required by that same fixture;
+4. connect the current fixture through `CSV → Witness JSON → Granite → JSON → operation-local deterministic handling → CSV`;
+5. render the changed CSV-backed result; and
+6. prove the next interaction reads the mutated CSV-backed world without hidden model/runtime game state.
 
-Add no extra call-configuration or return-handling machinery until those runs prove it necessary.
+Add no extra call-configuration, output-schema, or return-handling machinery until those runs prove it necessary.
 
 ## PASS CONDITION
 
@@ -368,7 +377,7 @@ For the first complete actor-mediated fixture:
 - rendering reflects the new state; and
 - the next operation works correctly from that mutated CSV-backed state without hidden model memory or hidden authoritative runtime state.
 
-No event log, graph table, routing field, generalized operation schema, generic mapper, acceptance layer, or `REJECT` state is required for this pass.
+No event log, graph table, routing field, generalized operation schema, universal output-schema layer, generic mapper, acceptance layer, or `REJECT` state is required for this pass.
 
 ## BUILD POLICY
 
@@ -390,6 +399,6 @@ Report only what the run established
 Add machinery only when a failure requires it
 ```
 
-Do not add cloud/metered automation, GitHub Actions, hosted inference, databases, generic agent frameworks, generalized dialogue systems, graph/orchestration frameworks, generic validation/mapping layers, or speculative infrastructure without explicit user approval and an observed need.
+Do not add cloud/metered automation, GitHub Actions, hosted inference, databases, generic agent frameworks, generalized dialogue systems, graph/orchestration frameworks, generic validation/mapping layers, universal structured-output/schema machinery, or speculative infrastructure without explicit user approval and an observed need.
 
 Deployment, authentication, payments, and other product-shell work remain separate from the core civilization experiment unless explicitly requested.
