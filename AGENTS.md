@@ -56,12 +56,14 @@ Preserve these rules:
 3. Every Granite output is untrusted until Witness accepts it. A Granite `CHECK` call is not a security or authority boundary.
 4. Speech is an attributed event, not a world fact. A claim cannot mutate unrelated world state merely by being spoken.
 5. NPC-to-NPC communication must traverse the actual delivered utterance. Never hand the recipient the sender's hidden structured intent.
-6. Checker calls are local to one transformation. Do not create an omniscient checker that sees both parties' private structures and forces perfect communication.
-7. Coherence is not truth. Dialogue machinery must allow lies, mistakes, ambiguity, and misunderstanding when they fit the operation schema.
-8. Dialogue discourse is packet-bounded. A false proposition about grounded packet concepts may be valid speech, but human or Granite language must not introduce content-bearing entities, objects, systems, capabilities, or subject matter absent from the bounded JSON package. Surface-language glue and synonyms are allowed only when their content maps back to grounded packet content. A dialogue `CHECK` must test this grounding as well as local coherence.
-9. Any dialogue/history that must affect a later turn must be CSV-backed. Do not preserve continuity in hidden model context.
-10. Resolver context is scoped per operation. Do not dump the whole world or complete transcript into Granite merely because it exists.
-11. If retry/correction behavior is ever needed, game code defines an explicit finite policy. Granite cannot recursively call itself or retry until it likes its own answer.
+6. Every language-bearing dialogue path has a mandatory local Checker before final admission or delivery: human→NPC intake, NPC→human composition, sender-side NPC→NPC composition, and recipient-side NPC→NPC intake.
+7. Checker calls are local to one transformation. Do not create an omniscient checker that sees both parties' private structures and forces perfect communication.
+8. Coherence is not truth. Dialogue machinery must allow lies, mistakes, ambiguity, and misunderstanding when they fit the operation schema and grounding contract.
+9. Dialogue discourse is packet-bounded. A false proposition about grounded packet concepts may be valid speech, but human or Granite language must not introduce content-bearing entities, objects, systems, capabilities, or subject matter absent from the bounded JSON package. Surface-language glue and synonyms are allowed only when their content maps back to grounded packet content. A dialogue `CHECK` must test this grounding as well as local coherence.
+10. Witness still performs the deterministic admission boundary. A Checker result of `valid` cannot make a missing, unknown, or out-of-scope referent legal.
+11. Any dialogue/history that must affect a later turn must be CSV-backed. Do not preserve continuity in hidden model context.
+12. Resolver context is scoped per operation. Do not dump the whole world or complete transcript into Granite merely because it exists.
+13. If retry/correction behavior is ever needed, game code defines an explicit finite policy. Granite cannot recursively call itself or retry until it likes its own answer.
 
 See `docs/DIALOGUE_BOUNDARY.md` for the directional human→NPC, NPC→human, and NPC→NPC flows.
 
