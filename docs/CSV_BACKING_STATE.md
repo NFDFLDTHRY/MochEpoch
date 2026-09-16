@@ -39,13 +39,13 @@ If an operation uses multiple model/function calls, intermediate JSON remains di
 
 Witness is the scoped CSV → JSON call constructor used when an operation calls Granite.
 
-Witness may read the operation's CSV-backed references/configuration, resolve only that scoped state, and construct the transient JSON packet.
+Witness may read the current call's CSV-backed references/configuration, resolve only that scoped state, and construct the transient JSON packet.
 
 Witness does not own state, interpret Granite output, decide consequences, or mutate CSV.
 
 There is no required separate Resolver architecture. Reference resolution is ordinary generic CSV work performed while constructing the packet.
 
-The JSON → CSV return edge belongs to the deterministic harness/game runner: parse/map the returned JSON against the configured output contract, reject it when it cannot map, execute the required deterministic operation, and write only the resulting durable facts/events into CSV-backed state.
+The JSON → CSV return edge belongs to the deterministic harness/game runner: parse/map the returned JSON against what the current operation actually allows, reject it when it cannot map, execute the required deterministic operation, and write only the resulting durable facts/history into CSV-backed state.
 
 ## No mandatory event layer
 
@@ -87,11 +87,36 @@ These examples do not prescribe file-per-entity storage, ECS tables, components,
 
 ## Do not freeze the topology early
 
-The repository may define categories of game-relevant things that must eventually be describable, but exact CSV files, columns, indexes, references, packet shapes, function-graph representation, history/event representation, and spatial structures must emerge from executable operations.
+The repository may define categories of game-relevant things that must eventually be describable, but exact CSV files, columns, indexes, references, packet shapes, call-configuration representation, history/event representation, and spatial structures must emerge from executable operations.
 
-Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, event log, or spatial index because it sounds useful.
+Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, event log, routing table, universal function graph, or spatial index because it sounds useful.
 
 Build the actual game asset/mechanic, force it through the lifecycle, and add only the minimum backing representation the run proves necessary.
+
+## Function configuration follows real calls
+
+Game-specific function choices that must survive outside executable code belong in CSV-backed configuration.
+
+That rule does not imply a universal operation record or stored graph schema.
+
+The current fixture proves a much smaller relationship:
+
+```text
+Ada CSV
+  decision_system = interaction
+        ↓
+interaction.csv
+  system_prompt = ...
+  output_schema = hand_over | wait
+```
+
+That is authoritative configuration because those CSV facts select/configure Ada's current decision path.
+
+Nothing in the current evidence proves a need for a generic operation-id column, function-id column, model registry, next-edge field, routing table, output-population table, or function-graph CSV.
+
+If a real browser call or later mechanic requires an additional game-specific reference, add that minimum reference at that time.
+
+Generic executable functions remain stateless with respect to game truth.
 
 ## Backing-state categories
 
@@ -135,11 +160,9 @@ Do not precompute social interpretations such as trust, friendship, morality, lo
 
 ### Systems / function configuration
 
-Game-specific wiring is CSV-backed configuration.
+CSV-backed configuration may describe only the concrete game-specific selections and parameters proven necessary by implemented systems and calls.
 
-As proven operations require, CSV may describe/reference deterministic mechanics, operation identity, generic function selection, model/runtime selection, caller/actor/world/system references, system prompts, scoped input references, output populations/schemas, function-graph routing, and other configuration proven necessary by an operation.
-
-Executable functions remain generic/stateless with respect to game truth.
+Examples may eventually include a mechanic selection, model/resource reference, prompt reference, scoped input reference, or another call reference, but none of those fields is universal merely because one future system might need it.
 
 ### Assets / resources
 
@@ -153,7 +176,7 @@ MochEpoch game code is limited to these roles unless a concrete execution failur
 
 1. first-person 3D rendering/audio/UI that projects the CSV-described world;
 2. CSV-backed documents that describe authoritative game state/history/configuration and resource references;
-3. generic deterministic functions that read/resolve/transform CSV-backed state according to CSV-selected operations; and
+3. generic deterministic functions that read/resolve/transform CSV-backed state according to the current implemented operation; and
 4. Witness packet construction plus other transient JSON/model/backend machinery needed to execute an operation.
 
 Function classes own no game state.
