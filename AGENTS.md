@@ -83,7 +83,7 @@ That is the current fixture arrangement, not a frozen final topology. Preserve i
 
 ## CSV-described function graph
 
-Game-specific wiring belongs in CSV-backed configuration rather than hard-coded per-entity control flow where practical.
+Game-specific wiring belongs in CSV-backed configuration rather than hard-coded per-entity control flow.
 
 CSV-backed configuration may select/reference:
 
