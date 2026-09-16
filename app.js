@@ -1,3 +1,8 @@
+// Diagnostic fixture probe only. world/world.csv is the current seed search list,
+// and the type→folder mapping below is only the current fixture lookup shape.
+// Do not generalize it into MochEpoch's final CSV topology before executable
+// game assets/mechanics prove what backing structure is required.
+//
 // This class contains functions only. CSV text and decoded fields are local
 // computation for a read; no parsed document or world survives the operation.
 class CSV {
