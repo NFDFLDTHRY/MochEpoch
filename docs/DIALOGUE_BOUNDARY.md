@@ -11,7 +11,7 @@ Dialogue uses the same lifecycle as every other actor-mediated game operation:
 ```text
 CSV-backed world
         ↓
-Witness resolves scoped CSV and constructs one JSON call packet when Granite is needed
+Witness resolves the scoped CSV and constructs one JSON call packet when Granite is needed
         ↓
 NPC or HUMAN language
         ↓
@@ -46,7 +46,9 @@ The call is scoped because the packet contains only the CSV-backed world/context
 
 That does not require a human or NPC to choose from a finite set of approved utterances, speak truthfully, remain coherent, or behave socially well.
 
-Actors may say arbitrary things. A narrow return schema may be used for a particular operation. That is local configuration, not a universal dialogue ontology.
+Actors may say arbitrary things. A narrow return schema may be used for a particular operation. That is local configuration, not a universal dialogue ontology or a universal Granite-call requirement.
+
+A communication call may instead use a different schema, a prompt convention, parser-specific output, or no explicit output-schema mechanism at all. Do not add `output_schema`, grammar, enum, or structured-output machinery until the concrete executed call needs it.
 
 ## There is no universal dialogue return mapper
 
@@ -134,6 +136,8 @@ CSV-backed result only when the game needs one persisted
 
 Do not add extra interpretation/check/commit calls unless a real run proves they are necessary.
 
+Do not require a schema/grammar layer merely because another dialogue operation uses one.
+
 ## NPC → Human
 
 ```text
@@ -194,7 +198,7 @@ hand_over(stone)
 
 If a concrete operation recognizes `hand_over` and the referenced stone exists, it can invoke the implemented mechanic. Deterministic mechanics then read current CSV-backed facts and decide whether anything physically happens.
 
-Dialogue machinery must not become a physics engine, truth engine, social-state engine, behavior corrector, semantic acceptance service, or return-mapping framework.
+Dialogue machinery must not become a physics engine, truth engine, social-state engine, behavior corrector, semantic acceptance service, return-mapping framework, or universal structured-output layer.
 
 ## Invariants
 
@@ -204,13 +208,14 @@ Dialogue machinery must not become a physics engine, truth engine, social-state 
 4. Granite is only a call-scoped JSON → JSON transformation function.
 5. Scoped input does not imply a universal behavior or speech whitelist.
 6. Return handling belongs to the concrete operation. There is no universal mapper or rejection layer.
-7. Human and NPC language may remain chaotic.
-8. Communication history is persisted only when later gameplay needs it.
-9. Recording `A said Y` does not make the proposition inside `Y` objectively true.
-10. NPC-to-NPC communication crosses the actual utterance, not hidden sender structure.
-11. No fixed dialogue stage graph is part of the architecture.
-12. Additional Granite calls, retries, checks, or correction passes may be added only when execution demonstrates a concrete need.
-13. Do not build a general chatbot, agent loop, dialogue manager, semantic world model, social simulation layer, dialogue-routing framework, or generic semantic validator.
+7. Output schemas/grammars are optional operation-local configuration, not a dialogue-wide or Granite-wide requirement.
+8. Human and NPC language may remain chaotic.
+9. Communication history is persisted only when later gameplay needs it.
+10. Recording `A said Y` does not make the proposition inside `Y` objectively true.
+11. NPC-to-NPC communication crosses the actual utterance, not hidden sender structure.
+12. No fixed dialogue stage graph is part of the architecture.
+13. Additional Granite calls, retries, checks, or correction passes may be added only when execution demonstrates a concrete need.
+14. Do not build a general chatbot, agent loop, dialogue manager, semantic world model, social simulation layer, dialogue-routing framework, generic semantic validator, or universal structured-output layer.
 
 ## Evidence rule
 
@@ -231,4 +236,4 @@ Do not record hypothetical stages that did not run.
 
 Implement the smallest communication path required by the next concrete game interaction.
 
-Do not freeze a universal dialogue packet, behavior whitelist, event schema, stage sequence, retry policy, routing graph, return-mapping layer, rejection protocol, or model-call count before real execution proves it necessary.
+Do not freeze a universal dialogue packet, behavior whitelist, output-schema/grammar policy, event schema, stage sequence, retry policy, routing graph, return-mapping layer, rejection protocol, or model-call count before real execution proves it necessary.
