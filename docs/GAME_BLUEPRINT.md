@@ -91,7 +91,7 @@ interaction.csv
   output_schema = hand_over | wait
 ```
 
-That establishes a real CSV-backed call relationship. It does not establish a universal operation record, function-routing schema, model registry, next-step pointer, or output-population table.
+That establishes a real CSV-backed call relationship. The `output_schema` key is fixture-local configuration. It does not establish a universal operation record, universal output-schema field, return-constraint field, function-routing schema, model registry, next-step pointer, or output-population table.
 
 If a future operation proves another game-specific reference is required, add the minimum reference then.
 
@@ -144,11 +144,13 @@ The design rule is:
 
 ## Scoped does not mean behavior-whitelisted
 
-Witness gives Granite a scoped slice of the CSV-backed world plus whatever prompt/resource/return constraints the current call actually needs.
+Witness gives Granite a scoped slice of the CSV-backed world plus whatever prompt/resource information and operation-specific output guidance the concrete call actually uses.
 
 That scope limits what information the call receives. It does not mean actors must choose from a universal finite menu of acceptable behavior.
 
-A particular fixture may deliberately use a narrow output schema such as `hand_over | wait`. That is fixture-local configuration, not the architecture or a general behavior ontology.
+A particular fixture may deliberately use a narrow output schema such as `hand_over | wait`. That is fixture-local configuration, not the architecture or a general behavior ontology. Another concrete call may use a different schema, a prompt convention, a parser-specific format, or no explicit output schema at all.
+
+The harness does not require an `output_schema`, enum, grammar, return-constraint field, or structured-output mechanism for every Granite call. Add such configuration only when the executable call actually needs it.
 
 Granite or a human may produce arbitrary language or behavior. A concrete operation may only consume the subset its implemented code understands. Anything else remains non-authoritative and causes no CSV transition unless a later executable requirement defines different handling.
 
@@ -202,7 +204,9 @@ Granite is a call-scoped JSON → JSON game function used where fuzzy actor beha
 
 Its role is:
 
-> Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet, subject only to whatever return shape the current call actually requires.
+> Generate or evaluate actor actions and natural-language dialogue from the scoped CSV-backed world/context supplied in one call packet and return JSON in whatever concrete form that operation actually uses.
+
+A JSON Schema, enum, grammar, constrained decoder, or other explicit return-shape mechanism is optional operation-local machinery. It is not part of Granite's universal MochEpoch contract.
 
 Granite may help generate NPC actions, generate NPC dialogue, transform human language into a game-relevant representation, transform a fuzzy human action, or perform another narrowly defined JSON → JSON transformation proven necessary by execution.
 
@@ -229,7 +233,7 @@ Witness owns no state. It does not interpret Granite output, decide consequences
 
 There is no required separate Resolver architecture. Reference resolution is ordinary generic CSV work performed while Witness constructs the packet.
 
-Witness packet shape is not frozen. Build only the packet fields the proven Granite interface and current game operation require.
+Witness packet shape is not frozen. Build only the packet fields the proven Granite interface and current game operation require. Do not add an output-schema or return-constraint field merely because the current fixture has one.
 
 ## JSON return handling is operation-local
 
@@ -251,6 +255,8 @@ check current CSV facts
 write holder change OR make no world change
 ```
 
+That parser exists because this fixture explicitly defines `output_schema`. It is not evidence that every Granite-backed operation needs schema validation or a structured-output API.
+
 If Granite returns malformed or unusable data:
 
 ```text
@@ -263,7 +269,7 @@ no authoritative CSV write
 save the failed run as evidence
 ```
 
-A later operation may require a different parser, reference lookup, mechanic selection, or language transformation. Add only what that executed operation proves necessary.
+A later operation may require a different parser, reference lookup, mechanic selection, language transformation, or no explicit schema machinery at all. Add only what that executed operation proves necessary.
 
 “Mapping” may be used as shorthand for operation-local conversion from actor/model material into something a concrete mechanic can use. It is not a shared subsystem or universal semantic judgment.
 
