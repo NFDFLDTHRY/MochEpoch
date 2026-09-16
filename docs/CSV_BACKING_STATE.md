@@ -12,7 +12,7 @@ There is no second authoritative game-state representation.
 
 The renderer may project the world, deterministic functions may transform it, Witness may construct model-call packets, Granite may generate/evaluate actor behavior, and browser/model runtimes may maintain transient backend machinery, but none of those become a second source of continuing game facts/history.
 
-If a game-relevant fact or event must survive the current operation, it needs a CSV-backed representation.
+If a game-relevant fact or history item must survive the current operation, it needs a CSV-backed representation.
 
 ## CSV and JSON
 
@@ -26,12 +26,12 @@ Do not import biological semantics beyond that analogy.
 The core relationship is:
 
 ```text
-CSV → JSON → operation / actor → JSON → accepted CSV transition
+CSV → JSON → operation / actor → JSON → CSV
 ```
 
 JSON is never authoritative merely because it exists, parses, matches a schema, or was returned by Granite.
 
-Only an explicit accepted write into CSV-backed state changes continuing game truth/history.
+Only an explicit write into CSV-backed state by the concrete game operation changes continuing game truth/history.
 
 If an operation uses multiple model/function calls, intermediate JSON remains disposable unless the game explicitly needs some result to persist.
 
@@ -45,20 +45,52 @@ Witness does not own state, interpret Granite output, decide consequences, or mu
 
 There is no required separate Resolver architecture. Reference resolution is ordinary generic CSV work performed while constructing the packet.
 
-The JSON → CSV return edge belongs to the deterministic harness/game runner: parse/map the returned JSON against what the current operation actually allows, reject it when it cannot map, execute the required deterministic operation, and write only the resulting durable facts/history into CSV-backed state.
+## Return handling does not create another architecture
+
+The JSON → CSV side belongs to the concrete deterministic game operation.
+
+There is no universal semantic mapper, acceptance stage, rejection object/state, or shared validator that every Granite return must cross.
+
+The current operation parses only what it actually needs and either uses that data to perform its implemented mechanic or produces no authoritative write.
+
+Example:
+
+```text
+Granite → {"action":"hand_over"}
+        ↓
+current interaction operation parses that action
+        ↓
+hand_over mechanic reads current CSV facts
+        ↓
+write holder change OR no state change
+```
+
+If the current operation cannot consume the return:
+
+```text
+unusable JSON
+   ↓
+no authoritative CSV write
+   ↓
+failed run remains evidence
+```
+
+A different future operation may require different deterministic handling. Build only what that operation proves necessary.
+
+“Mapping” is shorthand only when useful for a concrete local conversion. It is not an architectural subsystem.
 
 ## No mandatory event layer
 
-An accepted actor expression does not automatically require a separate event record.
+An actor expression does not automatically require a separate event record before a mechanic runs.
 
-The mapped result may:
+The concrete operation may:
 
 - directly mutate current CSV state;
 - write factual/attributed history when later behavior needs that history;
 - do both; or
 - produce no CSV change.
 
-For example, `hand_over(stone)` may map successfully and then directly drive deterministic holder mutation. The attempt itself needs a history record only if a later implemented operation must know that the attempt happened.
+For example, `hand_over(stone)` may cause the current operation to invoke the `hand_over` mechanic and directly change the holder. The attempt itself needs a history record only if a later implemented operation must know the attempt happened.
 
 Likewise, speech such as `Ada said Y` needs CSV-backed history only when later game behavior must reference that occurrence.
 
@@ -72,7 +104,7 @@ The backing structure should fall out of the game as real first-person assets an
 
 Use this test:
 
-> If Granite, the player, an NPC, deterministic mechanics, or a future operation may need to refer to a fact/event after the current operation ends, that fact/event needs a CSV-backed representation.
+> If Granite, the player, an NPC, deterministic mechanics, or a later operation needs a fact after the current operation ends, that fact needs a CSV-backed representation.
 
 If something exists only to produce pixels, sound, animation, GPU work, inference, decoding, or another backend effect, it is rendering/resource machinery rather than independent game truth.
 
@@ -87,9 +119,9 @@ These examples do not prescribe file-per-entity storage, ECS tables, components,
 
 ## Do not freeze the topology early
 
-The repository may define categories of game-relevant things that must eventually be describable, but exact CSV files, columns, indexes, references, packet shapes, call-configuration representation, history/event representation, and spatial structures must emerge from executable operations.
+The repository may define categories of game-relevant things that must eventually be describable, but exact CSV files, columns, indexes, references, packet shapes, call-configuration representation, history representation, and spatial structures must emerge from executable operations.
 
-Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, event log, routing table, universal function graph, or spatial index because it sounds useful.
+Do not invent a final `ecs.csv`, file-per-entity policy, database-style normalization, component schema, event schema, event log, routing table, universal function graph, return-mapping framework, rejection layer, or spatial index because it sounds useful.
 
 Build the actual game asset/mechanic, force it through the lifecycle, and add only the minimum backing representation the run proves necessary.
 
@@ -154,7 +186,7 @@ This is not an implementation checklist.
 
 Optional factual/attributed history only when later implemented operations need it, such as speech, observations, attempted actions, transfers, construction/destruction, resource extraction, crafting, injury/death, and other mechanically relevant occurrences.
 
-An operation may need only its resulting current-state mutation and no historical event record.
+An operation may need only its resulting current-state mutation and no historical record.
 
 Do not precompute social interpretations such as trust, friendship, morality, loyalty, resentment, or civilization from history.
 
@@ -197,7 +229,7 @@ Granite weights/runtime may remain loaded for performance.
 
 Call-local prompts, JSON packets, decoder state, model context, KV cache, workers, or similar inference machinery are not authoritative game state.
 
-If a later actor operation needs a fact/event, that fact/event must come from CSV-backed state rather than hidden model memory.
+If a later actor operation needs a fact/history item, that information must come from CSV-backed state rather than hidden model memory.
 
 ## Runtime persistence
 
@@ -225,7 +257,7 @@ At any point, discard renderer internals, model call context, transient JSON, fu
 
 Then reconstruct from authoritative CSV-backed state/history/configuration plus referenced resources.
 
-No continuing game-relevant fact/event may disappear or change merely because transient runtime machinery was discarded.
+No continuing game-relevant fact may disappear or change merely because transient runtime machinery was discarded.
 
 ## Implementation instruction
 
