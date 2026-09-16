@@ -52,7 +52,7 @@ Witness owns no game state. It does not reason about the world, interpret Granit
 
 Witness is not a separate simulation subsystem. It is a generic stateless edge operation in the same harness.
 
-There is no required separate `Resolver` architecture. Reference resolution is simply work Witness performs while constructing the packet, using the generic CSV machinery.
+There is no required separate `Resolver` architecture. Reference resolution is simply work Witness performs while constructing the packet, using generic CSV machinery.
 
 ## What selects a Granite call
 
@@ -94,7 +94,7 @@ Model weights/runtime may remain loaded for performance. Call-local model contex
 
 Granite returns JSON. JSON is temporary and non-authoritative.
 
-The deterministic harness/game runner then performs only the return work required by the configured operation:
+The deterministic harness/game runner performs only the return work required by the configured operation:
 
 ```text
 raw Granite JSON
@@ -103,18 +103,25 @@ parse / validate / map against the configured output contract
         ↓
 accepted game representation or REJECT
         ↓
-write any durable actor event/fact to CSV-backed state
+deterministic operation / consequence
         ↓
-deterministic physical consequence where applicable
-        ↓
-write resulting durable facts/events to CSV-backed state
+write the resulting CSV-backed facts/events the operation actually requires
 ```
+
+The accepted game representation can remain transient while deterministic mechanics resolve it. It does not require its own CSV event merely because Granite produced it.
+
+The operation may:
+
+- mutate current CSV state directly;
+- write factual/attributed history when later behavior needs that history;
+- do both; or
+- produce no CSV change when resolution fails or is a no-op.
 
 This return edge is not Witness. Do not invent a second named subsystem merely to perform it. Use the smallest generic deterministic mapping/write functions the executed operation requires.
 
-A schema-valid Granite return is still not game truth until the harness admits an accepted result into CSV-backed state.
+A schema-valid Granite return is still not game truth. Only the CSV-backed facts/events actually written by the accepted operation become continuing game truth/history.
 
-If another Granite transformation is actually required, the accepted/transient result may be used to construct another scoped Witness packet. Intermediate JSON remains disposable unless explicitly written into CSV-backed state.
+If another Granite transformation is actually required, a transient prior result may be used to construct another scoped Witness packet. Intermediate JSON remains disposable unless a later implemented operation genuinely needs it persisted.
 
 ## Behavioral freedom
 
@@ -134,6 +141,8 @@ Granite return representing Ada's action: hand_over(stone)
 
 That action can map correctly because `hand_over` and `stone` are represented in the current operation. Deterministic mechanics may still make the physical hand-over fail if current CSV-backed state says Ada no longer holds the stone.
 
+The failed attempt does not need a permanent event record unless later implemented behavior requires it.
+
 Do not make Granite pre-solve every physical precondition merely to avoid failed attempts.
 
 ## Human and NPC symmetry
@@ -143,13 +152,13 @@ At the game-truth boundary, humans and NPCs occupy the same behavioral slot.
 NPC path:
 
 ```text
-CSV → Witness packet → Granite-generated behavior JSON → deterministic map/write → CSV
+CSV → Witness packet → Granite-generated behavior JSON → deterministic map/resolve → CSV
 ```
 
 Human path when fuzzy mapping is needed:
 
 ```text
-CSV + human action/dialogue → Witness packet → Granite-mapped JSON → deterministic map/write → CSV
+CSV + human action/dialogue → Witness packet → Granite-mapped JSON → deterministic map/resolve → CSV
 ```
 
 A direct deterministic human control can skip Granite entirely.
@@ -164,12 +173,12 @@ Start with one scoped Witness call when one call can complete the required mappi
 
 For NPC-to-NPC communication, the actual utterance delivered by the sender crosses to the recipient. Never substitute hidden sender-side structured data for what the recipient actually received.
 
-See `docs/DIALOGUE_BOUNDARY.md`.
+Persist speech/history only when later game behavior needs it. See `docs/DIALOGUE_BOUNDARY.md`.
 
 ## Schema rule
 
 The behavioral contract is fixed. The serialization shape is not.
 
-First establish the concrete Granite 350M browser/WebApp calling interface. Then build the smallest Witness packet and deterministic return mapping required by the real operation. Let later packet fields and additional calls emerge only from later executable operations.
+First establish the concrete Granite 350M browser/WebApp calling interface. Then build the smallest Witness packet and deterministic return mapping required by the real operation. Let later packet fields, history representation, and additional calls emerge only from later executable operations.
 
-Do not design a general model protocol merely because it might be useful.
+Do not design a general model protocol or event layer merely because it might be useful.
