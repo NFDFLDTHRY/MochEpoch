@@ -1,3 +1,7 @@
+# Historical evidence notice
+
+This file records what the 2026-09-15 Chrome verification established at that repository state. It is **not architectural authority**. Any next-step wording below is historical. Current MochEpoch architecture and execution order come from `AGENTS.md` and the authoritative documents under `docs/`, led by `docs/GAME_BLUEPRINT.md`.
+
 # Chrome read/resolve/render verification — 2026-09-15
 
 Question: does the corrected CSV read/reference-resolution path execute in real Chrome through the public commit-pinned GitHack delivery surface and visibly reflect the tested CSV inputs without relying on retained hidden world state?
