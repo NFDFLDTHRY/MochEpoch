@@ -4,71 +4,38 @@ Tiny Model Civilizations Browser Game.
 
 ## Question
 
-Can a civilization-like game emerge from CSV world state + scoped Witness calls + Granite 350M JSON reasoning + deterministic browser game execution, without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization?
+Can a civilization-like game emerge from CSV world state + bounded Resolver/Granite/Witness transformations + deterministic browser game execution, without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization?
 
-## Design
+## Core model boundary
 
 ```text
-                         PLAYER
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │ GAME RUNNER │
-                    └──────┬──────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │  WORLD.CSV  │
-                    │ search list │
-                    └──────┬──────┘
-                           │
-             type + name resolve state
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-   character CSV      object CSV       system CSV
-          └────────────────┼────────────────┘
-                           │
-                    decision required
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │   WITNESS   │
-                    │ class funcs │
-                    │ CSV + packet│
-                    └──────┬──────┘
-                           │
-                           ▼
-        ┌─────────────────────────────────┐
-        │ ONE GRANITE CALLING PACKET      │
-        │                                 │
-        │ world descriptive summation     │
-        │ system prompt from CSV          │
-        │ current situational state       │
-        │ output JSON schema              │
-        └────────────────┬────────────────┘
-                         │
-                         ▼
-                   GRANITE 350M
-                    JSON → JSON
-                         │
-                         ▼
-                   MODEL OUTPUT
-                         │
-                         ▼
-               IF / ELSE / THEN TREE
-                         │
-                         ▼
-                  GAME RUNNER
-                         │
-                         ▼
-            UPDATE CSV-BACKED STATE
-                         │
-                         ▼
-                    NEXT WORLD
-                         │
-                         └───────── LOOP
+TRUSTED CSV-BACKED STATE
+        ↓
+     RESOLVER
+CSV → bounded JSON parameters
+        ↓
+ GRANITE(operation)
+   JSON → JSON
+        ↓
+UNTRUSTED JSON RESULT
+        ↓
+      WITNESS
+JSON → bounded CSV-backed result or REJECT
+        ↓
+TRUSTED CSV-BACKED STRUCTURE AGAIN
 ```
+
+Resolver is outbound from the game world. It resolves only the trusted CSV-backed state permitted for the current operation and constructs Granite's bounded JSON parameters.
+
+Granite is a function used by the game: `parameters → Granite → return value`. It has no game authority, direct CSV access, hidden world memory, or permission to execute consequences. Every Granite return is untrusted.
+
+Witness is inbound to the game world. It validates a raw Granite return against the exact schema, references, scope, identities, and authority permitted for the operation, then produces only the allowed CSV-backed structure or rejects the result.
+
+A witnessed result becoming trusted means it is legal game structure. It does not mean a spoken claim is true or a model interpretation is correct.
+
+If a witnessed result proposes a world consequence, deterministic game code checks the current authoritative CSV state and applies any permitted mutation. Granite never commits world state directly.
+
+See [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for the model contract and [docs/DIALOGUE_BOUNDARY.md](docs/DIALOGUE_BOUNDARY.md) for human/NPC communication rules.
 
 ## World rules
 
@@ -78,33 +45,39 @@ Referenced CSV files contain inspectable factual state. Type selects the folder 
 
 System prompts are data inside relevant CSV state. They may be specific to one entity or shared by reference.
 
-Witness is a class containing only the ordinary functions needed for scoped CSV access and packet construction.
-
-Granite only converts the supplied packet into the required JSON output.
-
-Deterministic code decides what actually happens. The runner changes CSV-backed state and renders the resulting world.
-
-Store facts and events, not interpretations. Trust, morality, friendship, loyalty, resentment, civilization scores, and similar social abstractions are intentionally not authoritative game state. If the experiment fails to produce them, that failure is a result unless the research question itself is explicitly changed.
-
-## CSV backing state
-
 CSV files are the backing state of MochEpoch. There is no parallel active-world representation.
 
-The first-person 3D client reads the CSV-described world and renders it. Classes may contain functions that read, resolve, or transform CSV-backed state, but class instances do not own game state.
+The first-person 3D client reads the CSV-described world and renders it. Classes may contain functions that read, resolve, validate, or transform CSV-backed state at explicit operation boundaries, but class instances do not own game state.
 
 MochEpoch game code must not maintain gameplay truth in JavaScript objects, Maps, an ECS, state stores, renderer objects, inventory managers, NPC caches, model context, or other parallel runtime structures.
 
-Assets are also discovered through CSV manifests. The referenced asset resource may use whatever file format its renderer or backend requires, but the game's knowledge of that asset, its location, role, and game-relevant metadata belongs in CSV.
+Assets are discovered through CSV manifests. The referenced asset resource may use whatever file format its renderer or backend requires, but the game's knowledge of that asset, its location, role, and game-relevant metadata belongs in CSV.
 
-Transient state is permitted only when specifically required by third-party backend machinery such as the browser, Three.js/WebGPU, model inference, decoding, or another explicitly used runtime. That machinery is never gameplay authority.
+Transient JSON is operational structure only. Any game-relevant result that must survive an operation belongs back in CSV-backed state.
 
-A browser storage API may eventually be required to persist runtime mutations, but it must act as a storage substrate for CSV-backed documents rather than become another game-state model. Repository CSV files may be seed/default state; runtime-mutated state must remain CSV-backed.
+Store facts and attributed events, not designer interpretations. Trust, morality, friendship, loyalty, resentment, civilization scores, and similar abstractions are intentionally not authoritative game state. If the experiment fails to produce them, that failure is a result unless the research question itself is explicitly changed.
 
-See [docs/CSV_BACKING_STATE.md](docs/CSV_BACKING_STATE.md) for the hard state boundary and [docs/MODEL_ROLE.md](docs/MODEL_ROLE.md) for Granite's operational role.
+See [docs/CSV_BACKING_STATE.md](docs/CSV_BACKING_STATE.md) for the hard state boundary.
+
+## Dialogue
+
+Human and NPC dialogue uses the same trust primitive: `Resolver → Granite → Witness`.
+
+The primitive does not reverse. What changes is whether language is entering the structured game world or being composed for delivery out of it.
+
+Human-to-NPC intake uses the human utterance as explicitly labeled external input plus the recipient's bounded CSV context. Granite may propose a structured interpretation; Witness accepts or rejects it into CSV-backed communication structure.
+
+NPC-to-human composition starts from trusted NPC-side communicative structure in CSV. Granite may propose surface language; Witness accepts or rejects the utterance into dialogue CSV before deterministic delivery.
+
+NPC-to-NPC communication must traverse the actual delivered utterance. Do not give a recipient another NPC's hidden structured intention. `intended X → said Y → interpreted Z` is allowed, including X ≠ Z.
+
+Checker/coherence calls are also ordinary Granite calls. Their returns are untrusted until Witness accepts them. They are local to the transformation being checked and must not become an omniscient truth engine or enforce perfect communication.
+
+Speech is an attributed event, not automatically a world fact. Lies, mistakes, ambiguity, and misunderstanding remain possible.
 
 ## First test
 
-One world. One player. One model-controlled character. One Witness call. One Granite 350M JSON response. One deterministic resolver. One CSV state mutation. One visible consequence.
+One world. One player. One character whose operation calls Granite. One Resolver package. One Granite 350M JSON response. One Witness acceptance/rejection. One deterministic consequence decision. One CSV state mutation when permitted. One visible consequence.
 
 The current seed uses one room, the player, Ada, and one stone held by Ada. The fixture exists only to prove the loop.
 
@@ -114,11 +87,15 @@ The current seed uses one room, the player, Ada, and one stone held by Ada. The 
 
 `index.html` and `app.js` implement the read/resolve/render probe. The CSV backing-state correction removed `activeWorld` and the parsed index/record Maps. The `CSV` class contains only static functions: CSV text, parser rows, and decoded fields are local computation during a call. The existing display reads through those functions; it is never read back as gameplay authority. This diagnostic display does not establish the first-person 3D client.
 
-Local checks of the corrected CSV functions passed for the original seed, a changed stone holder using the same class and execution context, and a missing referenced file. All six CSV files matched an independent Python CSV read, including the quoted prompt/schema fields. Restoring the seed and creating a fresh execution context reproduced the original facts. These checks did not execute the browser entry point or renderer. See [the run evidence and remaining checks](evidence/read-render.md).
+The real Chrome read/resolve/render milestone now passes on public commit-pinned GitHack snapshots:
 
-The earlier connected-browser attempt blocked the local URL. The subsequent Chrome run reached the commit-pinned GitHack URL, but GitHack returned its own 404 before the game loaded because the repository was private. The owner has now chosen to make MochEpoch public so the existing commit-pinned GitHack development path can be used directly. The three visible Chrome checks remain unverified until that visibility change is complete and the public snapshot is exercised.
+1. original seed rendered player holding nothing and Ada holding the stone;
+2. a disposable branch changing only `stone.csv` holder from Ada to player rendered player holding the stone and Ada holding nothing; and
+3. a disposable branch removing `stone.csv` kept the world hidden and displayed `Could not load world: world/objects/stone.csv: HTTP 404`.
 
-Finish the real Chrome read/resolve/render verification before establishing the concrete Granite 350M WebApp call machinery. Witness functions are built only after that real Granite interface is proven. The deterministic resolver, gameplay mutation, and persistence remain unimplemented. The complete first-test pass condition has not been established.
+These browser checks establish the current CSV read/reference-resolution/projection behavior. They do not establish a Granite call, Resolver/Witness runtime machinery, gameplay mutation, persistence, or the complete first-test loop.
+
+The next executable operation is to establish the concrete Granite 350M WebApp machinery and prove one real fixed-shape JSON-in → JSON-out call with no game authority attached. Only after that interface is proven should the first operation-specific Resolver and Witness functions be implemented.
 
 ## Development in Chrome through GitHack
 
@@ -130,11 +107,9 @@ The development URL convention is:
 https://raw.githack.com/NFDFLDTHRY/MochEpoch/<full-commit-sha>/index.html
 ```
 
-Use a full commit SHA and keep `index.html` at the repository root so its relative `app.js` and `world/` requests use the same committed snapshot. A reload reruns that snapshot. To test changed CSVs, commit the temporary variant on a test branch, open its new commit-pinned URL, and reload. Restore the original seed afterward. Reloading an old commit URL cannot pick up a newer commit.
+Use a full commit SHA and keep `index.html` at the repository root so its relative `app.js` and `world/` requests use the same committed snapshot. A reload reruns that snapshot. To test changed CSVs, commit the temporary variant on a test branch, open its new commit-pinned URL, and reload. Reloading an old commit URL cannot pick up a newer commit.
 
-GitHack serves source files with browser-appropriate content types and caches responses. Its HTML confirmation may appear before the game: verify the repository and commit, then choose **Open the page**. See [GitHack's delivery and caching documentation](https://raw.githack.com/).
-
-This path requires source files that GitHack can retrieve without GitHub account credentials. Do not put credentials into a GitHack URL.
+GitHack serves source files with browser-appropriate content types and caches responses. Its HTML confirmation may appear before the game: verify the repository and commit, then choose **Open the page**.
 
 No helper, build system, backend, manifest, or service worker is needed for this development URL. Installability will be tested in its own later operation.
 
@@ -146,7 +121,7 @@ Serve the repository directory over local HTTP. For example, with Python 3 insta
 python3 -m http.server 8765 --bind 127.0.0.1
 ```
 
-Open [http://127.0.0.1:8765](http://127.0.0.1:8765) in Chrome. The expected seed display is one room, player holding nothing, and Ada holding the stone. This command only serves the static files for a manual check; the application runs in the browser.
+Open `http://127.0.0.1:8765` in Chrome. The expected seed display is one room, player holding nothing, and Ada holding the stone. This command only serves the static files for a manual check; the application runs in the browser.
 
 ## Build policy
 
