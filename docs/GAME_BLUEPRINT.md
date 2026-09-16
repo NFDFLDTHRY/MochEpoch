@@ -2,7 +2,7 @@
 
 This document is the architectural blueprint for MochEpoch.
 
-It defines the game at the level that must remain true while the concrete CSV files, JSON packet shapes, assets, renderer, and mechanics are allowed to grow from implementation evidence.
+It fixes the authority boundary and lifecycle while allowing concrete CSV files, JSON packet shapes, assets, mechanics, and renderer details to fall out of executable game work.
 
 ## One game truth
 
@@ -12,12 +12,20 @@ JSON is temporary operational structure.
 
 The player, NPCs, Granite, renderer, model runtime, scene graph, caches, JavaScript objects, and function instances are not independent sources of game truth.
 
-The core actor-mediated lifecycle is:
+The compact game lifecycle is:
+
+```text
+CSV → JSON → NPC / HUMAN → JSON → CSV
+```
+
+That is not a subsystem inside the game. It is the game-state lifecycle.
+
+For an actor-mediated transition:
 
 ```text
 TRUSTED CSV WORLD
         ↓
-resolve only the state relevant to this operation
+resolve relevant world + function configuration
         ↓
 bounded JSON packet
         ↓
@@ -26,39 +34,34 @@ NPC or HUMAN
         ↓
 JSON expression/result
         ↓
-map / validate against the CSV-defined world
+map / validate against CSV-defined possibilities
         ↓
-deterministic game resolution where a physical consequence is required
+WRITE ACCEPTED ACTOR EXPRESSION / EVENT TO CSV
+        ↓
+deterministic game resolution where physical consequence is required
         ↓
 WRITE RESULTING FACTS / EVENTS TO CSV
         ↓
 TRUSTED CSV WORLD'
 ```
 
-In compact form:
-
-```text
-CSV → JSON → NPC / HUMAN → JSON → CSV
-```
-
-That loop is not a subsystem inside the game. It is the game-state lifecycle.
-
-The world changes only when an operation produces a permitted CSV-backed state transition.
+The accepted actor expression itself is game history. A physical consequence is a separate deterministic transition from current CSV-backed facts.
 
 ## The harness is the game lifecycle
 
 The harness has a small job:
 
-1. read and resolve the relevant CSV-backed world state;
+1. read and resolve the relevant CSV-backed world state/configuration;
 2. project only the required bounded state into transient JSON;
 3. route that packet through the required function graph;
 4. accept human actions/dialogue or call Granite for NPC actions/dialogue where fuzzy generation or mapping is required;
-5. map and validate the resulting expression against the population of entities, objects, properties, actions, systems, and concepts represented by the supplied CSV-backed world;
-6. run deterministic game mechanics for any physical consequence;
-7. write any durable accepted result back into CSV-backed state; and
-8. let rendering project the resulting CSV world.
+5. map/validate the resulting expression against the entities, objects, properties, actions, systems, and concepts represented by the supplied CSV-backed world;
+6. admit the accepted actor expression/result into CSV-backed factual/attributed state;
+7. run deterministic mechanics for any physical consequence;
+8. write resulting durable facts/events to CSV-backed state; and
+9. let rendering project the resulting CSV world.
 
-A local operation may look tree-shaped because it resolves several relevant CSV branches into one bounded packet and may branch through several functions before converging on a result. The whole game is a graph because systems and entities can reference each other and every accepted transition becomes the input world for later transitions.
+A local operation may look tree-shaped or DAG-shaped because it resolves several CSV branches/functions before converging on a result. The whole game is a graph because systems/entities reference each other and every accepted transition becomes input for later transitions.
 
 ```text
 CSV₀
@@ -76,9 +79,28 @@ CSV₂
 
 Do not add a second world model to make this graph easier to execute.
 
+## CSV-described function graph
+
+Game-specific wiring belongs in CSV-backed configuration rather than a hidden hard-coded per-entity runtime architecture.
+
+CSV-backed configuration may select/reference, as actual operations require:
+
+- the operation/stage being performed;
+- the generic function/system to call;
+- Granite/model/runtime resources when that function is Granite;
+- required actor/world/system references;
+- the applicable system prompt;
+- bounded input populations;
+- required output shape/population; and
+- the next function/operation edge.
+
+Executable classes/functions are generic machinery. They do not own game state and do not become a second game-specific control graph.
+
+Do not freeze a universal function-graph schema before real execution reveals the minimal representation.
+
 ## Three operation shapes
 
-Every game operation should reduce to one of these shapes unless execution proves another primitive is required.
+Unless execution proves another primitive is required, every game operation reduces to one of these shapes.
 
 ### Projection
 
@@ -94,7 +116,7 @@ Projection does not mutate authoritative state.
 CSV → deterministic function → CSV
 ```
 
-Examples may include time advancement, physical preconditions, resource consumption, construction progress, damage, weather mechanics, movement resolution, or other non-fuzzy mechanics.
+Examples may include movement resolution, time advancement, physical preconditions, resource consumption, construction, damage, weather, growth, or other non-fuzzy mechanics.
 
 ### Actor-mediated transition
 
@@ -109,16 +131,18 @@ JSON
  ↓
 bounded mapping / validation
  ↓
+CSV-backed actor expression/event
+ ↓
 deterministic consequence where applicable
  ↓
-CSV
+CSV-backed resulting facts/events
 ```
 
-The actor-mediated transition is where Granite may be used. Granite is not the game loop itself.
+Granite may appear inside the actor-mediated transition. Granite is not the game loop itself.
 
 ## Preserve the chaos
 
-MochEpoch does not require an NPC or a human to be sensible, truthful, moral, cooperative, optimal, consistent, or mechanically successful.
+MochEpoch does not require an NPC or human to be sensible, truthful, moral, cooperative, optimal, consistent, or mechanically successful.
 
 An actor may:
 
@@ -128,22 +152,23 @@ An actor may:
 - make a bad decision;
 - attempt an impossible action;
 - use strange wording;
-- refuse a request;
+- refuse;
 - cooperate unexpectedly;
-- behave inefficiently; or
+- behave inefficiently;
+- threaten, bargain, mislead, or confuse; or
 - produce any other behavior that still maps to the bounded world represented by the current operation.
 
-This is not noise to be designed away. The resulting behavioral variation is experimental material.
+This variation is experimental material.
 
-The harness asks a narrower question:
+The harness asks:
 
 > What does this action or utterance correspond to in the currently represented world?
 
-The harness does not ask whether the behavior is wise, good, true, socially appropriate, or strategically optimal.
+It does not ask whether the behavior is wise, good, true, socially appropriate, or strategically optimal.
 
 A false statement about an existing stone can be valid dialogue. An attempt to hand over a stone the actor no longer possesses can be a valid expressed action. Deterministic mechanics may then make the physical attempt fail because the current CSV-backed precondition is false.
 
-Language or behavior cannot create new game ontology merely by mentioning it. If nothing in the bounded world corresponds to a spaceship, an actor saying "use the spaceship" does not create one.
+Language or behavior cannot create new game ontology merely by mentioning it. If nothing in the bounded world corresponds to a spaceship, saying `use the spaceship` does not create one.
 
 The design rule is:
 
@@ -160,15 +185,17 @@ CSV world slice
  ↓
 bounded JSON possibilities
  ↓
-Granite generates or evaluates an action / utterance
+Granite generates/evaluates action or dialogue
  ↓
 JSON expression
  ↓
 harness mapping / validation
  ↓
+CSV-backed actor expression/event
+ ↓
 deterministic consequence where applicable
  ↓
-CSV
+CSV-backed resulting facts/events
 ```
 
 ### Human player
@@ -176,20 +203,22 @@ CSV
 ```text
 CSV world slice + external human action / utterance
  ↓
-bounded JSON operation
+bounded operation
  ↓
-Granite mapping / evaluation when fuzzy interpretation is required
+Granite mapping/evaluation when fuzzy interpretation is required
  ↓
 JSON game representation
  ↓
 harness mapping / validation
  ↓
+CSV-backed actor expression/event
+ ↓
 deterministic consequence where applicable
  ↓
-CSV
+CSV-backed resulting facts/events
 ```
 
-A direct deterministic player control does not need a Granite call merely because Granite exists. Use Granite only when the operation actually requires fuzzy generation, correspondence, or natural-language handling.
+A direct deterministic player control does not need Granite merely because Granite exists. Use Granite only when the operation actually requires fuzzy generation, correspondence, or natural-language handling.
 
 Do not build separate semantic universes for player behavior and NPC behavior.
 
@@ -203,11 +232,11 @@ Its role is:
 
 Granite may help with:
 
-- selecting or generating an NPC action from a bounded current possibility-space;
+- selecting/generating an NPC action from a bounded current possibility-space;
 - composing NPC language from a bounded current possibility-space;
 - mapping human language into game-defined possibilities;
 - mapping a fuzzy human action into game-defined possibilities when required; and
-- checking whether generated or supplied language is coherently matchable to the bounded world packet.
+- checking whether supplied/generated language is coherently matchable to the bounded world packet.
 
 Granite does not:
 
@@ -215,7 +244,7 @@ Granite does not:
 - own world state;
 - read arbitrary CSV directly;
 - decide its own scope;
-- create authoritative entities, actions, or properties by mentioning them;
+- create authoritative entities/actions/properties by mentioning them;
 - carry hidden game truth between calls;
 - decide objective truth;
 - execute physical consequences;
@@ -223,11 +252,11 @@ Granite does not:
 - write directly to the renderer; or
 - implement trust, friendship, morality, loyalty, civilization, or similar social scores.
 
-Granite input/output JSON is disposable operational structure. The model weights/runtime may remain loaded for performance, but model context is not authoritative game state.
+Granite input/output JSON is disposable operational structure. Model weights/runtime may remain loaded for performance, but model context is not authoritative game state.
 
 ## Resolver, Granite, Witness
 
-One Granite transformation uses this primitive:
+One Granite transformation uses:
 
 ```text
 CSV-BACKED WORLD / BOUNDED TRANSIENT INPUT
@@ -249,36 +278,44 @@ Resolver projects only the permitted input for one transformation.
 
 Granite performs one requested JSON → JSON transformation.
 
-Witness deterministically checks the raw Granite return against the operation's schema, allowed references, values, identities, scope, and other game-defined bounds. Witness does not perform the semantic judgment assigned to a Granite `CHECK` transformation and does not execute consequences.
+Witness deterministically checks the raw Granite return against the operation's schema, allowed references, values, identities, scope, and other game-defined bounds. Witness does not perform the semantic judgment assigned to Granite `CHECK` and does not execute consequences.
 
-A Witness result is not automatically durable world state. It may be a bounded transient intermediate used by another transformation. Only an explicit accepted write into CSV-backed state changes authoritative game truth.
+A Witness result is not automatically durable world state. It may be a bounded transient intermediate used by another transformation.
 
-This is the distinction:
+Use terminology precisely:
 
 ```text
 CSV-bounded
-= constrained by the possibilities defined from trusted CSV
+= transient value constrained by possibilities derived from trusted CSV
 
-CSV-backed / written to CSV
-= authoritative continuing game state
+CSV-backed
+= authoritative continuing state/history/configuration represented in CSV
 ```
+
+Trust returns to the game when the completed accepted result is admitted into CSV-backed state.
 
 Do not use a transient intermediate as hidden game state merely because it passed Witness.
 
 ## Communication paths
 
-Natural-language communication may require several Granite transformations before anything becomes authoritative game state.
+Natural-language communication may require several Granite transformations before the completed communication returns to authoritative CSV-backed state.
 
 Human → NPC:
 
 ```text
 INTAKE → CHECK → COMMIT
+        ↓
+CSV-backed attributed utterance / recipient result
 ```
 
 NPC → Human:
 
 ```text
 COMPOSE → CHECK → EMIT
+        ↓
+CSV-backed attributed speech event
+        ↓
+delivery to human
 ```
 
 NPC → NPC:
@@ -286,9 +323,13 @@ NPC → NPC:
 ```text
 sender:    COMPOSE → CHECK → EMIT
                        ↓
+        CSV-backed A-said-Y event
+                       ↓
                 actual utterance Y
                        ↓
 recipient: INTAKE  → CHECK → COMMIT
+                       ↓
+        CSV-backed B-interpreted-Z result/event
 ```
 
 Each named stage is still the same primitive:
@@ -297,7 +338,7 @@ Each named stage is still the same primitive:
 Resolver → Granite(stage) → Witness
 ```
 
-Intermediate stage results remain bounded transient structures. They are not authoritative CSV merely because they are legal inputs to the next stage.
+Intermediate stage results are bounded transient structures. They are not authoritative CSV merely because they are legal inputs to the next stage.
 
 For NPC → NPC communication, only the actual emitted utterance crosses between actors. Preserve:
 
@@ -307,7 +348,9 @@ A intended X → said Y → B interpreted Z
 
 including `X ≠ Z`.
 
-`CHECK` asks whether language is coherently matchable to the supplied bounded world, not whether the statement is objectively true. Falsehood, ambiguity, deception, mistakes, and misunderstanding are allowed when the language remains grounded in the supplied possibilities.
+The fact that `A said Y` is authoritative as an attributed event does not make the proposition inside `Y` objectively true.
+
+`CHECK` asks whether language is coherently matchable to the supplied bounded world, not whether the statement is objectively true. Falsehood, ambiguity, deception, mistakes, contradiction, and misunderstanding are allowed when language remains grounded in the supplied possibilities.
 
 ## Deterministic consequence boundary
 
@@ -321,7 +364,9 @@ NPC expression: hand_over(stone)
 
 The expression may be valid because `hand_over` and `stone` exist in the bounded game population.
 
-Deterministic mechanics then check the actual current CSV facts. If the NPC no longer holds the stone, the physical consequence fails or becomes a no-op according to the implemented mechanic.
+The accepted `hand_over(stone)` expression can be recorded as an attributed CSV-backed actor event.
+
+Deterministic mechanics then check actual current CSV facts. If the NPC no longer holds the stone, the physical consequence fails or becomes a no-op according to the implemented mechanic.
 
 Granite is allowed to propose failure-prone behavior. Deterministic mechanics decide what actually happens.
 
@@ -331,22 +376,29 @@ Do not design the final CSV topology from the armchair.
 
 The game assets and mechanics reveal the backing structure as they are built.
 
-The repository should lock the authority boundary and the categories of things the game must be able to describe, while allowing concrete CSV files, columns, indexes, references, and JSON packet shapes to emerge from executable operations.
+The repository should lock:
 
-The practical test is:
+- the authority boundary;
+- the harness lifecycle;
+- the categories the game must be able to describe; and
+- Granite's behavioral contract.
 
-> If Granite, the player, an NPC, deterministic mechanics, or a future operation may need to refer to a fact after the current operation ends, that fact needs a CSV-backed representation.
+It should allow concrete CSV files, columns, indexes, references, function-graph representation, event representation, and JSON packet shapes to emerge from executable operations.
 
-If something exists only to turn those facts into pixels, sound, animation, GPU work, or another backend representation, it is rendering/resource machinery rather than independent game truth.
+Use this practical test:
+
+> If Granite, the player, an NPC, deterministic mechanics, or a future operation may need to refer to a fact/event after the current operation ends, that fact/event needs a CSV-backed representation.
+
+If something exists only to turn those facts into pixels, sound, animation, GPU work, inference, or another backend representation, it is rendering/resource machinery rather than independent game truth.
 
 Examples:
 
 - thousands of rendered grass blades may correspond to one terrain/vegetation fact or resource;
 - a forest may initially be represented by a region/generator/seed rather than one authoritative record per decorative tree;
-- an individual branch that can be picked up, carried, discussed, stored, burned, or revisited needs game-relevant identity/state somehow represented in CSV;
+- an individual branch that can be picked up, carried, discussed, stored, burned, or revisited needs game-relevant identity/state represented in CSV somehow;
 - an individual tree that can be chopped, damaged, named, harvested, blocked by, discussed, or revisited needs enough CSV-backed identity/state for those operations.
 
-Do not infer a particular file-per-entity, ECS table, component schema, or spatial index from these examples. Execution determines the smallest correct representation.
+Do not infer a particular file-per-entity, ECS table, component schema, event schema, or spatial index from these examples. Execution determines the smallest correct representation.
 
 ## World categories the backing state must eventually be able to describe
 
@@ -354,56 +406,56 @@ These are ontology categories, not fixed CSV schemas.
 
 ### World / space
 
-- world identity / seed when required;
-- terrain and elevation relevant to mechanics;
+- world identity/seed when required;
+- terrain/elevation relevant to mechanics;
 - ground/surface types;
-- regions, clearings, forests, fields, settlements, and named locations;
+- regions, clearings, forests, fields, settlements, named locations;
 - creeks, rivers, ponds, lakes, and other game-relevant water;
-- positions, orientations, containment, adjacency, occupancy, and reachability where required;
-- world extents / boundaries; and
+- positions, orientations, containment, adjacency, occupancy, reachability where required;
+- world extents/boundaries; and
 - time, season, weather, temperature, light, or other environment facts when implemented.
 
 ### Actors
 
 - player;
 - NPC humans;
-- animals or other creatures if added;
+- animals/creatures if added;
 - identity;
-- position / orientation;
+- position/orientation;
 - physical condition;
-- held, carried, stored, or equipped objects;
-- current game-relevant action/state when it must persist;
-- observed or remembered factual events when later behavior requires them; and
+- held/carried/stored/equipped objects;
+- current game-relevant state when it must persist;
+- factual observations or remembered events when later behavior requires them; and
 - other factual actor state proven necessary by mechanics.
 
 ### Physical / biological state
 
 Only when implemented and mechanically relevant:
 
-- injury / health;
+- injury/health;
 - hunger;
 - thirst;
-- fatigue / sleep;
+- fatigue/sleep;
 - temperature exposure;
 - movement capability;
-- carrying limits; and
+- carrying limits;
 - sensory capability.
 
 ### World objects and natural resources
 
 - trees;
-- rocks / stone;
-- branches / logs;
-- grass / vegetation where game-relevant;
-- plants / food resources;
+- rocks/stone;
+- branches/logs;
+- grass/vegetation where game-relevant;
+- plants/food resources;
 - water resources;
 - ores, clay, fiber, hides, fuel, or other implemented materials;
 - loose objects;
 - tools;
-- equipment / clothing;
-- food / consumables;
-- containers / storage; and
-- unique or special objects.
+- equipment/clothing;
+- food/consumables;
+- containers/storage;
+- unique/special objects.
 
 Object facts may include identity/type, position or holder, quantity, material, condition, contents, usable actions, dimensions, or other properties only when actual mechanics require them.
 
@@ -411,62 +463,68 @@ Object facts may include identity/type, position or holder, quantity, material, 
 
 When implemented:
 
-- shelters / houses;
+- shelters/houses;
 - storage;
 - workshops;
-- fires / hearths;
-- walls / fences;
-- gates / doors;
+- fires/hearths;
+- walls/fences;
+- gates/doors;
 - bridges;
-- roads / paths;
-- farms / plots;
+- roads/paths;
+- farms/plots;
 - wells;
-- furniture; and
+- furniture;
 - construction-in-progress.
 
 Relevant facts may include location/footprint, materials, construction progress, damage/condition, occupancy, contents, usable functions, and accessibility.
 
 ### Game actions and transformations
 
-The game may eventually expose behaviors such as:
+Possible examples include:
 
-- move / walk / run / turn / look;
-- approach / follow / stop;
-- pick up / put down / carry / hand over;
-- use / open / close / enter / leave / climb;
-- gather / harvest / cut / mine / hunt;
-- cook / craft / build / repair / farm;
-- transport / store / consume; and
-- attack / defend if combat is actually implemented.
+- move/walk/run/turn/look;
+- approach/follow/stop;
+- pick up/put down/carry/hand over;
+- use/open/close/enter/leave/climb;
+- gather/harvest/cut/mine/hunt;
+- cook/craft/build/repair/farm;
+- transport/store/consume;
+- attack/defend if combat is actually implemented.
 
-This is not a command list to implement in advance. Add behaviors only when the game asset/mechanic requires them.
+This is not a command list to implement in advance. Add behaviors only when actual game assets/mechanics require them.
 
 ### Events / history
 
-Persist only factual or attributed information that future operations actually need, such as:
+Actor-mediated behavior that successfully crosses the harness returns to CSV-backed factual/attributed state.
 
+Examples include:
+
+- `A said Y`;
+- `B interpreted Z`;
+- an accepted attempted action;
 - transfers;
-- construction / destruction;
+- construction/destruction;
 - resource extraction;
 - crafting;
-- injury / death;
-- speech events when future behavior needs them;
-- observations attributed to an actor; and
+- injury/death;
+- observations attributed to an actor;
 - other mechanically relevant events.
 
-Do not precompute social interpretations from these events.
+Recording an attributed event does not turn its semantic content into objective truth.
+
+The exact event schema and retention policy are not fixed yet.
 
 ### Systems / function definitions
 
 CSV-backed configuration may describe:
 
 - deterministic mechanics;
-- model function selection;
+- model/function selection;
 - system prompts;
 - required input references;
 - bounded populations;
 - output schemas;
-- function-graph routing; and
+- function-graph routing;
 - other configuration required by proven operations.
 
 The exact schemas are not fixed yet.
@@ -475,14 +533,15 @@ The exact schemas are not fixed yet.
 
 CSV may identify resources such as:
 
-- human / animal models and rigs;
-- terrain geometry or generators;
+- human/animal models and rigs;
+- terrain geometry/generators;
 - trees, rocks, vegetation, buildings, tools, and item models;
-- materials / textures;
+- materials/textures;
 - water representation;
 - animation resources;
 - audio;
-- shaders; and
+- shaders;
+- model/runtime resources;
 - other renderer/backend resources.
 
 The resource file may use the format required by its backend. The game's knowledge that the resource exists, what game thing it represents, and any game-relevant metadata belongs in CSV-backed state/configuration.
@@ -500,7 +559,7 @@ These are not game truth unless a corresponding fact is represented in CSV:
 - shadows;
 - fog;
 - camera internals;
-- renderer caches; and
+- renderer caches;
 - backend handles.
 
 ## No encoded civilization
@@ -513,12 +572,12 @@ Do not add authoritative abstractions such as:
 - morality scores;
 - resentment scores;
 - faction sentiment;
-- civilization score; or
+- civilization score;
 - other designer interpretations of social meaning.
 
 Store factual state and attributed events. Let repeated actor behavior and deterministic consequences produce whatever higher-order pattern actually emerges.
 
-A settlement can emerge because CSV eventually contains houses, paths, stored food, tools, fields, people, repeated exchanges, speech events, construction, conflict, cooperation, and other factual consequences. No `civilization = true` variable is required.
+A settlement can emerge because CSV eventually contains houses, paths, stored food, tools, fields, people, speech/events, construction, exchanges, conflict, cooperation, and other factual consequences. No `civilization = true` variable is required.
 
 Failure to produce civilization-like behavior is a valid experimental result.
 
@@ -529,7 +588,7 @@ Failure to produce civilization-like behavior is a valid experimental result.
 ```text
 seed or persisted CSV
  ↓
-resolve references
+resolve references / function configuration
  ↓
 load referenced resources / backend machinery
  ↓
@@ -550,13 +609,13 @@ projection / deterministic transition / actor-mediated transition
 CSVₙ₊₁
 ```
 
-Rendering may run continuously at frame rate. Authoritative world transitions occur only when game operations produce changed CSV-backed state.
+Rendering may run continuously at frame rate. Authoritative world transitions occur only when game operations produce changed CSV-backed state/history.
 
 ### Save / close
 
 Transient JSON, Granite call context, scene objects, GPU buffers, caches, renderer state, and function instances may be discarded.
 
-The continuing world must survive as CSV-backed state plus referenced resources.
+The continuing world/history/configuration must survive as CSV-backed state plus referenced resources.
 
 ### Reload
 
@@ -579,12 +638,12 @@ At any point, discard:
 - transient JSON;
 - JavaScript function/class instances;
 - caches;
-- workers; and
+- workers;
 - backend handles.
 
 Then reconstruct from authoritative CSV-backed state plus referenced resource files.
 
-No game-relevant fact may disappear or change merely because transient runtime machinery was discarded.
+No game-relevant fact/event may disappear or change merely because transient runtime machinery was discarded.
 
 ## Build rule
 
@@ -608,4 +667,4 @@ Report only what the run established
 Add machinery only when a failure requires it
 ```
 
-The architecture fixes the truth boundary and the lifecycle. Concrete schemas must fall out of the game as real assets and mechanics are forced through that lifecycle.
+The architecture fixes the truth boundary and lifecycle. Concrete schemas must fall out of the game as real assets and mechanics are forced through that lifecycle.
