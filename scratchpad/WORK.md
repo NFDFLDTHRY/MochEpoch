@@ -1,106 +1,65 @@
-# Claptrap retrieval call followed by response call
+# Claptrap: separate retrieval and response system prompts
 
-proposal_id: 20260917-claptrap-two-call-turn
-status: COMPLETE
-code_commit: b0a5007ed0f9f5c8a763e75e6c6b1e9094abdb65
-remaining_gate: new full 100-reply phone run; query compliance and dialogue behavior remain experimental
+proposal_id: 20260917-claptrap-separate-system-prompts
+status: PROPOSED
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
-base_commit: 11be0cd3bc3c0aeca4f02d9754c4133f1274870b
+base_commit: 9d9562d62da62fe9455f42ff5b8530b52a9ebccc
 
-## User direction and evidence
+## Authorization and observed failure
 
-The user now specifies that each seat runs twice and only the second output is
-recorded as its conversational response. This follows the installed-phone run
-where five completed turns generated tooling narration, zero native searches
-occurred, and the operator deliberately stopped. The previous proposed removal
-of generic template wording is superseded. IBM's native tool instructions stay
-available to the retrieval call.
-
-The user's direction defines this exact operation, following their earlier
-instruction to put the plan in the repo and proceed with the repair. Publish
-this plan before implementing the specified two-call turn; no new service,
-hosting, model, dependency, architectural lock change, or additional approval
-request is needed. This is a local experiment contract, not a universal game
-pipeline. Current main's blueprint blob matches the lock:
+The user proposed a retrieval-only system instruction to choose three words from
+the incoming text, followed by a separate Claptrap response system instruction.
+Work described this exact prompt split. The user now says, "Yeah let's fix it
+because this happens on last creation." This actively approves that specific
+repair. Publish this proposal before implementing it; no repeated approval gate
+is needed. This is an experiment-local prompt change, not a game architecture
+revision. Current main's blueprint blob still matches the lock:
 5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945.
+
+The screenshot shows one saved CPU reply and then a retrieval call missing its
+native closing marker. No raw export of that failed call accompanied it. The
+worker termination and "not resident" labels follow the harness error; they do
+not establish a GPU/device-loss or memory failure. The earlier real CPU probe
+also produced a one-word query and responses fixated on timestamps.
 
 ## Exact operation
 
-1. On each fresh turn, call the active resident model to generate a retrieval
-   query for the seed or previous seat's latest plain-text reply. Keep Granite's
-   native tool schema/format. Supply an explicit retrieval-only request and, if
-   needed, a recorded native assistant prefix selecting the sole required tool;
-   Granite must generate the query words itself. Keep all first-call material
-   in machine evidence, never the conversation CSV.
-2. Execute the existing deterministic CSV search. Preserve the at-least-three-
-   word check, all-word matching, original matching rows, and deterministic
-   invalid-query result. No query rewriting, automatic retries, semantic search,
-   transcript injection, or made-up memory. Search even when CSV is empty.
-3. Call the same resident model again with exactly `You are Claptrap.` as the
-   actor system, the unchanged timestamp/incoming message, this turn's native
-   tool request and its actual result. This is the response call, so do not
-   advertise another available tool or append retrieval-task instructions to
-   its system/user message. Keep the native tool-result serialization.
-4. Generate exactly 100 response tokens; only this second call's decoded output
-   is shown, saved to CSV, and passed to the other seat. Keep both calls in JSON
-   evidence with explicit retrieval/response labels. A malformed/truncated first
-   call or a second call requesting another tool fails visibly without a fake
-   response. Invalid but parseable queries return the existing deterministic
-   error to the response call.
-5. Retain fresh inputs/no carried KV, one worker/runtime/tokenizer, simultaneous
-   CPU/GPU residency, alternating generation, four-thread phone configuration,
-   persistence checkpoints and origin ownership. A complete run is 100 replies,
-   50 per seat, and 200 generation calls; the seed counts as zero.
+1. Retrieval system: `Select three words from the supplied message. Call
+   search_conversation with those words separated by spaces. Do not compose a
+   conversational reply.` Give this call the original incoming text, the native
+   tool schema and existing explicit assistant prefix. Timestamp metadata is not
+   part of the message from which it selects search words.
+2. Response system: `You are Claptrap. Respond to the incoming message.` Keep the
+   original incoming text and timestamp, the native tool request, and the exact
+   deterministic CSV result. Only call 2 becomes displayed/saved speech.
+3. Preserve both resident models, shared runtime/tokenizer, fresh inputs, native
+   serialization, 96-token retrieval allowance, 100-token response, two calls per
+   completed turn, 50/50 alternation, CSV authority and existing checkpoints.
+   Keep the at-least-three-word search validation; do not fabricate, rewrite or
+   retry a malformed query. Retain the previous exact prompt for legacy replay.
+4. Make missing-marker failures identify the observed output length and last
+   token. Preserve the raw output. Do not silently append a marker or count a
+   failed retrieval as a response. Record both system prompts in evidence and
+   show the changed response prompt on the page.
 
-## Files and why
+## Files and verification
 
 Within experiments/granite-single-ort-dual-session/claptrap-chat:
-- runtime-worker.js: two-call turn, phase evidence and failure boundaries;
-  preserve the old fixed-input diagnostic replay explicitly.
-- main.js, index.html: phase labels, evidence contract and response-only counts.
-- turn-boundary.js: verify the two-call contract for new completed conversations.
-- checks.mjs, repair-checks.mjs if needed: meaningful boundary/failure checks.
-- stability.js, stability.html: one explicitly labeled CPU two-call probe through
-  the same new worker path for this cloud browser without a WebGPU adapter;
-  retain old replay trials as old replay trials, not the new conversation.
-- sw.js: update the shell cache version for changed installed code.
-- VERIFICATION.md and evidence/two-call-turn-20260917.json: executed results,
-  exact public-safe exports, hashes, and limitations.
-Also update the experiment's GRANITE_CLAPTRAP_CONVERSATION_EXPERIMENT_PLAN.md
-with this explicit user-directed change and scratchpad/WORK.md with status.
+- runtime-worker.js: split prompts, preserve legacy replay, boundary diagnostics.
+- main.js and index.html: accurate prompt metadata and visible conditions.
+- checks.mjs: actual message boundaries and malformed-retrieval assertions.
+- sw.js: shell cache version for changed installed code.
+- VERIFICATION.md and evidence/separate-prompts-20260917.json: executed checks,
+  public-safe real generation export, source hashes, and remaining limitations.
+Also amend GRANITE_CLAPTRAP_CONVERSATION_EXPERIMENT_PLAN.md to record the user's
+new prompt instruction and update this scratchpad with the outcome.
 
-## Verification and limits
-
-Run existing checks plus: only call 2 reaches CSV; call 1 query/results feed call
-2; original incoming message remains exact; zero-match/invalid searches remain
-factual; malformed calls stop without a row; no query material/cached context
-leaks into the next turn; both seed choices still complete 50/50 in synthetic
-plumbing; new exports and reload retain both call records. Render actual native
-prompts with the pinned tokenizer, then exercise real CPU two-call generation
-through the diagnostic UI and save the export. Publish the actual 100-turn page
-on the existing branch. Full dual-session execution still requires the phone if
-this cloud browser cannot obtain a WebGPU adapter. Two calls establish a clean
-recording boundary, not a guarantee that Granite's second answer is sensible.
-
-## Executed result and handoff
-
-Implemented and published the required retrieval call followed by the response
-call. Only the latter is speech/CSV/next-seat input; both remain machine evidence.
-All 32 synthetic checks pass. Real CPU execution completed two turns from four
-calls, 100 tokens each, all 66 events saved, and both replies restored after reload.
-The exact response prompts preserve the system and original incoming message.
-
-Actual queries: `welcome` was rejected for having only one word; `current date
-and time` passed and retrieved the first saved CSV row. Both deterministic results
-were supplied unchanged to the corresponding response call. The two replies were
-identical repeated requests for a timestamp already present in the input. This
-behavior is preserved. No claim is made that the two-call boundary makes Granite
-sensible or makes every query valid.
-
-The full chat entry point is verified and linked in VERIFICATION.md. New real
-GPU execution and full 100-reply phone endurance remain outstanding. The CPU-only
-test is labeled accordingly; it did not reproduce dual-session memory conditions.
-Exact export, source hashes, checks and limitations are committed under the new
-evidence/two-call-turn-20260917.json. No personal identifiers were found in the
-publication review. Earlier original exports and the locked blueprint are intact.
+Run existing synthetic checks with assertions on both actual system prompts,
+input separation, exact tool result, and failure preservation. Run the existing
+real two-turn CPU diagnostic through the same worker and record its actual
+queries, closure, responses, CSV and reload behavior. Inspect the installed-app
+entry point. The full alternating CPU/GPU run needs the phone if this browser
+still lacks a WebGPU adapter. Prompt compliance and phone endurance are not
+guaranteed by a CPU-only probe; the screenshot alone cannot establish why that
+particular retrieval omitted its closing marker.
