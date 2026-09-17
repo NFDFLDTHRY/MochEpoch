@@ -1,7 +1,9 @@
 # Approved Claptrap installed-app repair
 
 proposal_id: 20260917-claptrap-installed-repair
-status: APPROVED_IN_PROGRESS
+status: COMPLETE
+code_commit: bcf1060bde6091649efce6c1d61d270f102d23da
+remaining_gate: full target-phone dual-session endurance and physical offline installed launch not yet verified
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 base_commit: 7995a2c0c6305a7fc73496007f1ae406073db94e
@@ -71,8 +73,8 @@ exclusive ownership. Real CPU inference completed 100 tokens with two reported
 WASM threads on the cloud browser's five processors. All 36 events saved and
 matched on reload. The actual chat saved its CPU-load/WebGPU-adapter failure.
 Final controller corrections cover released-model labels, interrupted clearing,
-and exports while the last JSON close is pending. They are being verified on
-the published final code before the handoff.
+and exports while the last JSON close is pending. The final code was opened in the browser: isolation, pinned CPU startup and
+released-model labels were verified, and its complete error export committed.
 
 The full phone conversation, standalone launch in airplane mode, and original
 Chrome crash cause remain unverified. No diagnostic replay is being presented
@@ -85,3 +87,16 @@ cached pinned resources. The worker's existing remote path template now pins
 that lookup too. The before/after check succeeds without network in the fixed
 case. This stays within the approved offline startup repair and adds no runtime,
 model, package, or service. repair-checks.mjs retains the reproduction.
+
+## Handoff
+
+COMPLETE refers to this approved implementation repair and its recorded checks,
+not to proof of the original crash cause or completion of the phone endurance
+run. Open the final index.html URL in VERIFICATION.md after closing older
+Claptrap pages. Export/clear an existing conversation before starting a fresh
+50 CPU / 50 GPU run. The seed still counts as zero; both models stay resident
+and generation alternates. No prompt or actor framing was repaired.
+
+Main and the locked architecture were left untouched. Reviewed evidence and
+all repair code are published on the existing experiment branch. There is no
+new approval request, paid host, service, CI job, or runtime dependency.

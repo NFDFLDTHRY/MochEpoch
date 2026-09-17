@@ -1891,5 +1891,607 @@
         "https://huggingface.co/onnx-community/granite-4.0-350m-ONNX-web/resolve/6c9a6f61601df51e76b1efff0974d8d26c2a25b5/tokenizer_config.json"
       ]
     }
+  },
+  "finalCodeCommit": "bcf1060bde6091649efce6c1d61d270f102d23da",
+  "finalBrowserStartup": {
+    "filename": "granite-claptrap-evidence-2026-09-17T19-46-17.725Z.json",
+    "sha256": "70bd64ff4a241d91ae922aabc9f339d0e8b5e3304ea53cb4fa6446cc156b6378",
+    "record": {
+      "experiment": "granite-claptrap-rag-chat",
+      "version": 3,
+      "createdAt": "2026-09-17T19:45:34.077Z",
+      "pageUrl": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/bcf1060bde6091649efce6c1d61d270f102d23da/experiments/granite-single-ort-dual-session/claptrap-chat/index.html",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "fixedConditions": {
+        "actorSystemPrompt": "You are Claptrap.",
+        "seedText": "Welcome to the Zoo",
+        "totalTurns": 100,
+        "turnsPerSeat": 50,
+        "conversationalTokensPerTurn": 100,
+        "cpuBackend": "wasm",
+        "gpuBackend": "webgpu",
+        "dtype": "q4",
+        "retrieval": "Native tool call within the actor turn; no preliminary planner."
+      },
+      "seedSeat": "cpu",
+      "runtimeEvents": [
+        {
+          "receivedAt": "2026-09-17T19:45:34.146Z",
+          "type": "runtime-start",
+          "atMs": 1789674334145.4448,
+          "requestId": "request-1",
+          "transformersVersion": "4.3.0",
+          "modelId": "onnx-community/granite-4.0-350m-ONNX-web",
+          "modelRevision": "6c9a6f61601df51e76b1efff0974d8d26c2a25b5",
+          "actorSystemPrompt": "You are Claptrap.",
+          "fixedNewTokens": 100,
+          "oneWorker": true,
+          "oneTransformersModuleRealm": true,
+          "loadOrder": [
+            "cpu",
+            "gpu"
+          ],
+          "environment": {
+            "hardwareConcurrency": 5,
+            "crossOriginIsolated": true,
+            "sharedArrayBufferAvailable": true,
+            "requestedThreads": 2,
+            "resourcePathTemplate": "{model}/resolve/6c9a6f61601df51e76b1efff0974d8d26c2a25b5/",
+            "sharedWasmMemoryProbe": true,
+            "resolvedSimd": "fixed",
+            "resolvedThreads": 2,
+            "resolvedProxy": false
+          },
+          "checkpointId": 1,
+          "requiresSave": true,
+          "workerMemory": {
+            "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+            "available": false,
+            "usedJSHeapSize": null,
+            "totalJSHeapSize": null,
+            "jsHeapSizeLimit": null,
+            "wasmMemoryBytes": null,
+            "gpuMemoryBytes": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.149Z",
+          "type": "tokenizer-load-start",
+          "atMs": 1789674334149.015,
+          "tokenizerStart": 1789674334149,
+          "checkpointId": 2,
+          "requiresSave": true,
+          "workerMemory": {
+            "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+            "available": false,
+            "usedJSHeapSize": null,
+            "totalJSHeapSize": null,
+            "jsHeapSizeLimit": null,
+            "wasmMemoryBytes": null,
+            "gpuMemoryBytes": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.342Z",
+          "type": "tokenizer-load-complete",
+          "atMs": 1789674334342.5798,
+          "tokenizerStart": 1789674334149,
+          "tokenizerEnd": 1789674334342.565,
+          "durationMs": 193.56494140625
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.344Z",
+          "type": "session-load-start",
+          "atMs": 1789674334342.73,
+          "lane": "cpu",
+          "device": "wasm",
+          "dtype": "q4",
+          "startedAt": 1789674334342.71,
+          "checkpointId": 3,
+          "requiresSave": true,
+          "workerMemory": {
+            "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+            "available": false,
+            "usedJSHeapSize": null,
+            "totalJSHeapSize": null,
+            "jsHeapSizeLimit": null,
+            "wasmMemoryBytes": null,
+            "gpuMemoryBytes": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.369Z",
+          "type": "load-progress",
+          "atMs": 1789674334369.7148,
+          "lane": "cpu",
+          "progress": {
+            "status": "initiate",
+            "file": "config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.371Z",
+          "type": "load-progress",
+          "atMs": 1789674334371.105,
+          "lane": "cpu",
+          "progress": {
+            "status": "download",
+            "file": "config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.372Z",
+          "type": "load-progress",
+          "atMs": 1789674334372.3198,
+          "lane": "cpu",
+          "progress": {
+            "status": "progress",
+            "file": "config.json",
+            "loaded": 2018,
+            "total": 2018,
+            "progress": 100
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.372Z",
+          "type": "load-progress",
+          "atMs": 1789674334372.4548,
+          "lane": "cpu",
+          "progress": {
+            "status": "done",
+            "file": "config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.375Z",
+          "type": "load-progress",
+          "atMs": 1789674334374.96,
+          "lane": "cpu",
+          "progress": {
+            "status": "initiate",
+            "file": "onnx/model_q4.onnx",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.375Z",
+          "type": "load-progress",
+          "atMs": 1789674334375.415,
+          "lane": "cpu",
+          "progress": {
+            "status": "initiate",
+            "file": "onnx/model_q4.onnx_data",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.375Z",
+          "type": "load-progress",
+          "atMs": 1789674334375.52,
+          "lane": "cpu",
+          "progress": {
+            "status": "initiate",
+            "file": "generation_config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.377Z",
+          "type": "load-progress",
+          "atMs": 1789674334376.51,
+          "lane": "cpu",
+          "progress": {
+            "status": "download",
+            "file": "onnx/model_q4.onnx",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.377Z",
+          "type": "load-progress",
+          "atMs": 1789674334377.46,
+          "lane": "cpu",
+          "progress": {
+            "status": "download",
+            "file": "onnx/model_q4.onnx_data",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.379Z",
+          "type": "load-progress",
+          "atMs": 1789674334379.27,
+          "lane": "cpu",
+          "progress": {
+            "status": "download",
+            "file": "generation_config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.379Z",
+          "type": "load-progress",
+          "atMs": 1789674334379.7249,
+          "lane": "cpu",
+          "progress": {
+            "status": "done",
+            "file": "onnx/model_q4.onnx",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.380Z",
+          "type": "load-progress",
+          "atMs": 1789674334380.4648,
+          "lane": "cpu",
+          "progress": {
+            "status": "done",
+            "file": "generation_config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:34.872Z",
+          "type": "load-progress",
+          "atMs": 1789674334872.395,
+          "lane": "cpu",
+          "progress": {
+            "status": "progress_total",
+            "file": null,
+            "loaded": 320090691,
+            "total": 575914563,
+            "progress": 55.57954453046189
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:35.228Z",
+          "type": "load-progress",
+          "atMs": 1789674335228.285,
+          "lane": "cpu",
+          "progress": {
+            "status": "done",
+            "file": "onnx/model_q4.onnx_data",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.643Z",
+          "type": "session-load-complete",
+          "atMs": 1789674338643.365,
+          "lane": "cpu",
+          "device": "wasm",
+          "dtype": "q4",
+          "startedAt": 1789674334342.71,
+          "finishedAt": 1789674338643.325,
+          "durationMs": 4300.614990234375,
+          "observedModelFiles": [
+            "onnx/model_q4.onnx",
+            "onnx/model_q4.onnx_data"
+          ],
+          "runtimeThreads": 2,
+          "checkpointId": 4,
+          "requiresSave": true,
+          "workerMemory": {
+            "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+            "available": false,
+            "usedJSHeapSize": null,
+            "totalJSHeapSize": null,
+            "jsHeapSizeLimit": null,
+            "wasmMemoryBytes": null,
+            "gpuMemoryBytes": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.648Z",
+          "type": "first-session-resident",
+          "atMs": 1789674338648.895,
+          "lane": "cpu",
+          "secondLane": "gpu"
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.649Z",
+          "type": "session-load-start",
+          "atMs": 1789674338648.95,
+          "lane": "gpu",
+          "device": "webgpu",
+          "dtype": "q4",
+          "startedAt": 1789674338648.9248,
+          "checkpointId": 5,
+          "requiresSave": true,
+          "workerMemory": {
+            "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+            "available": false,
+            "usedJSHeapSize": null,
+            "totalJSHeapSize": null,
+            "jsHeapSizeLimit": null,
+            "wasmMemoryBytes": null,
+            "gpuMemoryBytes": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.653Z",
+          "type": "load-progress",
+          "atMs": 1789674338653.5598,
+          "lane": "gpu",
+          "progress": {
+            "status": "initiate",
+            "file": "config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.654Z",
+          "type": "load-progress",
+          "atMs": 1789674338654.88,
+          "lane": "gpu",
+          "progress": {
+            "status": "download",
+            "file": "config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.655Z",
+          "type": "load-progress",
+          "atMs": 1789674338655.605,
+          "lane": "gpu",
+          "progress": {
+            "status": "progress",
+            "file": "config.json",
+            "loaded": 2018,
+            "total": 2018,
+            "progress": 100
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.655Z",
+          "type": "load-progress",
+          "atMs": 1789674338655.7249,
+          "lane": "gpu",
+          "progress": {
+            "status": "done",
+            "file": "config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.656Z",
+          "type": "load-progress",
+          "atMs": 1789674338656.1199,
+          "lane": "gpu",
+          "progress": {
+            "status": "initiate",
+            "file": "onnx/model_q4.onnx",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.656Z",
+          "type": "load-progress",
+          "atMs": 1789674338656.19,
+          "lane": "gpu",
+          "progress": {
+            "status": "initiate",
+            "file": "onnx/model_q4.onnx_data",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.656Z",
+          "type": "load-progress",
+          "atMs": 1789674338656.2148,
+          "lane": "gpu",
+          "progress": {
+            "status": "initiate",
+            "file": "generation_config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.657Z",
+          "type": "load-progress",
+          "atMs": 1789674338657.275,
+          "lane": "gpu",
+          "progress": {
+            "status": "download",
+            "file": "onnx/model_q4.onnx",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.658Z",
+          "type": "load-progress",
+          "atMs": 1789674338657.6948,
+          "lane": "gpu",
+          "progress": {
+            "status": "download",
+            "file": "onnx/model_q4.onnx_data",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.662Z",
+          "type": "load-progress",
+          "atMs": 1789674338659.665,
+          "lane": "gpu",
+          "progress": {
+            "status": "download",
+            "file": "generation_config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.664Z",
+          "type": "load-progress",
+          "atMs": 1789674338663.93,
+          "lane": "gpu",
+          "progress": {
+            "status": "done",
+            "file": "onnx/model_q4.onnx",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:38.664Z",
+          "type": "load-progress",
+          "atMs": 1789674338664.145,
+          "lane": "gpu",
+          "progress": {
+            "status": "done",
+            "file": "generation_config.json",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:39.158Z",
+          "type": "load-progress",
+          "atMs": 1789674339158.415,
+          "lane": "gpu",
+          "progress": {
+            "status": "progress_total",
+            "file": null,
+            "loaded": 92549699,
+            "total": 575914563,
+            "progress": 16.070039715248527
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:39.666Z",
+          "type": "load-progress",
+          "atMs": 1789674339665.89,
+          "lane": "gpu",
+          "progress": {
+            "status": "progress_total",
+            "file": null,
+            "loaded": 423899715,
+            "total": 575914563,
+            "progress": 73.60461815583574
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:40.174Z",
+          "type": "load-progress",
+          "atMs": 1789674340174.4348,
+          "lane": "gpu",
+          "progress": {
+            "status": "progress_total",
+            "file": null,
+            "loaded": 518271555,
+            "total": 575914563,
+            "progress": 89.9910487243574
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:40.502Z",
+          "type": "load-progress",
+          "atMs": 1789674340502.325,
+          "lane": "gpu",
+          "progress": {
+            "status": "done",
+            "file": "onnx/model_q4.onnx_data",
+            "loaded": null,
+            "total": null,
+            "progress": null
+          }
+        },
+        {
+          "receivedAt": "2026-09-17T19:45:40.504Z",
+          "type": "command-error",
+          "atMs": 1789674340503.905,
+          "requestId": "request-1",
+          "command": "initialize",
+          "lane": null,
+          "turn": null,
+          "error": "Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome."
+        }
+      ],
+      "turns": [],
+      "completed": false,
+      "stoppedEarly": false,
+      "running": false,
+      "interrupted": false,
+      "pendingTurn": null,
+      "error": "Error: Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome.",
+      "appEnvironment": {
+        "crossOriginIsolated": true,
+        "sharedArrayBufferAvailable": true,
+        "installed": false,
+        "persistentStorage": false,
+        "serviceWorker": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/bcf1060bde6091649efce6c1d61d270f102d23da/experiments/granite-single-ort-dual-session/claptrap-chat/sw.js"
+      },
+      "export": {
+        "at": "2026-09-17T19:46:17.725Z",
+        "source": "live received evidence",
+        "outcome": "failed",
+        "committedEvents": 38,
+        "receivedEvents": 38,
+        "pendingWrites": 0,
+        "committedAt": "2026-09-17T19:45:40.513Z",
+        "saveFailure": null
+      }
+    },
+    "observedLabelsAfterWorkerTermination": {
+      "cpu": "CPU: not resident",
+      "gpu": "GPU: failed to load"
+    }
+  },
+  "sourceSha256": {
+    "main.js": "1a078e8b6303c845f08186862d956eb1a3d0cdb88c951715f5108abcb8f9f2da",
+    "runtime-worker.js": "5e0d730218a5071d671859eb9567b46c9b871bbd25a3cc0345813b00a3873b26",
+    "app-shell.js": "c0989ba0bc09fa3552aa6ed0637ddc9da59ca4c60c01923e351203588c3123d2",
+    "sw.js": "4f207a43f6b3d29530e0a64e12360ffbe1b7f2872f527de312ed1c9a0fe96933",
+    "manifest.webmanifest": "5a204c15cb2bfa71563250fec645890626962b86e2d1176670de46607360c070",
+    "stability.js": "cdff3d37613ea00a2b091a9811e5c0f650eab1d4b1c96512f175ee845624e94a",
+    "checks.mjs": "e68a79d68d8736951a0fd5959cdc7651ceb1f6adbebc4ebd9cdf576c24fea8c8",
+    "repair-checks.mjs": "9a8bf26d299c8b747e1bda31c46c8c42af36148f7c8d6085266324f596c3c4d1"
   }
 }

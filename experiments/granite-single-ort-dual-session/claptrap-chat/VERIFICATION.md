@@ -461,3 +461,12 @@ The worker now applies that setting; model bytes/revision are unchanged.
 repair-checks.mjs reproduces before/after in separate processes against the
 pinned package. Its exact outputs are saved with the evidence. This is an
 executed cache/discovery regression, not a physical airplane-mode device run.
+
+Final code bcf1060bde6091649efce6c1d61d270f102d23da was then opened in the
+browser. It installed its shell, established isolation, loaded CPU with two
+threads using the corrected pinned resource path, and saved the expected
+cloud WebGPU adapter failure with zero pending writes. After terminating the
+worker, the UI correctly read "CPU: not resident" and "GPU: failed to load".
+Its complete export and source hashes are included in the evidence file.
+The final phone entry point is:
+https://raw.githack.com/NFDFLDTHRY/MochEpoch/bcf1060bde6091649efce6c1d61d270f102d23da/experiments/granite-single-ort-dual-session/claptrap-chat/index.html
