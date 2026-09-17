@@ -21,6 +21,7 @@ const clearButton = document.querySelector("#clear");
 const progress = document.querySelector("#turn-progress");
 let conversationHandle, evidenceHandle;
 let runtimeReady = false, runtimeFailed = false, running = false;
+let loadingLane = null;
 let paused = false, stopRequested = false, requestSequence = 0;
 let evidenceWrites = Promise.resolve();
 const pending = new Map(); // Outstanding worker messages, never conversation memory.
@@ -42,6 +43,12 @@ function freshEvidence() {
 }
 
 function errorText(error) { return `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`; }
+
+function showLoadingFailure() {
+  if (!loadingLane) return;
+  document.querySelector(`#${loadingLane}-status`).textContent = `${loadingLane.toUpperCase()}: failed to load`;
+  loadingLane = null;
+}
 
 async function writeText(handle, text) {
   const writable = await handle.createWritable();
@@ -96,10 +103,12 @@ worker.addEventListener("message", (event) => {
     return;
   }
   if (entry.type === "session-load-start") {
+    loadingLane = entry.lane;
     document.querySelector(`#${entry.lane}-status`).textContent = `${entry.lane.toUpperCase()}: loading q4`;
   } else if (entry.type === "load-progress" && Number.isFinite(entry.progress?.progress)) {
     document.querySelector(`#${entry.lane}-status`).textContent = `${entry.lane.toUpperCase()}: loading ${entry.progress.progress.toFixed(1)}%`;
   } else if (entry.type === "session-load-complete") {
+    loadingLane = null;
     document.querySelector(`#${entry.lane}-status`).textContent = `${entry.lane.toUpperCase()}: resident`;
   } else if (entry.type === "generation-start") {
     status.textContent = `Turn ${entry.turn}/100: ${entry.lane.toUpperCase()} generating (${entry.speechTokensRemaining} conversational tokens remaining).`;
@@ -110,6 +119,7 @@ worker.addEventListener("message", (event) => {
   if (waiter && entry.type === "command-error") {
     pending.delete(entry.requestId);
     runtimeFailed = true;
+    showLoadingFailure();
     waiter.reject(new Error(entry.error));
   } else if (waiter && entry.type === waiter.expectedType) {
     pending.delete(entry.requestId);
@@ -119,6 +129,7 @@ worker.addEventListener("message", (event) => {
 
 worker.addEventListener("error", (event) => {
   runtimeFailed = true;
+  showLoadingFailure();
   const error = new Error(`Worker script error: ${event.message}`);
   recordEvent({ type: "worker-script-error", error: error.message });
   for (const waiter of pending.values()) waiter.reject(error);
@@ -175,6 +186,9 @@ async function restore() {
       evidence = restored;
       if (legacy) await persistEvidence();
     }
+    machineLog.textContent = (evidence.runtimeEvents ?? [])
+      .filter((entry) => entry.type !== "load-progress")
+      .map((entry) => JSON.stringify(entry) + "\n").join("");
     for (const row of rows) renderMessage(row, evidence.turns?.[row.turn - 1]?.retrievals ?? null);
     showCounts(rows);
     memoryStatus.textContent = rows.length
@@ -182,6 +196,7 @@ async function restore() {
       : "CSV and machine evidence storage ready.";
     if (evidence.error) status.textContent = `Saved run error: ${evidence.error}`;
     else if (evidence.completed) status.textContent = "Saved run complete. Conversation and evidence are available to download.";
+    else status.textContent = rows.length ? "Saved conversation restored. Export or clear before a new run." : "Ready. Choose the seed speaker and press Start.";
     startButton.disabled = rows.length > 0 || runtimeFailed;
     clearButton.disabled = false;
   } catch (error) {
