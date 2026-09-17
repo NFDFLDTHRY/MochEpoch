@@ -7,50 +7,59 @@
   <title>Granite CPU/GPU Worker Concurrency Probe</title>
   <style>
     :root { font-family: system-ui, sans-serif; }
-    body { margin: 0; padding: 1rem; max-width: 58rem; margin-inline: auto; line-height: 1.4; }
+    body { margin: 0; padding: 1rem; max-width: 64rem; margin-inline: auto; line-height: 1.4; }
     h1 { font-size: 1.35rem; }
     .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .75rem; margin-block: 1rem; }
     button { min-height: 3.25rem; font: inherit; font-weight: 700; }
     button:disabled { opacity: .5; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .75rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .75rem; }
     article, pre { border: 1px solid currentColor; border-radius: .5rem; padding: .75rem; }
     article p { margin: .25rem 0; }
     .ok { font-weight: 700; }
     .bad { font-weight: 700; }
-    pre { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 10rem; }
-    code { overflow-wrap: anywhere; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 12rem; }
   </style>
 </head>
 <body>
   <h1>Granite CPU/GPU Worker Concurrency Probe</h1>
-  <p>This page measures whether separate dedicated workers allow Granite CPU/WASM and GPU/WebGPU inference to overlap. It does not read or mutate MochEpoch game state.</p>
+  <p>Revision 2 adds load-stage and download visibility. There is no artificial initialization timeout. CPU and GPU can be initialized independently. This probe does not read or mutate MochEpoch game state.</p>
 
   <section class="grid" aria-label="environment">
     <article>
       <h2>Environment</h2>
       <p id="gpu-availability"></p>
       <p id="hardware-concurrency"></p>
-      <p><small id="page-url"></small></p>
+      <p><small id="page-url" class="mono"></small></p>
     </article>
     <article>
       <h2>CPU lane</h2>
       <p>Device: wasm</p>
       <p>Dtype: q4</p>
       <p id="cpu-status">Not initialized.</p>
+      <p id="cpu-stage">Stage: idle</p>
+      <p id="cpu-elapsed">Elapsed: 0.0 s</p>
+      <p id="cpu-progress">Progress: none</p>
     </article>
     <article>
       <h2>GPU lane</h2>
       <p>Device: webgpu</p>
       <p>Dtype: q4f16</p>
       <p id="gpu-status">Not initialized.</p>
+      <p id="gpu-stage">Stage: idle</p>
+      <p id="gpu-elapsed">Elapsed: 0.0 s</p>
+      <p id="gpu-progress">Progress: none</p>
     </article>
   </section>
 
-  <section class="controls" aria-label="experiment controls">
-    <button id="initialize">Initialize lanes</button>
+  <section class="controls" aria-label="initialization controls">
+    <button id="init-cpu">Initialize CPU</button>
+    <button id="init-gpu">Initialize GPU</button>
     <button id="phase1" disabled>Run Phase 1</button>
     <button id="download">Download evidence JSON</button>
   </section>
+
+  <p>Phase 1 becomes available only after both lanes report ready. You may initialize either lane first, or start both without waiting for the other.</p>
 
   <article id="summary" hidden>
     <h2>Phase 1 summary</h2>
