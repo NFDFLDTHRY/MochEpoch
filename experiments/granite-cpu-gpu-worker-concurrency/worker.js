@@ -5,18 +5,23 @@ import {
 } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
 
 const MODEL_ID = "onnx-community/granite-4.0-350m-ONNX-web";
+const MODEL_REVISION = "6c9a6f61601df51e76b1efff0974d8d26c2a25b5";
 const TRANSFORMERS_VERSION = "4.3.0";
-const MAX_NEW_TOKENS = 16;
+const FIXED_NEW_TOKENS = 100;
 const HEARTBEAT_MS = 5000;
 const PROGRESS_THROTTLE_MS = 500;
+const EXPECTED_Q4_FILES = Object.freeze([
+  "onnx/model_q4.onnx",
+  "onnx/model_q4.onnx_data",
+]);
 const MESSAGES = [
   {
     role: "system",
-    content: "You are a deterministic runtime test. Reply briefly and do not explain.",
+    content: "You are a deterministic runtime benchmark. Continue until the runtime stops generation.",
   },
   {
     role: "user",
-    content: "Return the single word READY.",
+    content: "Generate a deterministic continuation for the benchmark.",
   },
 ];
 
@@ -31,6 +36,8 @@ let prepared = null;
 let currentStage = "idle";
 let loadStartMs = null;
 let heartbeatTimer = null;
+let wasmConfiguration = null;
+const observedModelFiles = new Set();
 
 function nowMs() {
   return performance.timeOrigin + performance.now();
@@ -104,6 +111,10 @@ function makeProgressReporter(owner) {
 
   return (info) => {
     const progress = summarizeProgress(info);
+    if (owner === "model" && progress.file?.startsWith("onnx/")) {
+      observedModelFiles.add(progress.file);
+    }
+
     const key = `${progress.status}:${progress.file ?? progress.name ?? "aggregate"}`;
     const now = nowMs();
     const isHighFrequency = progress.status === "progress" || progress.status === "progress_total";
@@ -131,10 +142,69 @@ function boundedDecode(outputs, inputTokenCount) {
     const rows = outputs?.tolist?.();
     if (!Array.isArray(rows) || !Array.isArray(rows[0])) return null;
     const generated = rows[0].slice(inputTokenCount ?? 0).map(Number);
-    return tokenizer.decode(generated, { skip_special_tokens: true }).slice(0, 500);
+    return tokenizer.decode(generated, { skip_special_tokens: true }).slice(0, 800);
   } catch {
     return null;
   }
+}
+
+function fixedSimdSupported() {
+  try {
+    return WebAssembly.validate(
+      new Uint8Array([
+        0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0, 10, 30, 1, 28, 0, 65, 0, 253, 15, 253, 12, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 253, 186, 1, 26, 11,
+      ]),
+    );
+  } catch {
+    return false;
+  }
+}
+
+function configureCpuWasm() {
+  const hardwareConcurrency = navigator.hardwareConcurrency ?? 1;
+  const crossOriginIsolated = Boolean(self.crossOriginIsolated);
+  const sharedArrayBufferAvailable = typeof SharedArrayBuffer !== "undefined";
+  const simdAvailable = fixedSimdSupported();
+  const requestedThreads = crossOriginIsolated
+    ? Math.min(4, Math.ceil(hardwareConcurrency / 2))
+    : 1;
+
+  if (!simdAvailable) {
+    throw new Error("Fixed-width WebAssembly SIMD feature probe failed.");
+  }
+
+  const wasm = env.backends?.onnx?.wasm;
+  if (!wasm) {
+    throw new Error("Transformers.js did not expose the ONNX WASM environment.");
+  }
+
+  wasm.simd = "fixed";
+  wasm.numThreads = requestedThreads;
+  wasm.proxy = false;
+
+  wasmConfiguration = {
+    hardwareConcurrency,
+    crossOriginIsolated,
+    sharedArrayBufferAvailable,
+    fixedSimdFeatureProbe: simdAvailable,
+    requestedSimd: "fixed",
+    requestedThreads,
+    requestedProxy: false,
+  };
+
+  return wasmConfiguration;
+}
+
+function resolvedWasmConfiguration() {
+  if (requestedDevice !== "wasm") return null;
+  const wasm = env.backends?.onnx?.wasm;
+  return {
+    ...wasmConfiguration,
+    resolvedSimd: wasm?.simd ?? null,
+    resolvedThreads: wasm?.numThreads ?? null,
+    resolvedProxy: wasm?.proxy ?? null,
+  };
 }
 
 async function preparePrompt() {
@@ -150,22 +220,55 @@ async function preparePrompt() {
   };
 }
 
-async function generate(label, measured) {
+function streamedTokenCount(value) {
+  if (!value) return 0;
+  const row = Array.isArray(value) ? value[0] : value;
+  if (Array.isArray(row) || ArrayBuffer.isView(row)) return row.length;
+  return 1;
+}
+
+function createTimingStreamer(startRef) {
+  const tokenTimesMs = [];
+  let promptObserved = false;
+
+  return {
+    tokenTimesMs,
+    put(value) {
+      const count = streamedTokenCount(value);
+      if (!promptObserved && count === prepared.inputTokenCount) {
+        promptObserved = true;
+        return;
+      }
+      promptObserved = true;
+      const stamp = nowMs();
+      for (let index = 0; index < count; index += 1) {
+        tokenTimesMs.push(stamp - startRef.value);
+      }
+    },
+    end() {},
+  };
+}
+
+async function generate(label, { measured = true, profile = false } = {}) {
   if (!model || !tokenizer || !prepared) {
     throw new Error("Worker is not initialized.");
   }
 
-  const startMs = nowMs();
-  post("inference-start", { label, measured, startMs });
+  const startRef = { value: null };
+  const timingStreamer = profile ? createTimingStreamer(startRef) : null;
 
   try {
+    const startMs = nowMs();
+    startRef.value = startMs;
     const outputs = await model.generate({
       ...prepared.inputs,
-      max_new_tokens: MAX_NEW_TOKENS,
+      min_new_tokens: FIXED_NEW_TOKENS,
+      max_new_tokens: FIXED_NEW_TOKENS,
       do_sample: false,
+      ...(timingStreamer ? { streamer: timingStreamer } : {}),
     });
-
     const endMs = nowMs();
+
     const outputTokenCount = tokenLength(outputs);
     const generatedTokenCount =
       outputTokenCount !== null && prepared.inputTokenCount !== null
@@ -175,14 +278,24 @@ async function generate(label, measured) {
     const result = {
       label,
       measured,
+      profile,
       startMs,
       endMs,
       durationMs: endMs - startMs,
       inputTokenCount: prepared.inputTokenCount,
       outputTokenCount,
       generatedTokenCount,
+      targetNewTokens: FIXED_NEW_TOKENS,
+      tokenOffsetsMs: profile ? timingStreamer.tokenTimesMs : null,
+      profileTimestampCount: profile ? timingStreamer.tokenTimesMs.length : null,
       outputText: boundedDecode(outputs, prepared.inputTokenCount),
     };
+
+    if (generatedTokenCount !== FIXED_NEW_TOKENS) {
+      throw new Error(
+        `Invalid benchmark generation: expected ${FIXED_NEW_TOKENS} new tokens, observed ${generatedTokenCount}.`,
+      );
+    }
 
     post("inference-complete", result);
     return result;
@@ -191,9 +304,9 @@ async function generate(label, measured) {
     const detail = {
       label,
       measured,
-      startMs,
+      profile,
       endMs,
-      durationMs: endMs - startMs,
+      targetNewTokens: FIXED_NEW_TOKENS,
       error: serializeError(error),
     };
     post("inference-error", detail);
@@ -206,13 +319,30 @@ async function initialize(message) {
   requestedDevice = message.device;
   requestedDtype = message.dtype;
   loadStartMs = nowMs();
+  observedModelFiles.clear();
+
+  if (requestedDtype !== "q4") {
+    throw new Error(`Revision 4 requires q4 on every lane; received ${requestedDtype}.`);
+  }
+
+  if (requestedDevice === "wasm") {
+    configureCpuWasm();
+  }
 
   currentStage = "load-start";
   post("load-start", {
     modelId: MODEL_ID,
+    modelRevision: MODEL_REVISION,
     transformersVersion: TRANSFORMERS_VERSION,
     loadStartMs,
     webgpuVisibleInWorker: Boolean(self.navigator?.gpu),
+    workerEnvironment: {
+      hardwareConcurrency: navigator.hardwareConcurrency ?? null,
+      crossOriginIsolated: Boolean(self.crossOriginIsolated),
+      sharedArrayBufferAvailable: typeof SharedArrayBuffer !== "undefined",
+      fixedSimdFeatureProbe: fixedSimdSupported(),
+    },
+    wasmConfiguration: resolvedWasmConfiguration(),
   });
   startHeartbeat();
 
@@ -220,6 +350,7 @@ async function initialize(message) {
     const tokenizerStartMs = nowMs();
     setStage("tokenizer-load-start", { tokenizerStartMs });
     tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID, {
+      revision: MODEL_REVISION,
       progress_callback: makeProgressReporter("tokenizer"),
     });
     const tokenizerEndMs = nowMs();
@@ -232,8 +363,9 @@ async function initialize(message) {
     const modelStartMs = nowMs();
     setStage("model-load-start", { modelStartMs });
     model = await AutoModelForCausalLM.from_pretrained(MODEL_ID, {
+      revision: MODEL_REVISION,
       device: requestedDevice,
-      dtype: requestedDtype,
+      dtype: "q4",
       progress_callback: makeProgressReporter("model"),
     });
     const modelEndMs = nowMs();
@@ -241,6 +373,10 @@ async function initialize(message) {
       modelStartMs,
       modelEndMs,
       modelDurationMs: modelEndMs - modelStartMs,
+      observedModelFiles: [...observedModelFiles].sort(),
+      expectedQ4Files: EXPECTED_Q4_FILES,
+      expectedQ4FilesObserved: EXPECTED_Q4_FILES.every((file) => observedModelFiles.has(file)),
+      wasmConfiguration: resolvedWasmConfiguration(),
     });
 
     const promptStartMs = nowMs();
@@ -259,12 +395,18 @@ async function initialize(message) {
     stopHeartbeat();
     post("ready", {
       modelId: MODEL_ID,
+      modelRevision: MODEL_REVISION,
       transformersVersion: TRANSFORMERS_VERSION,
       loadStartMs,
       loadEndMs,
       loadDurationMs: loadEndMs - loadStartMs,
       inputTokenCount: prepared.inputTokenCount,
+      fixedNewTokens: FIXED_NEW_TOKENS,
+      observedModelFiles: [...observedModelFiles].sort(),
+      expectedQ4Files: EXPECTED_Q4_FILES,
+      expectedQ4FilesObserved: EXPECTED_Q4_FILES.every((file) => observedModelFiles.has(file)),
       webgpuVisibleInWorker: Boolean(self.navigator?.gpu),
+      wasmConfiguration: resolvedWasmConfiguration(),
     });
   } catch (error) {
     const loadEndMs = nowMs();
@@ -273,11 +415,14 @@ async function initialize(message) {
     stopHeartbeat();
     post("load-error", {
       modelId: MODEL_ID,
+      modelRevision: MODEL_REVISION,
       transformersVersion: TRANSFORMERS_VERSION,
       loadStartMs,
       loadEndMs,
       loadDurationMs: loadEndMs - loadStartMs,
       failedStage,
+      observedModelFiles: [...observedModelFiles].sort(),
+      wasmConfiguration: resolvedWasmConfiguration(),
       error: serializeError(error),
     });
   }
@@ -291,11 +436,11 @@ self.addEventListener("message", async (event) => {
       case "init":
         await initialize(message);
         break;
-      case "warmup":
-        await generate(message.label ?? "warmup", false);
-        break;
       case "run":
-        await generate(message.label ?? "run", true);
+        await generate(message.label ?? "run", {
+          measured: message.measured !== false,
+          profile: message.profile === true,
+        });
         break;
       case "dispose":
         stopHeartbeat();
