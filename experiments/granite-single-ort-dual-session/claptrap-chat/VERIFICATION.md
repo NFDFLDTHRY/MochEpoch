@@ -274,3 +274,58 @@ repeating the remaining conditions. Use final evidence after COMPLETE/FAILED;
 if collection stalls, use the live checkpoint. Download a failure report before
 reload when the page says its newest diagnostics are unsaved. The original
 phone instability and repaired collector's behavior on that device remain open.
+
+### Completed phone trials with the repaired collector
+
+The subsequent phone exports created at 18:22, 18:26, and 18:30 UTC on
+2026-09-17 all completed at code commit
+`a21b07a2a454bff6db3dc457547e88330f4c6466`. Their exact uploaded UTF-8 bytes,
+lengths, hashes, and summaries are retained under `completedPhoneTrials` in
+`evidence/stability-checks-20260917.json`. Inspection found no personal names,
+contact details, locations, credentials, or unique device identifiers. The
+random IDs identify individual trials, not devices.
+
+| Trial / generating session | Input tokens | Output tokens | First token (s) | Whole turn (s) |
+| --- | ---: | ---: | ---: | ---: |
+| CPU alone | 351 | 100 | 37.45 | 164.95 |
+| CPU with GPU loaded and idle | 351 | 100 | 43.28 | 169.87 |
+| GPU, before CPU in the third trial | 255 | 100 | 12.96 | 27.60 |
+| CPU, after GPU in the third trial | 351 | 100 | 40.33 | 172.12 |
+
+Times exclude session loading but include diagnostic overhead. Every response
+used one generation call and made zero retrieval calls. All CPU rendered inputs
+are identical, and all three CPU output token sequences are identical. The GPU
+output token sequence also matches the original phone conversation's first
+turn, whose recorded whole-turn duration was 14.05 seconds. These separate runs
+do not establish a reason for the different GPU timings.
+
+The third trial records a loaded `webgpu` session, GPU generation progress from
+1 through 100 tokens, generation return/output, tensor cleanup, and a completed
+GPU turn. The CPU generation follows it. This establishes successful generation
+using the WebGPU session, beyond model residency alone; it does not provide
+per-kernel GPU utilization or prove concurrent CPU/GPU generation.
+
+All final exports say complete, identify a committed file snapshot, report
+zero pending writes and no save failure, and contain every committed event
+(39, 60, and 74 respectively). No runtime error or GPU-device-lost event is
+recorded. The earlier incomplete snapshots remain preserved separately with
+the user's correction about the collector stopping early.
+
+The phone reports `hardwareConcurrency: 8`, while the runtime explicitly sets
+`wasm.numThreads = 1`. It also reports `crossOriginIsolated: false` and no
+`SharedArrayBuffer`. This is a single-threaded WASM inference baseline, not an
+assessment of the CPU's multicore potential or a count of all browser threads.
+The official [ONNX Runtime threading documentation](https://onnxruntime.ai/docs/tutorials/web/env-flags-and-session-options.html#envwasmnumthreads)
+states that setting one disables multithreading, and enabling it requires
+browser WASM threading support and cross-origin isolation. Changing only the
+thread count is insufficient on the measured page. Any later CPU comparison
+needs an isolated serving environment, verified threading support, and the
+same input/model/settings across thread counts.
+
+All three short trials passed. The original Chrome crash was not reproduced,
+and its cause remains unknown. No total, WASM, or GPU memory usage was measured.
+The differing GPU/CPU input lengths and checkpoint overhead preclude treating
+these timings as a controlled CPU/GPU benchmark. One run per condition cannot
+attribute the small CPU timing differences to GPU residency, heat, or another
+cause. Full 100-response conversation endurance and multicore CPU performance
+remain untested.

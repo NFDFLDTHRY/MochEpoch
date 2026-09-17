@@ -1,11 +1,11 @@
-# Claptrap collector repair result
+# Claptrap collector repair and completed phone trials
 
 proposal_id: 20260917-claptrap-crash-isolation
 status: COMPLETE
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 code_commit: a21b07a2a454bff6db3dc457547e88330f4c6466
-remaining_gate: repaired collector on phone; original Chrome crash cause and full conversation unresolved
+remaining_gate: original Chrome crash cause, full conversation endurance, and multicore CPU performance unresolved
 
 ## Operator correction
 
@@ -48,11 +48,31 @@ event notifications timed out, although the actual files arrived.
 Reproduction results, source hashes, and real browser exports are retained in
 experiments/granite-single-ort-dual-session/claptrap-chat/evidence/stability-checks-20260917.json.
 
+## Completed phone evidence
+
+All three subsequent phone trials at the repaired code commit completed and
+exported fully committed final snapshots, with no recorded error or pending
+write. Their exact bytes and hashes are retained in the existing evidence file.
+The collector-on-phone gate is now satisfied for these trials.
+
+CPU alone generated 100 tokens in 164.95 seconds; CPU with the GPU loaded and
+idle took 169.87 seconds. In the third trial, the WebGPU session generated 100
+tokens in 27.60 seconds, followed by CPU generation in 172.12 seconds. Every CPU
+input and output token sequence matched across conditions. GPU output matched
+the original phone's first turn. The two sessions generated sequentially.
+
+The CPU configuration explicitly forces one WASM inference thread. The phone
+reports eight logical processors, no cross-origin isolation, and no shared
+array buffer. Multicore performance has not been tested. GPU and CPU inputs
+differ, and diagnostic writes affect timing, so these are not controlled
+CPU/GPU speed comparisons. No runtime or hosting configuration was changed
+while recording these results.
+
 ## Smallest next operation
 
-Run CPU alone on the phone with the repaired collector and download final
-evidence after COMPLETE or FAILED. If saving stalls, download a live checkpoint.
-If the page reports a save failure, download its unsaved report before reload.
-Use that actual outcome before repeating the other conditions or choosing a
-runtime repair. Neither the exact prior phone collector failure nor the original
-Chrome instability has been established by the cloud or synthetic checks.
+The original Chrome crash remains unexplained; all short replays succeeded.
+Full 100-response conversation endurance remains outstanding. CPU performance
+work would first require a scoped proposal for a cross-origin-isolated serving
+environment and an identical-input thread-count comparison. Increasing a
+number alone cannot enable threading on the measured page. No new hosting or
+runtime work is included in this completed diagnostic operation.
