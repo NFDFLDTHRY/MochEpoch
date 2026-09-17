@@ -2,6 +2,7 @@ import {
   AutoTokenizer,
   AutoModelForCausalLM,
   env,
+  StoppingCriteria,
 } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
 
 const MODEL_ID = "onnx-community/granite-4.0-350m-ONNX-web";
@@ -9,7 +10,8 @@ const MODEL_REVISION = "6c9a6f61601df51e76b1efff0974d8d26c2a25b5";
 const TRANSFORMERS_VERSION = "4.3.0";
 const ACTOR_SYSTEM_PROMPT = "You are Claptrap.";
 const FIXED_NEW_TOKENS = 100;
-const RETRIEVAL_MAX_NEW_TOKENS = 96;
+const TOOL_TOKEN_BUDGET = 96; // Existing fixture tool-output bound, separate from speech.
+import { inspectTokens } from "./turn-boundary.js";
 const SEARCH_TOOL = [{
   type: "function",
   function: {
@@ -32,6 +34,8 @@ let tokenizer = null;
 const models = { cpu: null, gpu: null };
 let initialized = false;
 let busy = false;
+let toolOpenToken, toolCloseToken;
+let waitingForSearch = null;
 
 function nowMs() {
   return performance.timeOrigin + performance.now();
@@ -119,240 +123,140 @@ async function loadLane(lane) {
   });
 }
 
-function tokenCount(tensor) {
-  if (!tensor?.dims?.length) return null;
-  return tensor.dims[tensor.dims.length - 1];
+class TurnBoundary extends StoppingCriteria {
+  constructor(promptLength, speechLimit) {
+    super();
+    this.promptLength = promptLength;
+    this.speechLimit = speechLimit;
+  }
+  _call(sequences) {
+    return sequences.map((ids) => {
+      const boundary = inspectTokens(ids.slice(this.promptLength), this.speechLimit, toolOpenToken, toolCloseToken);
+      return boundary.stop || Boolean(boundary.inTool && boundary.tool.length + 1 >= TOOL_TOKEN_BUDGET);
+    });
+  }
 }
 
-function disposeValue(value) {
-  if (!value) return;
-  if (typeof value.dispose === "function") {
-    try { value.dispose(); } catch {}
-    return;
-  }
-  if (typeof value !== "object") return;
-  for (const child of Object.values(value)) {
-    if (child && typeof child.dispose === "function") {
-      try { child.dispose(); } catch {}
+async function disposeInputs(inputs, outputs) {
+  if (outputs) await outputs.dispose();
+  if (inputs) {
+    for (const value of new Set(Object.values(inputs))) {
+      if (typeof value?.dispose === "function") await value.dispose();
     }
   }
 }
 
-function decodeGenerated(outputs, inputTokenCount) {
-  const rows = outputs?.tolist?.();
-  if (!Array.isArray(rows) || !Array.isArray(rows[0])) {
-    throw new Error("Generation output did not expose a token row.");
-  }
-  const generatedIds = rows[0].slice(inputTokenCount).map(Number);
-  return {
-    generatedIds,
-    text: tokenizer.decode(generatedIds, { skip_special_tokens: true }),
-  };
-}
-
-async function generateFromMessages(lane, messages, {
-  tools = null,
-  minNewTokens = null,
-  maxNewTokens,
-} = {}) {
-  const model = models[lane];
-  if (!initialized || !model || !tokenizer) throw new Error("Runtime is not ready.");
-
-  let inputs = null;
-  let outputs = null;
+async function generatePiece(lane, messages, speechLimit, requestId, turn, call) {
+  let inputs = null, outputs = null;
   const startedAt = nowMs();
-
   try {
-    const templateOptions = {
-      tokenize: false,
-      add_generation_prompt: true,
-      ...(tools ? { tools } : {}),
-    };
-    const prompt = tokenizer.apply_chat_template(messages, templateOptions);
+    const prompt = tokenizer.apply_chat_template(messages, {
+      tokenize: false, add_generation_prompt: true, tools: SEARCH_TOOL,
+    });
     inputs = tokenizer(prompt);
-    const inputTokenCount = tokenCount(inputs.input_ids);
-    outputs = await model.generate({
-      ...inputs,
-      ...(Number.isInteger(minNewTokens) ? { min_new_tokens: minNewTokens } : {}),
-      max_new_tokens: maxNewTokens,
-      do_sample: false,
-    });
-    const outputTokenCount = tokenCount(outputs);
-    const generatedTokenCount =
-      Number.isInteger(outputTokenCount) && Number.isInteger(inputTokenCount)
-        ? Math.max(0, outputTokenCount - inputTokenCount)
-        : null;
-    const decoded = decodeGenerated(outputs, inputTokenCount);
-    const finishedAt = nowMs();
-
-    return {
-      text: decoded.text,
-      generatedIds: decoded.generatedIds,
-      inputTokenCount,
-      outputTokenCount,
-      generatedTokenCount,
-      startedAt,
-      finishedAt,
-      durationMs: finishedAt - startedAt,
-    };
-  } finally {
-    disposeValue(outputs);
-    disposeValue(inputs);
-    inputs = null;
-    outputs = null;
-  }
-}
-
-function extractFirstToolCall(text) {
-  const match = String(text).match(/<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/i);
-  if (!match) return { called: false, raw: text, name: null, query: null, parseError: null };
-
-  try {
-    const parsed = JSON.parse(match[1]);
-    const name = parsed?.name ?? parsed?.function?.name ?? null;
-    let args = parsed?.arguments ?? parsed?.function?.arguments ?? null;
-    if (typeof args === "string") {
-      try { args = JSON.parse(args); } catch {}
+    const inputTokenCount = inputs.input_ids.dims.at(-1);
+    // The stop criterion counts speech only. A native tool block has its own
+    // finite output allowance and is never counted as conversational tokens.
+    const rawLimit = speechLimit + TOOL_TOKEN_BUDGET;
+    const contextLimit = models[lane].config.max_position_embeddings;
+    if (!Number.isInteger(contextLimit) || inputTokenCount + rawLimit > contextLimit) {
+      throw new Error(`Prompt (${inputTokenCount}) plus output bound (${rawLimit}) exceeds model context (${contextLimit}). No truncation performed.`);
     }
-    return {
-      called: true,
-      raw: text,
-      name,
-      query: typeof args?.query === "string" ? args.query : null,
-      parseError: null,
-    };
-  } catch (error) {
-    return {
-      called: true,
-      raw: text,
-      name: null,
-      query: null,
-      parseError: `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`,
-    };
-  }
-}
-
-async function planRetrieval(message) {
-  const { requestId, lane, turn, timestamp, incomingText, memoryRowCount } = message;
-
-  if (memoryRowCount < 1) {
-    post("retrieval-plan-result", {
-      requestId,
-      lane,
-      turn,
-      skipped: true,
-      reason: "memory-empty",
-      called: false,
-      query: null,
-      rawModelOutput: null,
-      inputTokenCount: null,
-      generatedTokenCount: null,
-      durationMs: 0,
+    post("generation-start", {
+      requestId, lane, turn, call, startedAt, inputTokenCount,
+      messages, renderedPrompt: prompt, speechTokensRemaining: speechLimit,
+      rawTokenLimit: rawLimit, doSample: false,
+      pastKeyValuesSupplied: false, returnDictInGenerate: false,
     });
-    return;
+    outputs = await models[lane].generate({
+      ...inputs,
+      min_new_tokens: rawLimit,
+      max_new_tokens: rawLimit,
+      do_sample: false,
+      return_dict_in_generate: false,
+      stopping_criteria: new TurnBoundary(inputTokenCount, speechLimit),
+    });
+    const generatedIds = outputs.tolist()[0].slice(inputTokenCount).map(Number);
+    const rawText = tokenizer.decode(generatedIds, { skip_special_tokens: false });
+    const result = {
+      call, inputTokenCount, generatedIds, rawText, startedAt,
+      finishedAt: nowMs(), durationMs: nowMs() - startedAt,
+    };
+    post("generation-output", { requestId, lane, turn, ...result });
+    return result;
+  } finally {
+    // Transformers.js 4.3.0 disposes its final DynamicCache before returning
+    // when neither past_key_values nor return_dict_in_generate is requested.
+    // We supply neither cache nor prior tensors to the next generation.
+    await disposeInputs(inputs, outputs);
   }
-
-  const messages = [
-    { role: "system", content: ACTOR_SYSTEM_PROMPT },
-    {
-      role: "user",
-      content:
-        `Current timestamp: ${timestamp}\n` +
-        `Newest message from the other speaker:\n${incomingText}\n\n` +
-        `If older saved conversation memory would materially help you answer this newest message, call search_conversation once. ` +
-        `The query must contain at least three whitespace-separated words. If older memory is not needed, do not call the tool and answer NO_SEARCH.`,
-    },
-  ];
-
-  const result = await generateFromMessages(lane, messages, {
-    tools: SEARCH_TOOL,
-    maxNewTokens: RETRIEVAL_MAX_NEW_TOKENS,
-  });
-  const parsed = extractFirstToolCall(result.text);
-
-  post("retrieval-plan-result", {
-    requestId,
-    lane,
-    turn,
-    skipped: false,
-    called: parsed.called,
-    toolName: parsed.name,
-    query: parsed.query,
-    parseError: parsed.parseError,
-    rawModelOutput: parsed.raw,
-    inputTokenCount: result.inputTokenCount,
-    generatedTokenCount: result.generatedTokenCount,
-    durationMs: result.durationMs,
-  });
-}
-
-function formatRetrievedRows(rows) {
-  if (!Array.isArray(rows) || rows.length === 0) return "No prior rows were retrieved.";
-  return rows.map((row) =>
-    `Turn ${row.turn} | ${row.timestamp} | ${row.speaker} | ${row.backend}\n${row.response}`
-  ).join("\n\n");
 }
 
 async function generateTurn(message) {
-  const {
-    requestId,
-    lane,
-    turn,
-    timestamp,
-    incomingText,
-    retrievalQuery,
-    retrievedRows,
-    retrievalMessage,
-  } = message;
-
-  let memoryBlock = "";
-  if (Array.isArray(retrievedRows) && retrievedRows.length > 0) {
-    memoryBlock = `\n\nMemory search query: ${retrievalQuery}\nRetrieved earlier conversation rows:\n${formatRetrievedRows(retrievedRows)}`;
-  } else if (typeof retrievalMessage === "string" && retrievalMessage.length > 0) {
-    memoryBlock = `\n\n${retrievalMessage}`;
-  }
-
+  const { requestId, lane, turn, timestamp, incomingText } = message;
+  if (!initialized || !models[lane]) throw new Error("Runtime is not ready.");
   const messages = [
     { role: "system", content: ACTOR_SYSTEM_PROMPT },
-    {
-      role: "user",
-      content:
-        `Current timestamp: ${timestamp}\n` +
-        `Message from the other speaker:\n${incomingText}` +
-        memoryBlock,
-    },
+    { role: "user", content: `Current timestamp: ${timestamp}\nMessage from the other speaker:\n${incomingText}` },
   ];
+  const speechIds = [], calls = [], retrievals = [];
+  const startedAt = nowMs();
+  while (speechIds.length < FIXED_NEW_TOKENS) {
+    const remaining = FIXED_NEW_TOKENS - speechIds.length;
+    const result = await generatePiece(lane, messages, remaining, requestId, turn, calls.length + 1);
+    calls.push(result);
+    const boundary = inspectTokens(result.generatedIds, remaining, toolOpenToken, toolCloseToken);
+    if (boundary.error) throw new Error(boundary.error);
+    speechIds.push(...boundary.speech);
+    if (!boundary.toolComplete) {
+      if (boundary.inTool) throw new Error("Native tool call ended without its closing marker. Raw output saved; no repair performed.");
+      if (speechIds.length !== FIXED_NEW_TOKENS) throw new Error(`Response ended after ${speechIds.length} conversational tokens.`);
+      break;
+    }
 
-  const result = await generateFromMessages(lane, messages, {
-    minNewTokens: FIXED_NEW_TOKENS,
-    maxNewTokens: FIXED_NEW_TOKENS,
-  });
-
-  if (result.generatedTokenCount !== FIXED_NEW_TOKENS) {
-    throw new Error(`Expected ${FIXED_NEW_TOKENS} new tokens, observed ${result.generatedTokenCount}.`);
+    const rawTool = tokenizer.decode(boundary.tool, { skip_special_tokens: false });
+    let nativeCall;
+    try { nativeCall = JSON.parse(rawTool); }
+    catch { throw new Error("Native tool arguments are not JSON. Raw output saved; no repair performed."); }
+    if (typeof nativeCall?.name !== "string" || !nativeCall.arguments ||
+        typeof nativeCall.arguments !== "object" || Array.isArray(nativeCall.arguments)) {
+      throw new Error("Native tool call must contain a name and arguments object. Raw output saved.");
+    }
+    const retrieval = await new Promise((resolve, reject) => {
+      waitingForSearch = { requestId, call: calls.length, resolve, reject };
+      post("search-request", {
+        requestId, call: calls.length, lane, turn,
+        name: nativeCall.name, query: nativeCall.arguments.query ?? null, rawTool,
+      });
+    });
+    retrievals.push(retrieval);
+    // Only this turn's own expression and its requested tool result are added.
+    // No prior transcript, cached actor, or earlier turn's tensors are available.
+    messages.push({
+      role: "assistant",
+      content: tokenizer.decode(boundary.speech, { skip_special_tokens: true }),
+      tool_calls: [{ type: "function", function: nativeCall }],
+    });
+    messages.push({ role: "tool", content: JSON.stringify(retrieval) });
   }
-
+  const outputText = tokenizer.decode(speechIds, { skip_special_tokens: true });
+  if (!outputText.trim()) throw new Error("Generated response is empty after decoding. Raw output saved.");
   post("turn-result", {
-    requestId,
-    lane,
-    turn,
-    timestamp,
-    systemPrompt: ACTOR_SYSTEM_PROMPT,
-    outputText: result.text,
-    inputTokenCount: result.inputTokenCount,
-    generatedTokenCount: result.generatedTokenCount,
-    durationMs: result.durationMs,
-    retrievalQuery: retrievalQuery ?? null,
-    retrievedTurnNumbers: Array.isArray(retrievedRows) ? retrievedRows.map((row) => row.turn) : [],
+    requestId, lane, turn, timestamp, systemPrompt: ACTOR_SYSTEM_PROMPT,
+    outputText, generatedTokenCount: speechIds.length, generatedSpeechIds: speechIds,
+    inputTokenCount: calls.at(-1).inputTokenCount,
+    generationCallCount: calls.length, calls, retrievals,
+    startedAt, finishedAt: nowMs(), durationMs: nowMs() - startedAt,
   });
+  // All messages, output IDs, and retrieval results are turn-local. The next
+  // command can see only the fresh input it receives from the controller.
 }
 
 async function initialize(requestId) {
-  if (busy || initialized || models.cpu || models.gpu) {
+  if (initialized || models.cpu || models.gpu) {
     throw new Error("Runtime already initialized or initializing. Reload for a fresh runtime.");
   }
 
-  busy = true;
   const environment = configureSingleOrtEnvironment();
   post("runtime-start", {
     requestId,
@@ -367,47 +271,60 @@ async function initialize(requestId) {
     environment,
   });
 
-  try {
-    const tokenizerStart = nowMs();
-    post("tokenizer-load-start", { tokenizerStart });
-    tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID, { revision: MODEL_REVISION });
-    const tokenizerEnd = nowMs();
-    post("tokenizer-load-complete", { tokenizerStart, tokenizerEnd, durationMs: tokenizerEnd - tokenizerStart });
-
-    await loadLane("cpu");
-    post("first-session-resident", { lane: "cpu", secondLane: "gpu" });
-    await loadLane("gpu");
-
-    initialized = true;
-    post("runtime-ready", {
-      requestId,
-      cpuResident: Boolean(models.cpu),
-      gpuResident: Boolean(models.gpu),
-      tokenizerResident: Boolean(tokenizer),
-      oneWorker: true,
-      oneTransformersModuleRealm: true,
-    });
-  } finally {
-    busy = false;
+  const tokenizerStart = nowMs();
+  post("tokenizer-load-start", { tokenizerStart });
+  tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID, { revision: MODEL_REVISION });
+  const open = tokenizer.encode("<tool_call>", { add_special_tokens: false });
+  const close = tokenizer.encode("</tool_call>", { add_special_tokens: false });
+  if (open.length !== 1 || close.length !== 1 || open[0] === close[0]) {
+    throw new Error("Pinned Granite native tool markers are not distinct atomic tokens.");
   }
+  [toolOpenToken] = open;
+  [toolCloseToken] = close;
+  const tokenizerEnd = nowMs();
+  post("tokenizer-load-complete", { tokenizerStart, tokenizerEnd, durationMs: tokenizerEnd - tokenizerStart });
+
+  await loadLane("cpu");
+  post("first-session-resident", { lane: "cpu", secondLane: "gpu" });
+  await loadLane("gpu");
+
+  initialized = true;
+  post("runtime-ready", {
+    requestId,
+    cpuResident: Boolean(models.cpu),
+    gpuResident: Boolean(models.gpu),
+    tokenizerResident: Boolean(tokenizer),
+    oneWorker: true,
+    oneTransformersModuleRealm: true,
+  });
 }
 
 self.addEventListener("message", (event) => {
   const message = event.data ?? {};
+  if (message.command === "search-result") {
+    if (waitingForSearch?.requestId === message.requestId && waitingForSearch.call === message.call) {
+      const pending = waitingForSearch;
+      waitingForSearch = null;
+      if (message.error) pending.reject(new Error(message.error));
+      else pending.resolve(message.result);
+    }
+    return;
+  }
   const run = async () => {
-    if (message.command === "initialize") return initialize(message.requestId);
-    if (message.command === "plan-retrieval") return planRetrieval(message);
-    if (message.command === "generate-turn") return generateTurn(message);
-    throw new Error(`Unknown worker command: ${message.command}`);
+    if (busy) throw new Error("A model command is already running.");
+    busy = true;
+    try {
+      if (message.command === "initialize") return await initialize(message.requestId);
+      if (message.command === "generate-turn") return await generateTurn(message);
+      throw new Error(`Unknown worker command: ${message.command}`);
+    } finally {
+      busy = false;
+      waitingForSearch = null;
+    }
   };
-
-  run().catch((error) => {
-    post("command-error", {
-      requestId: message.requestId ?? null,
-      command: message.command ?? null,
-      lane: message.lane ?? null,
-      turn: message.turn ?? null,
-      error: `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`,
-    });
-  });
+  run().catch((error) => post("command-error", {
+    requestId: message.requestId ?? null, command: message.command ?? null,
+    lane: message.lane ?? null, turn: message.turn ?? null,
+    error: `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`,
+  }));
 });

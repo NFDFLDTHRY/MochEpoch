@@ -48,19 +48,21 @@
         <p><strong>Run:</strong> 100 turns, 50 per seat, 100 new tokens per reply</p>
       </div>
     </div>
-    <p id="status" class="ok">Ready to initialize one runtime with both resident sessions.</p>
+    <p id="status" class="ok">Checking saved experiment files.</p>
+    <p><span id="cpu-status">CPU: not loaded</span> · <span id="gpu-status">GPU: not loaded</span></p>
+    <p id="turn-progress">0/100 saved · CPU 0/50 · GPU 0/50 · seed excluded</p>
     <div class="controls">
       <label for="seed-seat"><strong>Seed speaker:</strong></label>
       <select id="seed-seat">
         <option value="cpu">CPU Claptrap</option>
         <option value="gpu">GPU Claptrap</option>
       </select>
-      <button id="start">Start</button>
+      <button id="start" disabled>Start</button>
       <button id="pause" disabled>Pause</button>
       <button id="stop" disabled>Stop after current turn</button>
       <button id="download-csv">Download conversation CSV</button>
       <button id="download-evidence">Download evidence JSON</button>
-      <button id="clear">Clear saved conversation</button>
+      <button id="clear" disabled>Clear saved conversation</button>
     </div>
   </section>
 

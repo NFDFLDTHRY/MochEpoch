@@ -1,0 +1,66 @@
+{
+  "source": "Visible DOM machine log from original commit 8f9e86f36177f4525edbd80a54650e696405bf95; selected exact events, not a complete exported run",
+  "status": "ERROR: Error: Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome.",
+  "events": [
+    {
+      "actorSystemPrompt": "You are Claptrap.",
+      "atMs": 1789644421548.2,
+      "environment": {
+        "crossOriginIsolated": false,
+        "hardwareConcurrency": 5,
+        "resolvedProxy": false,
+        "resolvedSimd": "fixed",
+        "resolvedThreads": 1,
+        "sharedArrayBufferAvailable": false
+      },
+      "fixedNewTokens": 100,
+      "loadOrder": [
+        "cpu",
+        "gpu"
+      ],
+      "modelId": "onnx-community/granite-4.0-350m-ONNX-web",
+      "modelRevision": "6c9a6f61601df51e76b1efff0974d8d26c2a25b5",
+      "oneTransformersModuleRealm": true,
+      "oneWorker": true,
+      "requestId": "initialize-1789644421546-1",
+      "transformersVersion": "4.3.0",
+      "type": "runtime-start"
+    },
+    {
+      "atMs": 1789644422284.3,
+      "durationMs": 736,
+      "tokenizerEnd": 1789644422284.3,
+      "tokenizerStart": 1789644421548.3,
+      "type": "tokenizer-load-complete"
+    },
+    {
+      "atMs": 1789644455077.2,
+      "device": "wasm",
+      "dtype": "q4",
+      "durationMs": 32791.599853515625,
+      "finishedAt": 1789644455077.2,
+      "lane": "cpu",
+      "observedModelFiles": [
+        "onnx/model_q4.onnx",
+        "onnx/model_q4.onnx_data"
+      ],
+      "startedAt": 1789644422285.6,
+      "type": "session-load-complete"
+    },
+    {
+      "atMs": 1789644455077.3,
+      "lane": "cpu",
+      "secondLane": "gpu",
+      "type": "first-session-resident"
+    },
+    {
+      "atMs": 1789644455756.2,
+      "command": "initialize",
+      "error": "Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome.",
+      "lane": null,
+      "requestId": "initialize-1789644421546-1",
+      "turn": null,
+      "type": "command-error"
+    }
+  ]
+}

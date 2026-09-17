@@ -1,16 +1,14 @@
+import { CSV_HEADER, csvLine, readCsv, searchRows, verifyCompleted } from "./turn-boundary.js";
+
 const EXPERIMENT = "granite-claptrap-rag-chat";
 const CONVERSATION_FILE = "granite-claptrap-conversation.csv";
-const EVIDENCE_KEY = "granite-claptrap-rag-chat-evidence-v1";
-const SEED_TEXT = "Welcome to the Zoo";
-const ACTOR_SYSTEM_PROMPT = "You are Claptrap.";
+const EVIDENCE_FILE = "granite-claptrap-evidence.json";
+const LEGACY_EVIDENCE_KEY = "granite-claptrap-rag-chat-evidence-v1";
 const TOTAL_TURNS = 100;
-const FIXED_NEW_TOKENS = 100;
-
+const SEED_TEXT = "Welcome to the Zoo";
 const worker = new Worker(new URL("./runtime-worker.js", import.meta.url), {
-  type: "module",
-  name: "granite-claptrap-single-ort",
+  type: "module", name: "granite-claptrap-single-ort",
 });
-
 const status = document.querySelector("#status");
 const memoryStatus = document.querySelector("#memory-status");
 const room = document.querySelector("#room");
@@ -19,582 +17,309 @@ const seedSeat = document.querySelector("#seed-seat");
 const startButton = document.querySelector("#start");
 const pauseButton = document.querySelector("#pause");
 const stopButton = document.querySelector("#stop");
-const downloadCsvButton = document.querySelector("#download-csv");
-const downloadEvidenceButton = document.querySelector("#download-evidence");
 const clearButton = document.querySelector("#clear");
-
-let opfsRoot = null;
-let conversationHandle = null;
-let runtimeReady = false;
-let running = false;
-let paused = false;
-let stopRequested = false;
-let requestSequence = 0;
-const pending = new Map();
-
+const progress = document.querySelector("#turn-progress");
+let conversationHandle, evidenceHandle;
+let runtimeReady = false, runtimeFailed = false, running = false;
+let paused = false, stopRequested = false, requestSequence = 0;
+let evidenceWrites = Promise.resolve();
+const pending = new Map(); // Outstanding worker messages, never conversation memory.
 let evidence = freshEvidence();
 
 function freshEvidence() {
   return {
-    experiment: EXPERIMENT,
-    version: 1,
-    createdAt: new Date().toISOString(),
-    pageUrl: location.href,
-    userAgent: navigator.userAgent,
+    experiment: EXPERIMENT, version: 2, createdAt: new Date().toISOString(),
+    pageUrl: location.href, userAgent: navigator.userAgent,
     fixedConditions: {
-      actorSystemPrompt: ACTOR_SYSTEM_PROMPT,
-      seedText: SEED_TEXT,
-      totalTurns: TOTAL_TURNS,
-      turnsPerSeat: TOTAL_TURNS / 2,
-      fixedNewTokens: FIXED_NEW_TOKENS,
-      cpuBackend: "wasm",
-      gpuBackend: "webgpu",
-      dtype: "q4",
+      actorSystemPrompt: "You are Claptrap.", seedText: SEED_TEXT,
+      totalTurns: 100, turnsPerSeat: 50, conversationalTokensPerTurn: 100,
+      cpuBackend: "wasm", gpuBackend: "webgpu", dtype: "q4",
+      retrieval: "Native tool call within the actor turn; no preliminary planner.",
     },
-    seedSeat: null,
-    runtimeEvents: [],
-    turns: [],
-    completed: false,
-    stoppedEarly: false,
-    error: null,
+    seedSeat: null, runtimeEvents: [], turns: [], completed: false,
+    stoppedEarly: false, error: null,
   };
 }
 
+function errorText(error) { return `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`; }
+
+async function writeText(handle, text) {
+  const writable = await handle.createWritable();
+  try { await writable.write(text); await writable.close(); }
+  catch (error) { await writable.abort().catch(() => {}); throw error; }
+}
+
 function persistEvidence() {
-  try {
-    localStorage.setItem(EVIDENCE_KEY, JSON.stringify(evidence));
-  } catch (error) {
-    appendMachine({ type: "evidence-persist-error", error: serializeError(error) }, false);
-  }
+  const text = JSON.stringify(evidence);
+  evidenceWrites = evidenceWrites.then(() => writeText(evidenceHandle, text));
+  // Prevent unhandled rejections for asynchronous runtime progress. The run
+  // awaits the same promise before advancing or declaring completion.
+  evidenceWrites.catch((error) => { memoryStatus.textContent = `Evidence save failed: ${errorText(error)}`; });
+  return evidenceWrites;
 }
 
-function serializeError(error) {
-  return `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`;
-}
-
-function appendMachine(entry, save = true) {
-  machineLog.textContent += `${JSON.stringify(entry)}\n`;
-  machineLog.scrollTop = machineLog.scrollHeight;
-  if (save) {
-    evidence.runtimeEvents.push({ receivedAt: new Date().toISOString(), ...entry });
-    persistEvidence();
+function recordEvent(entry) {
+  evidence.runtimeEvents.push({ receivedAt: new Date().toISOString(), ...entry });
+  if (entry.type !== "load-progress") {
+    machineLog.textContent += JSON.stringify(entry) + "\n";
+    machineLog.scrollTop = machineLog.scrollHeight;
   }
+  if (evidenceHandle) persistEvidence();
 }
 
 function rpc(command, payload, expectedType) {
-  const requestId = `${command}-${Date.now()}-${++requestSequence}`;
+  const requestId = `request-${++requestSequence}`;
   return new Promise((resolve, reject) => {
     pending.set(requestId, { expectedType, resolve, reject });
     worker.postMessage({ command, requestId, ...payload });
   });
 }
 
+async function readRows() {
+  return readCsv(await (await conversationHandle.getFile()).text());
+}
+
 worker.addEventListener("message", (event) => {
   const entry = event.data ?? {};
-  appendMachine(entry);
-
-  const waiter = entry.requestId ? pending.get(entry.requestId) : null;
-  if (entry.type === "command-error" && waiter) {
-    pending.delete(entry.requestId);
-    waiter.reject(new Error(entry.error));
+  recordEvent(entry);
+  if (entry.type === "search-request") {
+    status.textContent = `Turn ${entry.turn}/100: ${entry.lane.toUpperCase()} requested a CSV search.`;
+    (async () => {
+      try {
+        const result = searchRows(await readRows(), entry.name, entry.query);
+        recordEvent({ type: "search-result", turn: entry.turn, call: entry.call, result });
+        worker.postMessage({ command: "search-result", requestId: entry.requestId, call: entry.call, result });
+      } catch (error) {
+        worker.postMessage({ command: "search-result", requestId: entry.requestId, call: entry.call, error: errorText(error) });
+      }
+    })();
     return;
   }
-  if (waiter && entry.type === waiter.expectedType) {
-    pending.delete(entry.requestId);
-    waiter.resolve(entry);
-  }
-
   if (entry.type === "session-load-start") {
-    status.textContent = `Loading ${entry.lane.toUpperCase()} q4 session on ${entry.device.toUpperCase()} inside the single runtime.`;
-  } else if (entry.type === "first-session-resident") {
-    status.textContent = `${entry.lane.toUpperCase()} resident. Loading ${entry.secondLane.toUpperCase()} in the same runtime.`;
+    document.querySelector(`#${entry.lane}-status`).textContent = `${entry.lane.toUpperCase()}: loading q4`;
+  } else if (entry.type === "load-progress" && Number.isFinite(entry.progress?.progress)) {
+    document.querySelector(`#${entry.lane}-status`).textContent = `${entry.lane.toUpperCase()}: loading ${entry.progress.progress.toFixed(1)}%`;
+  } else if (entry.type === "session-load-complete") {
+    document.querySelector(`#${entry.lane}-status`).textContent = `${entry.lane.toUpperCase()}: resident`;
+  } else if (entry.type === "generation-start") {
+    status.textContent = `Turn ${entry.turn}/100: ${entry.lane.toUpperCase()} generating (${entry.speechTokensRemaining} conversational tokens remaining).`;
   } else if (entry.type === "runtime-ready") {
     runtimeReady = true;
-    status.textContent = "Both Claptraps are resident. Starting the conversation.";
+  }
+  const waiter = pending.get(entry.requestId);
+  if (waiter && entry.type === "command-error") {
+    pending.delete(entry.requestId);
+    runtimeFailed = true;
+    waiter.reject(new Error(entry.error));
+  } else if (waiter && entry.type === waiter.expectedType) {
+    pending.delete(entry.requestId);
+    waiter.resolve(entry);
   }
 });
 
 worker.addEventListener("error", (event) => {
-  const error = `Worker script error: ${event.message}`;
-  appendMachine({ type: "worker-script-error", error });
-  for (const { reject } of pending.values()) reject(new Error(error));
+  runtimeFailed = true;
+  const error = new Error(`Worker script error: ${event.message}`);
+  recordEvent({ type: "worker-script-error", error: error.message });
+  for (const waiter of pending.values()) waiter.reject(error);
   pending.clear();
-  failRun(error);
+  status.textContent = error.message;
+  startButton.disabled = true;
 });
 
-function csvField(value) {
-  return `"${String(value ?? "").replaceAll('"', '""')}"`;
-}
-
-function conversationCsvHeader() {
-  return "turn,timestamp,speaker,backend,response\r\n";
-}
-
-function conversationCsvLine(row) {
-  return [row.turn, row.timestamp, row.speaker, row.backend, row.response]
-    .map(csvField)
-    .join(",") + "\r\n";
-}
-
-function parseCsv(text) {
-  const records = [];
-  let record = [];
-  let field = "";
-  let quoted = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    if (quoted) {
-      if (char === '"') {
-        if (text[index + 1] === '"') {
-          field += '"';
-          index += 1;
-        } else {
-          quoted = false;
-        }
-      } else {
-        field += char;
-      }
-      continue;
-    }
-
-    if (char === '"') {
-      quoted = true;
-    } else if (char === ",") {
-      record.push(field);
-      field = "";
-    } else if (char === "\n") {
-      record.push(field.endsWith("\r") ? field.slice(0, -1) : field);
-      if (record.some((value) => value.length > 0)) records.push(record);
-      record = [];
-      field = "";
-    } else {
-      field += char;
-    }
-  }
-
-  if (field.length > 0 || record.length > 0) {
-    record.push(field.endsWith("\r") ? field.slice(0, -1) : field);
-    if (record.some((value) => value.length > 0)) records.push(record);
-  }
-
-  if (records.length === 0) return [];
-  const [header, ...rows] = records;
-  const expected = ["turn", "timestamp", "speaker", "backend", "response"];
-  if (header.length !== expected.length || header.some((value, index) => value !== expected[index])) {
-    throw new Error("conversation.csv header does not match the experiment schema.");
-  }
-
-  return rows.map((row) => ({
-    turn: Number(row[0]),
-    timestamp: row[1],
-    speaker: row[2],
-    backend: row[3],
-    response: row[4],
-  })).filter((row) => Number.isInteger(row.turn));
-}
-
-async function ensureOpfs() {
-  if (!navigator.storage?.getDirectory) {
-    throw new Error("Origin Private File System is unavailable on this origin.");
-  }
-  opfsRoot = await navigator.storage.getDirectory();
-  conversationHandle = await opfsRoot.getFileHandle(CONVERSATION_FILE, { create: true });
-}
-
-async function resetConversationFile() {
-  await ensureOpfs();
-  const writable = await conversationHandle.createWritable();
-  await writable.write(conversationCsvHeader());
-  await writable.close();
-  memoryStatus.textContent = `Conversation memory: ${CONVERSATION_FILE} reset and ready.`;
-}
-
-async function appendConversationRow(row) {
-  if (!conversationHandle) await ensureOpfs();
-  const file = await conversationHandle.getFile();
-  const writable = await conversationHandle.createWritable({ keepExistingData: true });
-  await writable.seek(file.size);
-  await writable.write(conversationCsvLine(row));
-  await writable.close();
-}
-
-async function readConversationText() {
-  if (!conversationHandle) await ensureOpfs();
-  const file = await conversationHandle.getFile();
-  return file.text();
-}
-
-async function readConversationRows() {
-  return parseCsv(await readConversationText());
-}
-
-function queryWords(query) {
-  return String(query ?? "").trim().split(/\s+/).filter(Boolean);
-}
-
-async function executeRetrieval(plan) {
-  if (plan.skipped) {
-    return {
-      requested: false,
-      valid: true,
-      query: null,
-      words: [],
-      matches: [],
-      messageForActor: null,
-      reason: plan.reason ?? "skipped",
-    };
-  }
-
-  if (!plan.called) {
-    return {
-      requested: false,
-      valid: true,
-      query: null,
-      words: [],
-      matches: [],
-      messageForActor: null,
-      reason: "model-did-not-call-tool",
-    };
-  }
-
-  if (plan.toolName !== "search_conversation") {
-    return {
-      requested: true,
-      valid: false,
-      query: plan.query ?? null,
-      words: [],
-      matches: [],
-      messageForActor: `Memory search failed: unknown tool ${plan.toolName ?? "null"}.`,
-      reason: "wrong-tool",
-    };
-  }
-
-  if (plan.parseError || typeof plan.query !== "string") {
-    return {
-      requested: true,
-      valid: false,
-      query: plan.query ?? null,
-      words: [],
-      matches: [],
-      messageForActor: "Memory search failed: tool arguments could not be parsed.",
-      reason: "invalid-tool-arguments",
-    };
-  }
-
-  const words = queryWords(plan.query);
-  if (words.length < 3) {
-    return {
-      requested: true,
-      valid: false,
-      query: plan.query,
-      words,
-      matches: [],
-      messageForActor: "Memory search failed: query requires at least three words.",
-      reason: "query-too-short",
-    };
-  }
-
-  const rows = await readConversationRows();
-  const loweredWords = words.map((word) => word.toLocaleLowerCase());
-  const matches = rows.filter((row) => {
-    const haystack = row.response.toLocaleLowerCase();
-    return loweredWords.every((word) => haystack.includes(word));
-  });
-
-  return {
-    requested: true,
-    valid: true,
-    query: plan.query,
-    words,
-    matches,
-    messageForActor: matches.length === 0
-      ? `Memory search query: ${plan.query}. No prior conversation rows matched all query words.`
-      : null,
-    reason: matches.length ? "matches-returned" : "no-matches",
-  };
-}
-
-function renderMessage(row, retrieval = null) {
+function renderMessage(row, retrievals) {
   const article = document.createElement("article");
   article.className = `message ${row.backend === "wasm" ? "cpu" : "gpu"}`;
-
   const header = document.createElement("header");
   header.textContent = `Turn ${row.turn} · ${row.speaker} · ${row.backend.toUpperCase()} · ${row.timestamp}`;
-  article.append(header);
-
   const body = document.createElement("p");
   body.textContent = row.response;
-  article.append(body);
-
-  if (retrieval) {
+  article.append(header, body);
+  if (retrievals) {
     const details = document.createElement("details");
     const summary = document.createElement("summary");
-    const queryText = retrieval.query ? `query: ${retrieval.query}` : retrieval.reason;
-    summary.textContent = `Memory retrieval · ${queryText} · ${retrieval.matches.length} match(es)`;
-    details.append(summary);
-
+    summary.textContent = `CSV retrieval: ${retrievals.length} tool call(s)`;
     const pre = document.createElement("pre");
-    pre.textContent = JSON.stringify({
-      requested: retrieval.requested,
-      valid: retrieval.valid,
-      query: retrieval.query,
-      words: retrieval.words,
-      reason: retrieval.reason,
-      matchedTurnNumbers: retrieval.matches.map((match) => match.turn),
-      rows: retrieval.matches,
-    }, null, 2);
-    details.append(pre);
+    pre.textContent = JSON.stringify(retrievals, null, 2);
+    details.append(summary, pre);
     article.append(details);
   }
-
   room.append(article);
-  article.scrollIntoView({ behavior: "smooth", block: "end" });
+  article.scrollIntoView({ block: "nearest" });
 }
 
-async function restoreConversation() {
+function showCounts(rows) {
+  const cpu = rows.filter((row) => row.backend === "wasm").length;
+  const gpu = rows.filter((row) => row.backend === "webgpu").length;
+  progress.textContent = `${rows.length}/100 saved · CPU ${cpu}/50 · GPU ${gpu}/50 · seed excluded`;
+}
+
+async function restore() {
   try {
-    await ensureOpfs();
-    const text = await readConversationText();
-    if (!text.trim()) {
-      await resetConversationFile();
-      return;
+    if (!navigator.storage?.getDirectory) throw new Error("OPFS is unavailable on this origin.");
+    const root = await navigator.storage.getDirectory();
+    conversationHandle = await root.getFileHandle(CONVERSATION_FILE, { create: true });
+    evidenceHandle = await root.getFileHandle(EVIDENCE_FILE, { create: true });
+    let text = await (await conversationHandle.getFile()).text();
+    if (!text) {
+      text = CSV_HEADER + "\r\n";
+      await writeText(conversationHandle, text);
     }
-    const rows = parseCsv(text);
-    room.textContent = "";
-    for (const row of rows) renderMessage(row, null);
+    const rows = readCsv(text);
+    const savedEvidence = await (await evidenceHandle.getFile()).text();
+    // Import the previous build's diagnostics for viewing/export only.
+    const legacy = !savedEvidence ? localStorage.getItem(LEGACY_EVIDENCE_KEY) : null;
+    if (savedEvidence || legacy) {
+      const restored = JSON.parse(savedEvidence || legacy);
+      if (restored.experiment !== EXPERIMENT) throw new Error("Saved evidence belongs to another experiment.");
+      evidence = restored;
+      if (legacy) await persistEvidence();
+    }
+    for (const row of rows) renderMessage(row, evidence.turns?.[row.turn - 1]?.retrievals ?? null);
+    showCounts(rows);
     memoryStatus.textContent = rows.length
-      ? `Conversation memory: restored ${rows.length} saved turn(s) from ${CONVERSATION_FILE}. Starting a new run will reset it.`
-      : `Conversation memory: ${CONVERSATION_FILE} is ready.`;
+      ? `Restored ${rows.length} CSV turn(s). Saved speech is not loaded into model context. Export or clear before a new run.`
+      : "CSV and machine evidence storage ready.";
+    if (evidence.error) status.textContent = `Saved run error: ${evidence.error}`;
+    else if (evidence.completed) status.textContent = "Saved run complete. Conversation and evidence are available to download.";
+    startButton.disabled = rows.length > 0 || runtimeFailed;
+    clearButton.disabled = false;
   } catch (error) {
-    status.textContent = `ERROR: ${serializeError(error)}`;
+    status.textContent = `Storage error: ${errorText(error)}. Existing files have not been reset.`;
     startButton.disabled = true;
-    memoryStatus.textContent = "Conversation memory unavailable.";
   }
 }
 
-async function waitWhilePaused() {
-  while (paused && !stopRequested) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
+async function appendRow(row) {
+  const file = await conversationHandle.getFile();
+  const before = readCsv(await file.text());
+  if (row.turn !== before.length + 1) throw new Error("CSV changed before the completed turn could be appended.");
+  const writable = await conversationHandle.createWritable({ keepExistingData: true });
+  try {
+    await writable.seek(file.size);
+    await writable.write(csvLine(row));
+    await writable.close();
+  } catch (error) {
+    await writable.abort().catch(() => {});
+    throw error;
   }
-}
-
-function laneForTurn(turn, firstLane) {
-  return (turn - 1) % 2 === 0 ? firstLane : (firstLane === "cpu" ? "gpu" : "cpu");
-}
-
-function speakerForLane(lane) {
-  return lane === "cpu" ? "cpu_claptrap" : "gpu_claptrap";
-}
-
-function backendForLane(lane) {
-  return lane === "cpu" ? "wasm" : "webgpu";
 }
 
 async function runConversation(firstLane) {
   let incomingText = SEED_TEXT;
-
-  for (let turn = 1; turn <= TOTAL_TURNS; turn += 1) {
-    await waitWhilePaused();
+  for (let turn = 1; turn <= TOTAL_TURNS; turn++) {
+    while (paused && !stopRequested) await new Promise((resolve) => setTimeout(resolve, 100));
     if (stopRequested) break;
-
-    const lane = laneForTurn(turn, firstLane);
-    const timestamp = new Date().toISOString();
-    const rowsBeforeTurn = await readConversationRows();
-
-    status.textContent = `Turn ${turn}/${TOTAL_TURNS}: ${lane.toUpperCase()} Claptrap deciding whether to search memory.`;
-    const retrievalPlan = await rpc("plan-retrieval", {
-      lane,
-      turn,
-      timestamp,
-      incomingText,
-      memoryRowCount: rowsBeforeTurn.length,
-    }, "retrieval-plan-result");
-
-    const retrieval = await executeRetrieval(retrievalPlan);
-
-    status.textContent = `Turn ${turn}/${TOTAL_TURNS}: ${lane.toUpperCase()} Claptrap generating 100 new tokens.`;
-    const turnResult = await rpc("generate-turn", {
-      lane,
-      turn,
-      timestamp,
-      incomingText,
-      retrievalQuery: retrieval.valid ? retrieval.query : null,
-      retrievedRows: retrieval.valid ? retrieval.matches : [],
-      retrievalMessage: retrieval.messageForActor,
+    const lane = (turn - 1) % 2 === 0 ? firstLane : firstLane === "cpu" ? "gpu" : "cpu";
+    const startedTimestamp = new Date().toISOString();
+    const result = await rpc("generate-turn", {
+      lane, turn, timestamp: startedTimestamp, incomingText,
     }, "turn-result");
-
-    const completedTimestamp = new Date().toISOString();
+    if (result.generatedTokenCount !== 100) throw new Error(`Turn ${turn} returned ${result.generatedTokenCount} conversational tokens.`);
     const row = {
-      turn,
-      timestamp: completedTimestamp,
-      speaker: speakerForLane(lane),
-      backend: backendForLane(lane),
-      response: turnResult.outputText,
+      turn, timestamp: new Date().toISOString(), speaker: `${lane}_claptrap`,
+      backend: lane === "cpu" ? "wasm" : "webgpu", response: result.outputText,
     };
-
-    await appendConversationRow(row);
-    renderMessage(row, retrieval);
-
+    await appendRow(row);
     evidence.turns.push({
-      turn,
-      seat: lane,
-      backend: row.backend,
-      startedWithTimestamp: timestamp,
-      completedTimestamp,
-      incomingText,
-      retrievalPlan: {
-        called: retrievalPlan.called ?? false,
-        toolName: retrievalPlan.toolName ?? null,
-        query: retrievalPlan.query ?? null,
-        parseError: retrievalPlan.parseError ?? null,
-        rawModelOutput: retrievalPlan.rawModelOutput ?? null,
-        inputTokenCount: retrievalPlan.inputTokenCount ?? null,
-        generatedTokenCount: retrievalPlan.generatedTokenCount ?? null,
-        durationMs: retrievalPlan.durationMs ?? null,
-      },
-      retrieval: {
-        requested: retrieval.requested,
-        valid: retrieval.valid,
-        query: retrieval.query,
-        words: retrieval.words,
-        reason: retrieval.reason,
-        matchedTurnNumbers: retrieval.matches.map((match) => match.turn),
-        returnedRows: retrieval.matches,
-      },
+      turn, seat: lane, backend: row.backend, startedTimestamp,
+      completedTimestamp: row.timestamp, incomingText,
       actor: {
-        systemPrompt: ACTOR_SYSTEM_PROMPT,
-        inputTokenCount: turnResult.inputTokenCount,
-        generatedTokenCount: turnResult.generatedTokenCount,
-        durationMs: turnResult.durationMs,
-        outputText: turnResult.outputText,
+        systemPrompt: result.systemPrompt, inputTokenCount: result.inputTokenCount,
+        generatedTokenCount: result.generatedTokenCount, generatedSpeechIds: result.generatedSpeechIds,
+        durationMs: result.durationMs, outputText: result.outputText,
       },
+      calls: result.calls, retrievals: result.retrievals,
     });
-    persistEvidence();
-
-    incomingText = turnResult.outputText;
-
-    if (stopRequested) break;
+    await persistEvidence();
+    renderMessage(row, result.retrievals);
+    showCounts(await readRows());
+    incomingText = row.response; // Only the just-committed plain text crosses.
   }
-
-  const rows = await readConversationRows();
-  const cpuTurns = rows.filter((row) => row.backend === "wasm").length;
-  const gpuTurns = rows.filter((row) => row.backend === "webgpu").length;
-
-  if (!stopRequested && rows.length === TOTAL_TURNS && cpuTurns === 50 && gpuTurns === 50) {
+  const rows = await readRows();
+  if (rows.length === TOTAL_TURNS) {
+    evidence.summary = verifyCompleted(rows, evidence.turns, firstLane);
     evidence.completed = true;
-    status.textContent = "COMPLETE: 100 turns saved. CPU 50, GPU 50. Conversation CSV is ready to export.";
+    status.textContent = "COMPLETE: 100 responses saved. CPU 50, GPU 50. Seed excluded.";
   } else {
     evidence.stoppedEarly = true;
-    status.textContent = `Stopped with ${rows.length} completed turn(s) safely saved.`;
+    status.textContent = `Stopped after ${rows.length} saved turn(s). Export before clearing.`;
   }
-  persistEvidence();
+  await persistEvidence();
 }
 
 async function startRun() {
-  if (running) return;
-  running = true;
-  paused = false;
-  stopRequested = false;
-  startButton.disabled = true;
-  seedSeat.disabled = true;
-  pauseButton.disabled = true;
+  if (running || runtimeFailed) return;
+  running = true; paused = false; stopRequested = false;
+  startButton.disabled = true; seedSeat.disabled = true; clearButton.disabled = true;
   stopButton.disabled = false;
-  room.textContent = "";
-  machineLog.textContent = "";
-  evidence = freshEvidence();
-  evidence.seedSeat = seedSeat.value;
-  persistEvidence();
-
   try {
-    await resetConversationFile();
-    status.textContent = "Initializing one Transformers/ONNX runtime with CPU and GPU q4 sessions.";
-    if (!runtimeReady) {
-      await rpc("initialize", {}, "runtime-ready");
-      runtimeReady = true;
-    }
-
+    if ((await readRows()).length) throw new Error("Saved CSV already contains conversation. Export or clear it before a new run.");
+    const initialization = runtimeReady ? evidence.runtimeEvents.filter((event) =>
+      /^(runtime-start|tokenizer-load|session-load|runtime-ready|first-session)/.test(event.type)) : [];
+    evidence = freshEvidence(); evidence.seedSeat = seedSeat.value;
+    evidence.runtimeEvents.push(...initialization);
+    await persistEvidence();
+    status.textContent = "Loading both q4 sessions in one runtime.";
+    if (!runtimeReady) await rpc("initialize", {}, "runtime-ready");
     pauseButton.disabled = false;
     await runConversation(seedSeat.value);
   } catch (error) {
-    failRun(serializeError(error));
+    evidence.error = errorText(error);
+    status.textContent = `ERROR: ${evidence.error}. Saved CSV remains available. Reload before retrying a failed runtime.`;
+    await persistEvidence().catch(() => {});
   } finally {
-    running = false;
-    paused = false;
-    pauseButton.disabled = true;
-    pauseButton.textContent = "Pause";
-    stopButton.disabled = true;
+    running = false; paused = false;
+    pauseButton.disabled = true; pauseButton.textContent = "Pause";
+    stopButton.disabled = true; clearButton.disabled = false;
   }
 }
 
-function failRun(error) {
-  evidence.error = error;
-  persistEvidence();
-  status.textContent = `ERROR: ${error}`;
-  running = false;
-  paused = false;
-  pauseButton.disabled = true;
-  stopButton.disabled = true;
-}
-
+startButton.addEventListener("click", startRun);
 pauseButton.addEventListener("click", () => {
   if (!running) return;
   paused = !paused;
   pauseButton.textContent = paused ? "Resume" : "Pause";
-  status.textContent = paused
-    ? "Pause requested. The current model call will finish; the next turn will wait."
-    : "Resumed.";
+  status.textContent = paused ? "Pause requested. The current turn will finish and save." : "Resumed.";
 });
-
 stopButton.addEventListener("click", () => {
   if (!running) return;
-  stopRequested = true;
-  paused = false;
-  pauseButton.textContent = "Pause";
-  status.textContent = "Stop requested. The current turn will finish and save, then the run will stop.";
+  stopRequested = true; paused = false;
+  status.textContent = "Stop requested. The current turn will finish and save.";
 });
-
-startButton.addEventListener("click", startRun);
-
-downloadCsvButton.addEventListener("click", async () => {
-  try {
-    const text = await readConversationText();
-    downloadText(text, "text/csv", `granite-claptrap-conversation-${safeTimestamp()}.csv`);
-  } catch (error) {
-    status.textContent = `CSV DOWNLOAD ERROR: ${serializeError(error)}`;
-  }
-});
-
-downloadEvidenceButton.addEventListener("click", () => {
-  downloadText(JSON.stringify(evidence, null, 2), "application/json", `granite-claptrap-evidence-${safeTimestamp()}.json`);
-});
-
 clearButton.addEventListener("click", async () => {
-  if (running) return;
+  if (running || !conversationHandle || !evidenceHandle) return;
   try {
-    await resetConversationFile();
-    localStorage.removeItem(EVIDENCE_KEY);
-    evidence = freshEvidence();
-    room.textContent = "";
-    machineLog.textContent = "";
-    status.textContent = "Saved conversation and evidence cleared. Runtime remains loaded if it was already initialized.";
-  } catch (error) {
-    status.textContent = `CLEAR ERROR: ${serializeError(error)}`;
-  }
+    await evidenceWrites.catch(() => {});
+    evidenceWrites = Promise.resolve();
+    const initialization = runtimeReady ? evidence.runtimeEvents.filter((event) =>
+      /^(runtime-start|tokenizer-load|session-load|runtime-ready|first-session)/.test(event.type)) : [];
+    await writeText(conversationHandle, CSV_HEADER + "\r\n");
+    evidence = freshEvidence(); evidence.runtimeEvents.push(...initialization);
+    await persistEvidence();
+    localStorage.removeItem(LEGACY_EVIDENCE_KEY);
+    room.textContent = ""; machineLog.textContent = ""; showCounts([]);
+    seedSeat.disabled = false; startButton.disabled = runtimeFailed;
+    memoryStatus.textContent = "Saved conversation and diagnostics cleared.";
+    status.textContent = runtimeFailed ? "Reload to retry the failed runtime." : "Ready. Loaded model weights, if any, remain resident.";
+  } catch (error) { status.textContent = `Clear failed: ${errorText(error)}`; }
 });
-
-function safeTimestamp() {
-  return new Date().toISOString().replaceAll(":", "-");
-}
 
 function downloadText(text, type, filename) {
-  const blob = new Blob([text], { type });
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
+  anchor.href = url; anchor.download = filename;
+  document.body.append(anchor); anchor.click(); anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+function stamp() { return new Date().toISOString().replaceAll(":", "-"); }
 
-restoreConversation();
+document.querySelector("#download-csv").addEventListener("click", async () => {
+  try {
+    downloadText(await (await conversationHandle.getFile()).text(), "text/csv", `granite-claptrap-conversation-${stamp()}.csv`);
+  } catch (error) { status.textContent = `CSV export failed: ${errorText(error)}`; }
+});
+document.querySelector("#download-evidence").addEventListener("click", () => {
+  downloadText(JSON.stringify(evidence, null, 2), "application/json", `granite-claptrap-evidence-${stamp()}.json`);
+});
+restore();

@@ -1,0 +1,50 @@
+{
+  "kind": "synthetic-plumbing-checks",
+  "realGraniteGeneration": false,
+  "results": [
+    {
+      "name": "CSV preserves commas, quotes, CRLF, empty fields, and Unicode",
+      "pass": true
+    },
+    {
+      "name": "Malformed or nonsequential CSV stops instead of silently dropping history",
+      "pass": true
+    },
+    {
+      "name": "Retrieval requires three words, uses all terms, and preserves exact rows",
+      "pass": true
+    },
+    {
+      "name": "Native tool tokens do not count as conversational tokens",
+      "pass": true
+    },
+    {
+      "name": "No-search turns use one generation; each new turn receives only new input",
+      "pass": true
+    },
+    {
+      "name": "An emitted native tool call alone causes another call; speech totals exactly 100",
+      "pass": true
+    },
+    {
+      "name": "Malformed native output remains evidence and produces no completed turn",
+      "pass": true
+    },
+    {
+      "name": "100 synthetic replies alternate 50/50 and commit CSV before each next call",
+      "pass": true
+    },
+    {
+      "name": "GPU seed still produces 50/50 with the seed excluded",
+      "pass": true
+    },
+    {
+      "name": "Reload restores CSV and diagnostics without calling a model or resetting history",
+      "pass": true
+    },
+    {
+      "name": "A failed CSV append preserves prior rows and prevents the next actor call",
+      "pass": true
+    }
+  ]
+}

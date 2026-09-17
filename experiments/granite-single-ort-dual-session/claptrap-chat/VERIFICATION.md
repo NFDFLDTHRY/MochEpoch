@@ -1,0 +1,93 @@
+# Claptrap completion verification
+
+Date: 2026-09-17
+Starting build: `8f9e86f36177f4525edbd80a54650e696405bf95`
+Branch: `experiment/granite-single-ort-dual-session`
+
+## Where work stopped
+
+The branch contained the plan, page, controller, and worker, but no saved run of
+the chat build. The successful phone export at `70e3f4e` established simultaneous
+CPU/WASM q4 and GPU/WebGPU q4 residency in one worker/runtime. It stopped at
+`both-sessions-ready`; it was not a completed conversation export.
+
+The original chat implementation forced a separate retrieval-planning inference
+before turns 2 through 100, discarded ordinary speech from that inference, and
+gave the speaking call no tool. It also wrote diagnostic JSON to localStorage
+but did not restore it on reload. Starting another run reset the saved CSV.
+
+## Implemented boundary
+
+- The same worker, runtime, tokenizer, model revision and q4 backend selection
+  remain. There is no CPU substitution for WebGPU.
+- Each turn starts with the exact `You are Claptrap.` system message, timestamp,
+  newest incoming text, and the native `search_conversation` tool definition.
+- A native tool call stops that generation at its closing marker. Deterministic
+  code searches the current OPFS CSV and returns the exact matching row values
+  through Granite's native tool-response representation. Only then is another
+  generation needed. There is no preflight `NO_SEARCH` generation.
+- Ordinary generated token IDs accumulate to exactly 100 per conversational
+  response. Tool markers/arguments are excluded. The prior build's 96-token tool
+  output bound remains local to this fixture. The raw generation ceiling is
+  remaining speech tokens + 96; a stopping criterion ends sooner at 100 speech
+  tokens or a tool boundary. EOS is suppressed within that finite call bound.
+  The standard `min_new_tokens=max_new_tokens=100` shape could not count native
+  tool tokens separately; this implementation makes the requested speech/tool
+  distinction explicit instead of adding an unconditional inference.
+- Malformed/truncated tool output is saved as evidence and fails the turn. There
+  is no repair, synthetic model fallback, transcript injection, query rewriting,
+  semantic retrieval, search-result cap, or behavioral correction.
+- Messages/tensors/cache inputs are fresh per turn. Native tool continuation may
+  include only the current turn's expression and its explicit retrieval results.
+  No prior turn's messages or cache are supplied.
+- CSV commits before the next seat starts. Diagnostics are stored separately in
+  OPFS JSON. Reload restores both for inspection/export, without calling a model.
+  Existing conversation rows prevent Start until explicitly cleared.
+- Completion checks 100 sequential turns, strict alternation, 50 per backend,
+  100 conversational tokens per response, CSV/evidence agreement, and exact
+  latest-message propagation. `Welcome to the Zoo` is input, never a saved turn.
+
+## Executed local checks
+
+Run:
+
+```sh
+node experiments/granite-single-ort-dual-session/claptrap-chat/checks.mjs
+```
+
+Results: `evidence/local-checks.json`.
+
+These are explicitly **synthetic plumbing checks**, including a controlled
+100-turn controller run in each seed order. They establish code-path behavior
+under the supplied test doubles, not real Granite generation or mobile OPFS.
+
+Also rendered the pinned model's actual Jinja template with
+`@huggingface/jinja@0.5.10`, and exercised the actual Transformers.js 4.3.0
+StoppingCriteria/StoppingCriteriaList implementation. Native tool-call history
+and tool results serialized successfully. See `evidence/pinned-template-check.json`.
+
+Inspected `@huggingface/transformers@4.3.0` from its npm tarball:
+`src/models/modeling_utils.js` disposes its final DynamicCache when neither
+`past_key_values` nor `return_dict_in_generate` requests retaining it. This
+worker does not supply `past_key_values` and explicitly uses
+`return_dict_in_generate: false`, then disposes its input/output tensors.
+This source trace supports successful-call cleanup; it is not a GPU-memory
+measurement or evidence of a completed device run.
+
+## Real browser observation and remaining gate
+
+The original build executed in the available cloud Chrome browser, loaded the
+CPU q4 session, then failed WebGPU session creation with `Failed to get GPU
+adapter`. Selected exact visible events are retained in
+`evidence/original-cloud-browser-startup.json`.
+
+That browser limitation is separate from the user's successful phone residency
+run. It was not used to alter the runtime topology or switch the GPU seat to CPU.
+
+**A real 100-turn conversation on the target device remains unverified.** No
+behavioral result, completed CPU/GPU conversation, or end-to-end experiment pass
+is claimed by these checks. Run the commit-pinned chat page on the working phone
+path, then preserve Download conversation CSV and Download evidence JSON. If a
+call or save fails, retain those files before clearing the run.
+
+The architecture lock and current `main` are unchanged.
