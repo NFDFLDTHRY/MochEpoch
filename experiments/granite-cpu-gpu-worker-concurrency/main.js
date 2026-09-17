@@ -3,6 +3,7 @@ const WORKER_URL = new URL("./worker.js", import.meta.url);
 const evidence = {
   experiment: "granite-cpu-gpu-worker-concurrency",
   phase: 1,
+  probeRevision: 2,
   createdAt: new Date().toISOString(),
   metadata: {
     pageUrl: location.href,
@@ -22,11 +23,8 @@ const evidence = {
 };
 
 const logElement = document.querySelector("#log");
-const initializeButton = document.querySelector("#initialize");
 const phase1Button = document.querySelector("#phase1");
 const downloadButton = document.querySelector("#download");
-const cpuStatus = document.querySelector("#cpu-status");
-const gpuStatus = document.querySelector("#gpu-status");
 
 function nowMs() {
   return performance.timeOrigin + performance.now();
@@ -47,12 +45,57 @@ function serializeError(error) {
   return String(error);
 }
 
+function formatMs(value) {
+  return Number.isFinite(value) ? `${value.toFixed(1)} ms` : "n/a";
+}
+
+function formatSeconds(value) {
+  return Number.isFinite(value) ? `${(value / 1000).toFixed(1)} s` : "n/a";
+}
+
+function formatBytes(value) {
+  if (!Number.isFinite(value)) return null;
+  const mib = value / (1024 * 1024);
+  if (mib >= 1) return `${mib.toFixed(1)} MiB`;
+  const kib = value / 1024;
+  if (kib >= 1) return `${kib.toFixed(1)} KiB`;
+  return `${value.toFixed(0)} B`;
+}
+
+function progressText(message) {
+  const progress = message.progress ?? {};
+  const label = progress.file ?? progress.name ?? message.owner ?? "unknown";
+  const loaded = formatBytes(progress.loaded);
+  const total = formatBytes(progress.total);
+  let percent = null;
+
+  if (Number.isFinite(progress.loaded) && Number.isFinite(progress.total) && progress.total > 0) {
+    percent = `${((progress.loaded / progress.total) * 100).toFixed(1)}%`;
+  } else if (Number.isFinite(progress.progress)) {
+    percent = `${progress.progress.toFixed(1)}`;
+  }
+
+  const parts = [message.owner ?? "load", progress.status ?? "event", label];
+  if (loaded && total) parts.push(`${loaded}/${total}`);
+  else if (loaded) parts.push(loaded);
+  if (percent) parts.push(percent);
+  return parts.join(" · ");
+}
+
 class Lane {
-  constructor(config, statusElement) {
+  constructor(config) {
     this.config = config;
-    this.statusElement = statusElement;
+    this.statusElement = document.querySelector(`#${config.workerId}-status`);
+    this.stageElement = document.querySelector(`#${config.workerId}-stage`);
+    this.elapsedElement = document.querySelector(`#${config.workerId}-elapsed`);
+    this.progressElement = document.querySelector(`#${config.workerId}-progress`);
+    this.initButton = document.querySelector(`#init-${config.workerId}`);
     this.worker = new Worker(WORKER_URL, { type: "module", name: config.workerId });
     this.ready = false;
+    this.loading = false;
+    this.stage = "idle";
+    this.initRequestedAtMs = null;
+    this.workerLoadStartMs = null;
     this.initWaiter = null;
     this.runWaiters = new Map();
 
@@ -60,8 +103,12 @@ class Lane {
     this.worker.addEventListener("error", (event) => {
       const error = `Worker script error: ${event.message}`;
       record(this.config.workerId, { type: "worker-script-error", error });
+      this.loading = false;
+      this.ready = false;
+      this.setStatus("Worker script failed. See evidence.", false);
       appendLog(`${this.config.workerId.toUpperCase()}: ${error}`);
       this.failAll(new Error(error));
+      updatePhaseButton();
     });
   }
 
@@ -70,60 +117,101 @@ class Lane {
     this.statusElement.className = ok === true ? "ok" : ok === false ? "bad" : "";
   }
 
+  setStage(stage) {
+    this.stage = stage ?? "unknown";
+    this.stageElement.textContent = `Stage: ${this.stage}`;
+  }
+
+  updateElapsed() {
+    if (this.initRequestedAtMs === null) return;
+    const end = this.loading ? nowMs() : (this.ready ? this.readyAtMs : this.finishedAtMs);
+    if (!Number.isFinite(end)) return;
+    this.elapsedElement.textContent = `Elapsed: ${formatSeconds(end - this.initRequestedAtMs)}`;
+  }
+
   onMessage(message) {
     record(this.config.workerId, message);
 
-    if (message.type === "load-start") {
-      this.setStatus("Loading model/runtime…");
-      appendLog(`${this.config.workerId.toUpperCase()}: load started (${message.device}/${message.dtype}).`);
-      return;
-    }
+    switch (message.type) {
+      case "load-start":
+        this.loading = true;
+        this.workerLoadStartMs = message.loadStartMs ?? message.atMs ?? null;
+        this.setStage(message.stage ?? "load-start");
+        this.setStatus(`Loading ${message.device}/${message.dtype}…`);
+        appendLog(`${this.config.workerId.toUpperCase()}: load started (${message.device}/${message.dtype}).`);
+        break;
 
-    if (message.type === "ready") {
-      this.ready = true;
-      this.setStatus(`Ready. Load ${formatMs(message.loadDurationMs)}.`, true);
-      appendLog(`${this.config.workerId.toUpperCase()}: ready after ${formatMs(message.loadDurationMs)}.`);
-      this.initWaiter?.resolve(message);
-      this.initWaiter = null;
-      return;
-    }
+      case "checkpoint":
+        this.setStage(message.checkpoint ?? message.stage);
+        appendLog(`${this.config.workerId.toUpperCase()}: ${message.checkpoint ?? message.stage}.`);
+        break;
 
-    if (message.type === "load-error") {
-      this.ready = false;
-      this.setStatus("Load failed. See log/evidence.", false);
-      appendLog(`${this.config.workerId.toUpperCase()}: load failed: ${message.error}`);
-      this.initWaiter?.reject(new Error(message.error));
-      this.initWaiter = null;
-      return;
-    }
-
-    if (message.type === "inference-start") {
-      appendLog(`${this.config.workerId.toUpperCase()}: ${message.label} started.`);
-      return;
-    }
-
-    if (message.type === "inference-complete") {
-      appendLog(`${this.config.workerId.toUpperCase()}: ${message.label} completed in ${formatMs(message.durationMs)}.`);
-      const waiter = this.runWaiters.get(message.label);
-      if (waiter) {
-        this.runWaiters.delete(message.label);
-        waiter.resolve(message);
+      case "load-progress": {
+        this.setStage(message.stage);
+        const text = progressText(message);
+        this.progressElement.textContent = `Progress: ${text}`;
+        if (message.progress?.status !== "progress") {
+          appendLog(`${this.config.workerId.toUpperCase()}: ${text}.`);
+        }
+        break;
       }
-      return;
-    }
 
-    if (message.type === "inference-error") {
-      appendLog(`${this.config.workerId.toUpperCase()}: ${message.label} failed: ${message.error}`);
-      const waiter = this.runWaiters.get(message.label);
-      if (waiter) {
-        this.runWaiters.delete(message.label);
-        waiter.reject(new Error(message.error));
+      case "heartbeat":
+        this.setStage(message.stage);
+        break;
+
+      case "ready":
+        this.loading = false;
+        this.ready = true;
+        this.readyAtMs = nowMs();
+        this.setStage("ready");
+        this.setStatus(`Ready. Load ${formatMs(message.loadDurationMs)}.`, true);
+        this.elapsedElement.textContent = `Elapsed: ${formatSeconds(message.loadDurationMs)}`;
+        appendLog(`${this.config.workerId.toUpperCase()}: ready after ${formatMs(message.loadDurationMs)}.`);
+        this.initWaiter?.resolve(message);
+        this.initWaiter = null;
+        updatePhaseButton();
+        break;
+
+      case "load-error":
+        this.loading = false;
+        this.ready = false;
+        this.finishedAtMs = nowMs();
+        this.setStage(`error after ${message.failedStage ?? "unknown"}`);
+        this.setStatus("Load failed. See log/evidence.", false);
+        appendLog(`${this.config.workerId.toUpperCase()}: load failed during ${message.failedStage ?? "unknown"}: ${message.error}`);
+        this.initWaiter?.reject(new Error(message.error));
+        this.initWaiter = null;
+        updatePhaseButton();
+        break;
+
+      case "inference-start":
+        appendLog(`${this.config.workerId.toUpperCase()}: ${message.label} started.`);
+        break;
+
+      case "inference-complete": {
+        appendLog(`${this.config.workerId.toUpperCase()}: ${message.label} completed in ${formatMs(message.durationMs)}.`);
+        const waiter = this.runWaiters.get(message.label);
+        if (waiter) {
+          this.runWaiters.delete(message.label);
+          waiter.resolve(message);
+        }
+        break;
       }
-      return;
-    }
 
-    if (message.type === "worker-error") {
-      appendLog(`${this.config.workerId.toUpperCase()}: ${message.error}`);
+      case "inference-error": {
+        appendLog(`${this.config.workerId.toUpperCase()}: ${message.label} failed: ${message.error}`);
+        const waiter = this.runWaiters.get(message.label);
+        if (waiter) {
+          this.runWaiters.delete(message.label);
+          waiter.reject(new Error(message.error));
+        }
+        break;
+      }
+
+      case "worker-error":
+        appendLog(`${this.config.workerId.toUpperCase()}: ${message.error}`);
+        break;
     }
   }
 
@@ -135,7 +223,24 @@ class Lane {
   }
 
   init() {
-    if (this.initWaiter) throw new Error(`${this.config.workerId} initialization already pending.`);
+    if (this.loading || this.ready || this.initWaiter) {
+      return Promise.reject(new Error(`${this.config.workerId} lane is already initialized or initializing.`));
+    }
+
+    this.loading = true;
+    this.initRequestedAtMs = nowMs();
+    this.initButton.disabled = true;
+    this.setStage("init-command-dispatched");
+    this.setStatus("Initialization command sent…");
+    record("main", {
+      type: "command-dispatch",
+      command: "init",
+      lane: this.config.workerId,
+      atMs: this.initRequestedAtMs,
+      device: this.config.device,
+      dtype: this.config.dtype,
+    });
+
     return new Promise((resolve, reject) => {
       this.initWaiter = { resolve, reject };
       this.worker.postMessage({ command: "init", ...this.config });
@@ -145,15 +250,21 @@ class Lane {
   run(label, warmup = false) {
     if (!this.ready) return Promise.reject(new Error(`${this.config.workerId} lane is not ready.`));
     if (this.runWaiters.has(label)) return Promise.reject(new Error(`Duplicate run label: ${label}`));
+
+    const dispatchAtMs = nowMs();
+    record("main", {
+      type: "command-dispatch",
+      command: warmup ? "warmup" : "run",
+      lane: this.config.workerId,
+      label,
+      atMs: dispatchAtMs,
+    });
+
     return new Promise((resolve, reject) => {
       this.runWaiters.set(label, { resolve, reject });
       this.worker.postMessage({ command: warmup ? "warmup" : "run", label });
     });
   }
-}
-
-function formatMs(value) {
-  return Number.isFinite(value) ? `${value.toFixed(1)} ms` : "n/a";
 }
 
 function showSummary(cpuBaseline, gpuBaseline, cpuConcurrent, gpuConcurrent, batchStartMs, batchEndMs) {
@@ -196,55 +307,43 @@ function showSummary(cpuBaseline, gpuBaseline, cpuConcurrent, gpuConcurrent, bat
   appendLog(`Phase 1 complete. Concurrent makespan ${formatMs(concurrentMakespanMs)} vs sequential reference ${formatMs(sequentialReferenceMs)}.`);
 }
 
-const cpuLane = new Lane(evidence.lanes.cpu, cpuStatus);
-const gpuLane = new Lane(evidence.lanes.gpu, gpuStatus);
+const cpuLane = new Lane(evidence.lanes.cpu);
+const gpuLane = new Lane(evidence.lanes.gpu);
+let phaseRunning = false;
+
+function updatePhaseButton() {
+  phase1Button.disabled = phaseRunning || !(cpuLane.ready && gpuLane.ready);
+}
+
+function beginInitialization(lane) {
+  lane.init().catch((error) => {
+    appendLog(`${lane.config.workerId.toUpperCase()} initialization ended without ready: ${serializeError(error)}`);
+  });
+}
+
+document.querySelector("#init-cpu").addEventListener("click", () => beginInitialization(cpuLane));
+document.querySelector("#init-gpu").addEventListener("click", () => beginInitialization(gpuLane));
 
 document.querySelector("#gpu-availability").textContent = `WebGPU exposed: ${navigator.gpu ? "yes" : "no"}`;
 document.querySelector("#hardware-concurrency").textContent = `navigator.hardwareConcurrency: ${navigator.hardwareConcurrency ?? "unavailable"}`;
 document.querySelector("#page-url").textContent = location.href;
 
-appendLog("Probe loaded. No model sessions initialized yet.");
+setInterval(() => {
+  cpuLane.updateElapsed();
+  gpuLane.updateElapsed();
+}, 500);
 
-initializeButton.addEventListener("click", async () => {
-  initializeButton.disabled = true;
-  phase1Button.disabled = true;
-
-  appendLog("Initializing CPU lane first; initialization concurrency is intentionally not under test.");
-  let cpuReady = false;
-  let gpuReady = false;
-
-  try {
-    await cpuLane.init();
-    cpuReady = true;
-  } catch (error) {
-    appendLog(`CPU initialization preserved as failure: ${serializeError(error)}`);
-  }
-
-  appendLog("Initializing GPU lane second.");
-  try {
-    await gpuLane.init();
-    gpuReady = true;
-  } catch (error) {
-    appendLog(`GPU initialization preserved as failure: ${serializeError(error)}`);
-  }
-
-  phase1Button.disabled = !(cpuReady && gpuReady);
-  if (cpuReady && gpuReady) {
-    appendLog("Both lanes ready. Phase 1 can run.");
-  } else {
-    appendLog("Phase 1 cannot run because both lanes are not ready. Export the failure evidence before changing the experiment.");
-  }
-});
+appendLog("Probe revision 2 loaded. Initialize CPU and GPU independently. No artificial load timeout is applied.");
 
 phase1Button.addEventListener("click", async () => {
-  phase1Button.disabled = true;
-  initializeButton.disabled = true;
+  phaseRunning = true;
+  updatePhaseButton();
 
   try {
-    appendLog("CPU warmup (unmeasured comparison setup). ");
+    appendLog("CPU warmup (unmeasured comparison setup).");
     await cpuLane.run("cpu-warmup", true);
 
-    appendLog("GPU warmup (unmeasured comparison setup). ");
+    appendLog("GPU warmup (unmeasured comparison setup).");
     await gpuLane.run("gpu-warmup", true);
 
     appendLog("Running CPU solo baseline.");
@@ -272,6 +371,9 @@ phase1Button.addEventListener("click", async () => {
   } catch (error) {
     record("main", { type: "phase1-error", atMs: nowMs(), error: serializeError(error) });
     appendLog(`Phase 1 stopped on observed failure: ${serializeError(error)}`);
+  } finally {
+    phaseRunning = false;
+    updatePhaseButton();
   }
 });
 
@@ -284,9 +386,18 @@ downloadButton.addEventListener("click", () => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `granite-cpu-gpu-worker-concurrency-${new Date().toISOString().replaceAll(":", "-")}.json`;
+  anchor.download = `granite-cpu-gpu-worker-concurrency-r2-${new Date().toISOString().replaceAll(":", "-")}.json`;
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+document.addEventListener("visibilitychange", () => {
+  record("main", {
+    type: "visibility-change",
+    atMs: nowMs(),
+    visibilityState: document.visibilityState,
+  });
+  appendLog(`Page visibility: ${document.visibilityState}.`);
 });
 
 window.addEventListener("error", (event) => {
