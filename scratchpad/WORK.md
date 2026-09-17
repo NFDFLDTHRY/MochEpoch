@@ -1,11 +1,34 @@
-# Claptrap collector repair and completed phone trials
+# Claptrap diagnostic result and installable-app boundary
 
 proposal_id: 20260917-claptrap-crash-isolation
 status: COMPLETE
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 code_commit: a21b07a2a454bff6db3dc457547e88330f4c6466
-remaining_gate: isolation/thread configuration, actual-chat save and cross-tab defects, original Chrome crash cause, and full conversation endurance unresolved
+remaining_gate: installable-app integration, isolation/thread configuration, actual-chat persistence defects, original Chrome crash cause, and full conversation endurance unresolved
+
+## Product boundary reaffirmed by the user
+
+MochEpoch is an installable, offline-capable WebApp game. GitHack is a
+development/browser-test delivery surface. The development URL is not the
+product architecture. Granite resources must be obtained automatically and
+persisted for later launches; the player must not repeat file-picker,
+download/open-file/load-model steps. The service-worker installation must not
+depend on completing the entire model download.
+
+This operation built and audited the standalone Claptrap conversation and
+diagnostic pages under experiments/granite-single-ort-dual-session/claptrap-chat.
+It did not implement or validate the installable app's manifest, service
+worker, offline launch, model-cache recovery, or update lifecycle. COMPLETE
+above refers to this diagnostic operation, not to that product or its stability.
+
+The user supplied separate StrawDummy machine-surface evidence from Screechrac.
+It records successful independent JavaScript worker scaling and a working
+CPU-worker/WebGPU pipeline while shared memory was unavailable. The observed
+ONNX WASM threading and Transformers.js serialization restrictions must not be
+generalized into a claim that the phone or installable WebApps cannot use
+parallel workers or CPU/GPU pipelines. StrawDummy is device capability evidence,
+not MochEpoch architecture; its full export has not been copied into this repo.
 
 ## Operator correction
 
@@ -83,9 +106,11 @@ also encounters both the application's busy guard and Transformers.js 4.3.0's
 browser inference chain. The original chat used sequential generation too;
 concurrency has not been established as its crash trigger.
 
-The next implementation proposal needs a concrete serving route for isolation
-and verified thread configuration, or a narrowly scoped repair to the now
-reproduced chat persistence defects. Full chat execution must include its real
-CSV writes, rendering, and evidence collection. A concurrent-load experiment
-is distinct from the plan's alternating conversation. No new hosting, runtime,
-or chat-controller implementation is included in this completed audit.
+The next implementation proposal must fit the installable-app boundary above:
+identify the app origin and service-worker/cache lifecycle, then specify the
+minimum integration and execution checks needed there. Any isolation/thread
+change needs verification in that actual lifecycle. Full chat execution must
+include its real CSV writes, rendering, and evidence collection. A concurrent
+load experiment is distinct from the plan's alternating conversation. No new
+hosting, runtime, app shell, or chat-controller implementation is included in
+this completed audit.
