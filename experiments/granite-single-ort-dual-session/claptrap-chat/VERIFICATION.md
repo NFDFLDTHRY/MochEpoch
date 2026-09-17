@@ -329,3 +329,62 @@ these timings as a controlled CPU/GPU benchmark. One run per condition cannot
 attribute the small CPU timing differences to GPU residency, heat, or another
 cause. Full 100-response conversation endurance and multicore CPU performance
 remain untested.
+
+### Runtime and actual-chat audit after the completed replays
+
+The phone's missing cross-origin isolation prevents the intended multicore CPU
+configuration. There is also an independent code restriction:
+`configureSingleOrtEnvironment()` always sets `wasm.numThreads = 1`. It does
+not increase that value on an isolated origin. Successful CPU multithreading
+therefore requires both a suitable serving environment and a runtime setting
+change, followed by execution evidence. Initialization currently accepts the
+single-threaded environment and reports runtime-ready.
+
+The usual isolation configuration is `Cross-Origin-Opener-Policy: same-origin`
+and `Cross-Origin-Embedder-Policy: require-corp` on the top-level response, with
+worker policy and cross-origin resources configured compatibly. Verify the
+result in both page and worker. See the
+[cross-origin isolation guide](https://web.dev/articles/cross-origin-isolation-guide).
+A workspace HEAD request to the actual diagnostic URL returned HTTP 403;
+this audit did not directly inspect the successful page response's headers.
+The supplied phone evidence does establish isolation false and shared memory
+unavailable. No hosting configuration was changed.
+
+Concurrency has two further restrictions. The worker's `busy` flag rejects a
+second model command during generation. The exact downloaded Transformers.js
+4.3.0 source also chains browser ONNX `session.run()` calls through a
+module-level `webInferenceChain`. Headers do not remove either restriction.
+The current conversation plan explicitly requires alternating turns, and the
+original chat also awaited each completed turn and its CSV/evidence saves.
+The third replay therefore matched its first GPU-then-CPU order. Simultaneous
+CPU/GPU generation remains untested by these replays and is not an established
+cause of the original crash.
+
+The diagnostic controller adds awaited save checkpoints around inference and
+cleanup, then stops after one or two responses. It does not execute the chat's
+CSV append/render loop or its full endurance run. Token progress and the GPU
+device-lost observer are enabled only in diagnostic mode. A successful replay
+cannot establish the full chat's persistence or failure handling.
+
+Two additional synthetic executions used the actual chat controller with the
+existing test fixture. They did not execute Granite or simulate a phone crash:
+
+- Injecting an evidence-file save failure after the first model result left
+  one CSV row saved, zero turns in the saved evidence, and `error: null` in that
+  file. The live page retained the error and stopped before another model call.
+  Reload restored the CSV but lost the error. The chat's rejected write chain
+  prevented its later error-save attempt from executing. Live JSON export
+  before reload can retain the error; its durable evidence is still incomplete.
+- Two controllers with opposite seed choices shared one storage namespace.
+  Both initialized and issued 100 synthetic generation calls. One displayed
+  COMPLETE while the other failed its turn-one CSV/evidence agreement check.
+  The final shared evidence said incomplete. There is no cross-tab ownership
+  lock around the fixed CSV/JSON filenames. In the actual application, each
+  tab can also initialize its own resident model pair. The phone screenshots
+  do not establish that multiple experiment tabs were running; duplication is
+  a demonstrated controller hazard, not a finding about those phone tabs.
+
+Source hashes, exact reproduction outcomes, and audit limits are retained
+under `runtimeAndChatAudit` in the existing evidence file. The successful
+collector repair applies to `stability.js`; it did not repair the actual
+chat controller's failed-save behavior. The new audit changed no runtime code.

@@ -3085,5 +3085,74 @@
       "checkedOn": "2026-09-17",
       "finding": "numThreads=1 disables WASM multithreading. Browser WASM threading support and cross-origin isolation are required to enable it; changing only numThreads on the measured page is insufficient."
     }
+  },
+  "runtimeAndChatAudit": {
+    "codeCommit": "636a915cffe2145a163aaae83b6849ded938e1fc",
+    "scope": "Read-only runtime/controller audit with synthetic storage-failure and shared-storage reproductions. No new phone execution or runtime change.",
+    "sourceSha256": {
+      "main.js": "6b2c4e10c5760c88d491fd3b169ebc50c3a00706592873237d8260ceddf1e7c2",
+      "runtime-worker.js": "484612bc59661b2cd3f0d0fe306479c0b74dcfbec9b1e920e362d0cc58947cdd",
+      "stability.js": "57808324fa6293819cbd445b5804bfa930837e4da3fefa0f12abe73593994187"
+    },
+    "pinnedTransformersSource": {
+      "version": "4.3.0",
+      "path": "src/backends/onnx.js",
+      "sha256": "ec7c3edd191cb6b36853a79b5d6540902e52c3ad26992d29ead63b90b7a9fa60",
+      "finding": "runInferenceSession serializes browser ONNX session.run calls through module-level webInferenceChain. The application separately rejects concurrent model commands via its busy guard."
+    },
+    "sourceFindings": [
+      "The CPU thread count is unconditionally set to one, including on an isolated origin. Headers alone will not change this setting.",
+      "The conversation plan requires strict alternation; the original chat awaits each complete turn and CSV/evidence writes before issuing the next. Concurrent execution has not been established as the original crash trigger.",
+      "Diagnostic generation adds awaited storage checkpoints and uses a separate controller; it does not exercise the full chat CSV append/render loop or 100-response endurance.",
+      "Generation progress and the GPU device-lost observer are gated on diagnostic mode. The actual chat has less failure observability.",
+      "The chat still uses a rejection-poisoned evidence-write chain; a later attempt to persist the caught error cannot execute after a prior write rejects. Its live evidence download may contain that error before reload, but the saved file need not.",
+      "Chat storage filenames are fixed across tabs on the same origin, with no cross-tab ownership lock. Each page can initialize its own pair of models and write the shared CSV/JSON."
+    ],
+    "reproductions": {
+      "chatEvidenceWriteFailure": {
+        "kind": "Synthetic injected storage failure in the actual chat controller; no Granite/device crash simulated",
+        "mainSha256": "6b2c4e10c5760c88d491fd3b169ebc50c3a00706592873237d8260ceddf1e7c2",
+        "status": "ERROR: Error: Injected evidence save failure after model result. Saved CSV remains available. Reload before retrying a failed runtime.",
+        "savedCsvRows": 1,
+        "savedEvidenceTurns": 0,
+        "savedEvidenceError": null,
+        "memoryError": "Error: Injected evidence save failure after model result",
+        "modelCalls": 1,
+        "fixtureErrors": [],
+        "reloadStatus": "Saved conversation restored. Export or clear before a new run.",
+        "reloadMemoryError": null
+      },
+      "twoChatControllers": {
+        "kind": "Two synthetic chat controllers sharing the same storage namespace; no real model execution",
+        "initializations": [
+          1,
+          1
+        ],
+        "modelCalls": [
+          100,
+          100
+        ],
+        "uiStatus": [
+          "ERROR: Error: Conversation/evidence boundary mismatch at turn 1.. Saved CSV remains available. Reload before retrying a failed runtime.",
+          "COMPLETE: 100 responses saved. CPU 50, GPU 50. Seed excluded."
+        ],
+        "savedRows": 100,
+        "savedEvidenceCompleted": false,
+        "savedSeed": "cpu",
+        "fixtureErrors": []
+      }
+    },
+    "responseHeaderInspection": {
+      "url": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/a21b07a2a454bff6db3dc457547e88330f4c6466/experiments/granite-single-ort-dual-session/claptrap-chat/stability.html",
+      "method": "HEAD from workspace",
+      "result": "HTTP 403; response headers of the successful page load not verified by this request.",
+      "knownRuntimeOutcome": "All supplied phone trials report crossOriginIsolated=false and SharedArrayBuffer unavailable."
+    },
+    "isolationReference": {
+      "url": "https://web.dev/articles/cross-origin-isolation-guide",
+      "checkedOn": "2026-09-17",
+      "finding": "Typical isolation setup uses top-level COOP same-origin and COEP require-corp, appropriate worker COEP, and CORS/CORP-compatible cross-origin resources. Verify isolation in the page and worker; merely adding HTML meta tags is not the deployment operation."
+    },
+    "limits": "Synthetic failures establish controller defects under injected storage failure or two simulated tabs; neither establishes the original phone Chrome crash cause. No CPU/GPU concurrent workload or multicore CPU run was executed in this audit."
   }
 }
