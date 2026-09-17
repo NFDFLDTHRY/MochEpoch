@@ -2592,12 +2592,38 @@
       "The helper/tool-description prose in turn 1 is in Granite-generated output. No native retrieval call occurred in these five turns.",
       "The 100-token generation boundary can stop mid-sentence. There is no additional response tail in these raw generation records.",
       "The seed is shown in configuration and stored in JSON inputs; it is excluded from the response CSV under the current experiment definition.",
-      "The exact additional display/recording mismatch reported by the operator is not identified by the supplied screenshot and exports. No speculative prompt, decoding, or persistence change was made."
+      "The operator subsequently clarified that the problem is generated assistant/tooling narration, and deliberately stopped the run for that reason. The earlier screenshot-only interpretation did not establish the reported defect. No separate final conversational reply is present in the captured generation output."
     ],
     "limits": [
       "Five successful responses establish a short installed-app run, not 100-turn endurance or a cause for the earlier Chrome crash.",
       "No airplane-mode launch, per-core utilization, temperature, total RAM or GPU-memory measurement is present.",
       "CPU responses took 109.15 and 152.26 seconds with different incoming text. This is not a controlled thread-scaling benchmark."
-    ]
+    ],
+    "operatorClarification": {
+      "report": "Yes, the bug I am referring to is we're not getting models responses rather it's internal tooling conversation instead. Just to confirm I stopped it due to the bug mentioned above.",
+      "stopReason": "The operator deliberately stopped after turn 5 because the generated conversation was assistant/tooling narration.",
+      "scope": "The report concerns reply content, not missing live streaming, truncation, a save mismatch, or a new runtime crash."
+    },
+    "promptFramingAudit": {
+      "kind": "actual-native-template-render-audit",
+      "realNewModelGeneration": false,
+      "modelRevision": "6c9a6f61601df51e76b1efff0974d8d26c2a25b5",
+      "tokenizerConfigSha256": "593aa916ef7757a264576f40975d77a51a2b254a2592d73dd55875eb29f23693",
+      "renderMatchesExecutedPhonePrompt": true,
+      "requestedSystem": "You are Claptrap.",
+      "effectiveSystem": "You are Claptrap.\n\nYou are a helpful assistant with access to the following tools. You may call one or more tools to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"search_conversation\", \"description\": \"Search earlier saved conversation turns when older memory would help answer the newest message.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\", \"description\": \"A search phrase containing at least three whitespace-separated words. All words must appear in a saved response for that row to match.\"}}, \"required\": [\"query\"]}}}\n</tools>\n\nFor each tool call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n</tool_call>. If a tool does not exist in the provided list of tools, notify the user that you do not have the ability to fulfill the request.",
+      "noToolsControlSystem": "You are Claptrap.",
+      "nativeToolCallsInPhoneRun": 0,
+      "rawOutputsContainToolOrThinkingOrRoleMarkers": false,
+      "interpretation": "Tool availability expands the effective system message. Plain assistant prose echoes the generic tooling framing. No separate hidden final reply or native tool traffic was captured; causal generation comparison remains unexecuted.",
+      "finding": "The native tools-enabled template adds a generic assistant identity and tool instructions to the requested Claptrap system text. This is an input-contract discrepancy against the exact-system condition, not evidence of a displayed internal tool channel.",
+      "limits": [
+        "Template rendering reproduces the executed phone prompt exactly; no new model generation or causal A/B comparison was run.",
+        "The official Granite 4.0 350M model card uses this native tool framing. Its presence does not by itself prove a broken tokenizer, wrong model artifact, or malformed tool protocol.",
+        "The phone output contains ordinary assistant prose and zero native tool calls. No hidden final answer was captured for the renderer to select.",
+        "A controlled comparison is needed before attributing the repeated narration to one specific prompt clause. Preserve original output rather than filtering ordinary prose."
+      ],
+      "officialModelCard": "https://huggingface.co/ibm-granite/granite-4.0-350m"
+    }
   }
 }

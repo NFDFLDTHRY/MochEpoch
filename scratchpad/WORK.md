@@ -3,7 +3,7 @@
 proposal_id: 20260917-claptrap-installed-repair
 status: COMPLETE
 code_commit: bcf1060bde6091649efce6c1d61d270f102d23da
-remaining_gate: full 100-response endurance, physical offline installed launch, and precise reported presentation mismatch remain unverified
+remaining_gate: full 100-response endurance, physical offline installed launch, and a controlled test of the now-identified effective prompt discrepancy
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 base_commit: 7995a2c0c6305a7fc73496007f1ae406073db94e
@@ -111,7 +111,37 @@ Raw generated text, returned reply, actor evidence, CSV and next-turn input agre
 for every response. The screenshot shows turn 2 still generating while only the
 completed turn 1 is rendered. Generic assistant/tool wording is Granite's output.
 No native retrieval ran. Exact original exports, hashes and per-turn checks are
-in installed-repair-20260917.json. The user reports a minor display/recording
-issue whose exact missing/extra passage is not yet identified; no implementation
-change was guessed from that description. The installed five-response boundary
-is now executed evidence. Full endurance and offline launch remain open.
+in installed-repair-20260917.json. The user subsequently clarified that the
+reply content itself was the problem:
+generated assistant/tooling narration, for which they deliberately stopped.
+Accurate CSV recording did not establish correct conversation setup. The installed
+five-response runtime boundary is executed evidence. Full endurance, offline
+launch, and the effective prompt discrepancy remain open.
+
+## Operator clarification and prompt trace
+
+The user explicitly confirms stopping because the replies were assistant/tooling
+narration, not because of a runtime failure. This clarification is now recorded
+with the existing phone evidence; the original exports remain unchanged.
+
+A rendering check against the actual pinned native tokenizer template reproduces
+the first phone prompt exactly. Tools expand the effective system from the
+requested `You are Claptrap.` to 1,002 characters, including a generic helpful
+assistant identity. All five raw outputs contain ordinary prose with no native
+tool/thinking/role markers and no separate final answer. The implementation uses
+the model's documented native tool format, but the resulting effective system
+contains more role framing than the experiment declares.
+
+This is a prompt-input finding, not a proven causal generation result. No prompt,
+model, generation setting, renderer, or saved response was changed. Details and
+the exact serialized system text are in VERIFICATION.md and the existing
+installed-repair evidence JSON. The earlier screenshot-only explanation of the
+reported problem was insufficient.
+
+Smallest next operation: hold the seed, timestamp, backend, model, q4 precision,
+token budget, schema, and native tool syntax fixed; compare the original prompt
+against removal of only the extra generic assistant-role wording. Preserve raw
+results and the original phone baseline. That comparison has not been run;
+changing the runtime's prompt behavior is outside the completed installed-app
+repair recorded above. It should not become an output filter, personality coach,
+mandatory planning stage, or loss of CSV retrieval.

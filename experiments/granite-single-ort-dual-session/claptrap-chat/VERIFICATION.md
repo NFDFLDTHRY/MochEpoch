@@ -480,8 +480,11 @@ requested/runtime-reported WASM threads, and both q4 sessions resident together.
 Five actual responses completed in order GPU / CPU / GPU / CPU / GPU, each
 100 generated speech tokens. All 124 received events committed. The run used
 the stop-after-turn path after turn 5, with no recorded error or pending write.
-The user described execution as flawless apart from minor presentation/recording
-issues. This is a successful short actual-chat run, not a completed 100-turn run.
+The user initially described execution as flawless apart from presentation/recording
+issues, then clarified that the generated assistant/tooling narration was the
+problem and that they deliberately stopped for that reason. This establishes
+five completed runtime turns. It does not establish the exact prompt condition
+or a completed 100-turn run.
 
 | Turn | Backend | Recorded generation duration | Speech tokens |
 | --- | --- | ---: | ---: |
@@ -502,11 +505,46 @@ completed GPU turn 1. The controller currently renders a reply only after its
 100-token turn commits. Mid-sentence endings result from the specified token
 boundary; the export contains no hidden continuation. The seed is in the UI
 configuration and JSON input, and is excluded from response CSV/counting.
-These are established display/recording behaviors. The user's exact additional
-mismatch is unresolved; no unverified decoder or prompt correction was applied.
+These are established display/recording behaviors, but they do not explain the
+reported defect. The operator has now identified the reply content itself as the
+problem. No decoder or prompt correction has been applied.
 
 Exact original JSON/CSV text and SHA-256 hashes are retained in the existing
 installed-repair evidence file under phoneInstalledRun. Source bytes can be
 recovered by UTF-8 encoding originalText. Publication review found only the
 experiment's public URLs, routine browser metadata and model-generated text.
 No source attachment or implementation file was modified in this evidence update.
+
+## Clarified stop reason and effective prompt audit
+
+The operator deliberately stopped because the conversation contained generic
+assistant/tooling narration. This was not another reported runtime crash.
+Byte-for-byte CSV fidelity proved accurate recording, not a correct conversation
+setup. There is no separate final answer in these exports to reveal by changing
+which output field the UI displays.
+
+The actual pinned tokenizer template was rendered with the first phone turn's
+messages and the worker's real search tool schema. It exactly reproduced the
+recorded rendered prompt. Although the supplied system message is exactly
+`You are Claptrap.`, enabling tools expands the effective system text to 1,002
+characters. It appends `You are a helpful assistant with access to the following tools.`
+plus the search schema and native tool instructions. Rendering the same messages
+without tools leaves the effective system text exactly `You are Claptrap.`
+
+All five phone outputs lack native tool-call, tool-response, thinking, or role
+delimiters. They are generated assistant prose which echoes the supplied tool
+framing; there were zero executed retrieval calls. The
+[official IBM model card](https://huggingface.co/ibm-granite/granite-4.0-350m)
+uses this native tool template, so this finding is not evidence of an incompatible
+tokenizer or an accidental base-model artifact. It exposes additional role
+framing in the effective prompt despite the experiment's exact-system condition.
+
+The rendering audit and exact effective system text are saved under
+`phoneInstalledRun.promptFramingAudit` in the existing evidence JSON. This audit
+did not run another inference and does not prove which phrase caused the
+repetition. The smallest next experiment is a fixed-input, same-backend
+comparison that removes only the added generic assistant-role wording while
+retaining the search schema, native tool protocol, and all other experimental
+conditions. Record both raw outputs. Do not strip tooling narration from ordinary
+prose, invent a missing final answer, coach Claptrap's personality, or remove
+retrieval from the real conversation merely to make the displayed text look right.
