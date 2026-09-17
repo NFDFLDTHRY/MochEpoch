@@ -1,147 +1,82 @@
-# Approved Claptrap installed-app repair
+# Claptrap retrieval call followed by response call
 
-proposal_id: 20260917-claptrap-installed-repair
-status: COMPLETE
-code_commit: bcf1060bde6091649efce6c1d61d270f102d23da
-remaining_gate: full 100-response endurance, physical offline installed launch, and a controlled test of the now-identified effective prompt discrepancy
+proposal_id: 20260917-claptrap-two-call-turn
+status: PROPOSED
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
-base_commit: 7995a2c0c6305a7fc73496007f1ae406073db94e
+base_commit: 11be0cd3bc3c0aeca4f02d9754c4133f1274870b
 
-## Approval and scope
+## User direction and evidence
 
-The user corrected the mistaken interpretation of their acknowledgement as a
-stop request: "O, it was not. I was acknowledging the change you had me make.
-Do the repair." This explicitly authorizes the previously discussed repair of
-the actual chat, isolation/CPU threading, and installable WebApp lifecycle.
-No further approval gate is being inserted. Earlier diagnostic results remain
-in VERIFICATION.md and the committed evidence; diagnostic completion did not
-establish that the full conversation or installed app worked.
+The user now specifies that each seat runs twice and only the second output is
+recorded as its conversational response. This follows the installed-phone run
+where five completed turns generated tooling narration, zero native searches
+occurred, and the operator deliberately stopped. The previous proposed removal
+of generic template wording is superseded. IBM's native tool instructions stay
+available to the retrieval call.
 
-## Concrete changes
+The user's direction defines this exact operation, following their earlier
+instruction to put the plan in the repo and proceed with the repair. Publish
+this plan before implementing the specified two-call turn; no new service,
+hosting, model, dependency, architectural lock change, or additional approval
+request is needed. This is a local experiment contract, not a universal game
+pipeline. Current main's blueprint blob matches the lock:
+5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945.
 
-Within experiments/granite-single-ort-dual-session/claptrap-chat only:
+## Exact operation
 
-- Add a manifest, icons, service worker, and small startup module. Cache the
-  local shell independently of model installation. Use same-origin service
-  worker response headers for isolation on the existing development host;
-  verify document and worker isolation before loading models. Retain pinned
-  Transformers.js model/WASM caching for later launches. No new hosting service.
-- Configure shared-memory WASM inference threads from available processors
-  (half, capped at four); record the requested and runtime-reported setting.
-  Preserve the single runtime, q4 models, and CPU/GPU residency.
-- Acquire one origin-wide runtime/storage owner before creating any worker or
-  writing files, shared by the actual conversation and diagnostic page.
-- Repair actual-chat evidence writes, preserve received results/errors in
-  exports, checkpoint before advancing, and identify interrupted runs after
-  reload. Add the existing token-progress and GPU-loss observations to chat.
-- Extend the existing checks only for these observed failure paths and app
-  startup/cache behavior. Record executed verification and limitations here,
-  in VERIFICATION.md, and in a compact evidence JSON.
+1. On each fresh turn, call the active resident model to generate a retrieval
+   query for the seed or previous seat's latest plain-text reply. Keep Granite's
+   native tool schema/format. Supply an explicit retrieval-only request and, if
+   needed, a recorded native assistant prefix selecting the sole required tool;
+   Granite must generate the query words itself. Keep all first-call material
+   in machine evidence, never the conversation CSV.
+2. Execute the existing deterministic CSV search. Preserve the at-least-three-
+   word check, all-word matching, original matching rows, and deterministic
+   invalid-query result. No query rewriting, automatic retries, semantic search,
+   transcript injection, or made-up memory. Search even when CSV is empty.
+3. Call the same resident model again with exactly `You are Claptrap.` as the
+   actor system, the unchanged timestamp/incoming message, this turn's native
+   tool request and its actual result. This is the response call, so do not
+   advertise another available tool or append retrieval-task instructions to
+   its system/user message. Keep the native tool-result serialization.
+4. Generate exactly 100 response tokens; only this second call's decoded output
+   is shown, saved to CSV, and passed to the other seat. Keep both calls in JSON
+   evidence with explicit retrieval/response labels. A malformed/truncated first
+   call or a second call requesting another tool fails visibly without a fake
+   response. Invalid but parseable queries return the existing deterministic
+   error to the response call.
+5. Retain fresh inputs/no carried KV, one worker/runtime/tokenizer, simultaneous
+   CPU/GPU residency, alternating generation, four-thread phone configuration,
+   persistence checkpoints and origin ownership. A complete run is 100 replies,
+   50 per seat, and 200 generation calls; the seed counts as zero.
 
-Files: main.js, runtime-worker.js, index.html, stability.js, stability.html,
-checks.mjs; new app-shell.js, sw.js, manifest.webmanifest, icon.svg/icon PNGs,
-repair-checks.mjs and evidence/installed-repair-20260917.json if needed.
-Documentation: this WORK.md and the experiment VERIFICATION.md.
+## Files and why
 
-## Preserved boundaries
+Within experiments/granite-single-ort-dual-session/claptrap-chat:
+- runtime-worker.js: two-call turn, phase evidence and failure boundaries;
+  preserve the old fixed-input diagnostic replay explicitly.
+- main.js, index.html: phase labels, evidence contract and response-only counts.
+- turn-boundary.js: verify the two-call contract for new completed conversations.
+- checks.mjs, repair-checks.mjs if needed: meaningful boundary/failure checks.
+- stability.js, stability.html: one explicitly labeled CPU two-call probe through
+  the same new worker path for this cloud browser without a WebGPU adapter;
+  retain old replay trials as old replay trials, not the new conversation.
+- sw.js: update the shell cache version for changed installed code.
+- VERIFICATION.md and evidence/two-call-turn-20260917.json: executed results,
+  exact public-safe exports, hashes, and limitations.
+Also update the experiment's GRANITE_CLAPTRAP_CONVERSATION_EXPERIMENT_PLAN.md
+with this explicit user-directed change and scratchpad/WORK.md with status.
 
-The locked blueprint SHA was checked against current main and matches.
-No architecture/lock, main branch, world CSV fixture, model, precision, prompt,
-seed, token budget, native tool semantics, or actor behavior change. Granite's
-own framing remains experimental output. The real test is the agreed alternating
-100-response conversation (50 CPU + 50 GPU, seed excluded), with both sessions
-resident. Simultaneous generation is not part of that conversation plan.
-No paid service, CI, backend, new host, or unrelated Screechrac implementation.
+## Verification and limits
 
-## Verification and reporting
-
-Run the existing synthetic checks plus targeted failed-save/reload, exclusive
-ownership, thread/isolation, and shell/cache checks. Publish on the existing
-experiment branch and exercise the actual page in the available browser. Verify
-service worker control, isolation, shared memory and real CPU execution; inspect
-errors rather than silently falling back to one thread. The cloud browser's
-WebGPU adapter has previously been unavailable, so full dual-session endurance
-must remain unproven unless actual execution establishes it. Publish a usable
-phone link, distinguishing repaired code from a completed 100-response run.
-
-## Implementation and executed results
-
-The repair is implemented. Thirty synthetic checks pass. The published candidate
-established page/worker isolation, shared memory, install eligibility, and live
-exclusive ownership. Real CPU inference completed 100 tokens with two reported
-WASM threads on the cloud browser's five processors. All 36 events saved and
-matched on reload. The actual chat saved its CPU-load/WebGPU-adapter failure.
-Final controller corrections cover released-model labels, interrupted clearing,
-and exports while the last JSON close is pending. The final code was opened in the browser: isolation, pinned CPU startup and
-released-model labels were verified, and its complete error export committed.
-
-The full phone conversation, standalone launch in airplane mode, and original
-Chrome crash cause remain unverified. No diagnostic replay is being presented
-as a full dual-session run. All details and reviewed public evidence are in the
-experiment VERIFICATION.md and evidence/installed-repair-20260917.json.
-
-An executed check against the pinned library also reproduced an offline startup
-failure: tokenizer metadata discovery drops revision and requests main despite
-cached pinned resources. The worker's existing remote path template now pins
-that lookup too. The before/after check succeeds without network in the fixed
-case. This stays within the approved offline startup repair and adds no runtime,
-model, package, or service. repair-checks.mjs retains the reproduction.
-
-## Handoff
-
-COMPLETE refers to this approved implementation repair and its recorded checks,
-not to proof of the original crash cause or completion of the phone endurance
-run. Open the final index.html URL in VERIFICATION.md after closing older
-Claptrap pages. Export/clear an existing conversation before starting a fresh
-50 CPU / 50 GPU run. The seed still counts as zero; both models stay resident
-and generation alternates. No prompt or actor framing was repaired.
-
-Main and the locked architecture were left untouched. Reviewed evidence and
-all repair code are published on the existing experiment branch. There is no
-new approval request, paid host, service, CI job, or runtime dependency.
-
-## Installed-phone follow-up evidence
-
-The 20:10 UTC exports from final code confirm a clean five-response installed
-phone run with persistent storage, isolation/shared memory, four CPU threads
-reported, and both sessions resident. Three GPU and two CPU replies each reached
-100 tokens; all 124 events saved; zero pending writes/errors; stopped after turn 5.
-Raw generated text, returned reply, actor evidence, CSV and next-turn input agree
-for every response. The screenshot shows turn 2 still generating while only the
-completed turn 1 is rendered. Generic assistant/tool wording is Granite's output.
-No native retrieval ran. Exact original exports, hashes and per-turn checks are
-in installed-repair-20260917.json. The user subsequently clarified that the
-reply content itself was the problem:
-generated assistant/tooling narration, for which they deliberately stopped.
-Accurate CSV recording did not establish correct conversation setup. The installed
-five-response runtime boundary is executed evidence. Full endurance, offline
-launch, and the effective prompt discrepancy remain open.
-
-## Operator clarification and prompt trace
-
-The user explicitly confirms stopping because the replies were assistant/tooling
-narration, not because of a runtime failure. This clarification is now recorded
-with the existing phone evidence; the original exports remain unchanged.
-
-A rendering check against the actual pinned native tokenizer template reproduces
-the first phone prompt exactly. Tools expand the effective system from the
-requested `You are Claptrap.` to 1,002 characters, including a generic helpful
-assistant identity. All five raw outputs contain ordinary prose with no native
-tool/thinking/role markers and no separate final answer. The implementation uses
-the model's documented native tool format, but the resulting effective system
-contains more role framing than the experiment declares.
-
-This is a prompt-input finding, not a proven causal generation result. No prompt,
-model, generation setting, renderer, or saved response was changed. Details and
-the exact serialized system text are in VERIFICATION.md and the existing
-installed-repair evidence JSON. The earlier screenshot-only explanation of the
-reported problem was insufficient.
-
-Smallest next operation: hold the seed, timestamp, backend, model, q4 precision,
-token budget, schema, and native tool syntax fixed; compare the original prompt
-against removal of only the extra generic assistant-role wording. Preserve raw
-results and the original phone baseline. That comparison has not been run;
-changing the runtime's prompt behavior is outside the completed installed-app
-repair recorded above. It should not become an output filter, personality coach,
-mandatory planning stage, or loss of CSV retrieval.
+Run existing checks plus: only call 2 reaches CSV; call 1 query/results feed call
+2; original incoming message remains exact; zero-match/invalid searches remain
+factual; malformed calls stop without a row; no query material/cached context
+leaks into the next turn; both seed choices still complete 50/50 in synthetic
+plumbing; new exports and reload retain both call records. Render actual native
+prompts with the pinned tokenizer, then exercise real CPU two-call generation
+through the diagnostic UI and save the export. Publish the actual 100-turn page
+on the existing branch. Full dual-session execution still requires the phone if
+this cloud browser cannot obtain a WebGPU adapter. Two calls establish a clean
+recording boundary, not a guarantee that Granite's second answer is sensible.
