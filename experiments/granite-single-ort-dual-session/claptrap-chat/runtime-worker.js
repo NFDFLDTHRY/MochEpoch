@@ -61,7 +61,7 @@ function workerMemory() {
 }
 
 async function checkpoint(type, detail = {}) {
-  if (!diagnostic) { post(type, detail); return; }
+
   const checkpointId = ++checkpointSequence;
   await new Promise((resolve, reject) => {
     waitingForCheckpoint = { checkpointId, resolve, reject };
@@ -70,7 +70,6 @@ async function checkpoint(type, detail = {}) {
 }
 
 function observeExistingGpuDevice() {
-  if (!diagnostic) return;
   try {
     const device = env.backends?.onnx?.webgpu?.device;
     const available = typeof device?.lost?.then === "function";
@@ -99,12 +98,20 @@ function configureSingleOrtEnvironment() {
   if (!wasm) throw new Error("Transformers.js did not expose ONNX WASM environment.");
   if (!fixedSimdSupported()) throw new Error("Fixed-width WASM SIMD probe failed.");
   wasm.simd = "fixed";
-  wasm.numThreads = 1;
+  if (!self.crossOriginIsolated || typeof SharedArrayBuffer === "undefined") {
+    throw new Error("Worker is not isolated with shared memory. Multithreaded CPU initialization is blocked.");
+  }
+  const sharedMemory = new WebAssembly.Memory({ initial: 1, maximum: 1, shared: true });
+  if (!(sharedMemory.buffer instanceof SharedArrayBuffer)) throw new Error("Shared WASM memory probe failed.");
+  const requestedThreads = Math.min(4, Math.max(1, Math.floor((navigator.hardwareConcurrency || 2) / 2)));
+  wasm.numThreads = requestedThreads;
   wasm.proxy = false;
   return {
     hardwareConcurrency: navigator.hardwareConcurrency ?? null,
     crossOriginIsolated: Boolean(self.crossOriginIsolated),
     sharedArrayBufferAvailable: typeof SharedArrayBuffer !== "undefined",
+    requestedThreads,
+    sharedWasmMemoryProbe: true,
     resolvedSimd: wasm.simd ?? null,
     resolvedThreads: wasm.numThreads ?? null,
     resolvedProxy: wasm.proxy ?? null,
@@ -159,6 +166,7 @@ async function loadLane(lane) {
     finishedAt,
     durationMs: finishedAt - startedAt,
     observedModelFiles: [...reporter.observed].sort(),
+    runtimeThreads: env.backends.onnx.wasm.numThreads,
   });
 }
 
@@ -216,7 +224,7 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call,
       ...(diagnostic ? { recordedFirstInputMatched: call === 1 } : {}),
     });
     let promptSeen = false, rawGeneratedTokens = 0;
-    const streamer = diagnostic ? {
+    const streamer = {
       put(batch) {
         if (!promptSeen) { promptSeen = true; return; } // generate() first streams the prompt.
         rawGeneratedTokens += batch[0].length;
@@ -225,7 +233,7 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call,
         }
       },
       end() {},
-    } : null;
+    };
     outputs = await models[lane].generate({
       ...inputs,
       min_new_tokens: rawLimit,
@@ -235,7 +243,7 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call,
       stopping_criteria: new TurnBoundary(inputTokenCount, speechLimit),
       ...(streamer ? { streamer } : {}),
     });
-    if (diagnostic) await checkpoint("generation-returned", { requestId, lane, turn, call, rawGeneratedTokens });
+    await checkpoint("generation-returned", { requestId, lane, turn, call, rawGeneratedTokens });
     const generatedIds = outputs.tolist()[0].slice(inputTokenCount).map(Number);
     const rawText = tokenizer.decode(generatedIds, { skip_special_tokens: false });
     const result = {
@@ -250,7 +258,7 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call,
     // We supply neither cache nor prior tensors to the next generation.
     await disposeInputs(inputs, outputs);
     inputs = null; outputs = null;
-    if (diagnostic) await checkpoint("tensor-cleanup-complete", {
+    await checkpoint("tensor-cleanup-complete", {
       requestId, lane, turn, call,
       note: "Existing input/output disposal completed. Actual RAM/GPU reclamation is not measured.",
     });
@@ -369,6 +377,8 @@ async function initialize(requestId, options) {
     tokenizerResident: Boolean(tokenizer),
     oneWorker: true,
     oneTransformersModuleRealm: true,
+    runtimeThreads: env.backends.onnx.wasm.numThreads,
+    crossOriginIsolated: Boolean(self.crossOriginIsolated),
   });
 }
 

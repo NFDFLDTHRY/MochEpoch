@@ -388,3 +388,29 @@ Source hashes, exact reproduction outcomes, and audit limits are retained
 under `runtimeAndChatAudit` in the existing evidence file. The successful
 collector repair applies to `stability.js`; it did not repair the actual
 chat controller's failed-save behavior. The new audit changed no runtime code.
+
+## Approved installed-app repair — browser verification in progress
+
+The user's explicit instruction to do the repair is recorded in WORK.md.
+The new manifest/service worker cache a small shell independently of model
+loading. Same-origin document and worker responses receive COOP/COEP headers.
+Both page and worker require isolation/shared memory before model loading;
+eight logical processors request four WASM threads, preserving fixed SIMD,
+one runtime, and the two resident q4 sessions. This configures threading; it
+does not measure per-core utilization.
+
+One Web Lock covers chat and diagnostic pages before workers or file writes.
+Chat now acknowledges durable runtime checkpoints, saves each prepared result
+before appending CSV, and can reconcile a committed row against that exact
+prepared record after a failed diagnostic close. A separate small failure
+marker preserves the error across reload if localStorage remains writable;
+if both storage mechanisms fail, only the live export retains the newest error.
+Full received diagnostics remain exportable, including write status. The DOM
+shows only the latest 100 event summaries. Actor content is not rewritten.
+
+Twenty-seven synthetic checks currently pass, including both 50/50 seed cases,
+shared-memory admission, failed saves before and after CSV, reload, duplicate
+controllers, and isolated cached shell responses. These are plumbing checks.
+Live browser installation, CPU execution with the threaded runtime, cache reuse,
+and target-phone dual-session endurance have not yet been established for this
+build. Prior short single-thread replays do not establish them.

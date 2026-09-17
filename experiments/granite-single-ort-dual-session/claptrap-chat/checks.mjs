@@ -75,12 +75,12 @@ async function workerFixture(scripts, searchResult = { query: 'alpha beta gamma'
     },
   };
   const context = vm.createContext({
-    console, performance, navigator: { hardwareConcurrency: 8 }, WebAssembly,
+    console, performance, navigator: { hardwareConcurrency: 8 }, WebAssembly, SharedArrayBuffer,
     StoppingCriteria: class {}, inspectTokens,
     env: { backends: { onnx: { wasm: {} } } },
     AutoTokenizer: { from_pretrained: async () => tokenizer },
     AutoModelForCausalLM: { from_pretrained: async (_, opts) => { loads.push(opts.device); return model; } },
-    self: { crossOriginIsolated: false, addEventListener: (_, fn) => { listener = fn; },
+    self: { crossOriginIsolated: diagnostics?.isolated ?? true, addEventListener: (_, fn) => { listener = fn; },
       postMessage(entry) {
         events.push(structuredClone(entry));
         if (entry.requiresSave) {
@@ -146,9 +146,9 @@ await check('Malformed native output remains evidence and produces no completed 
 });
 
 const mainSource = (await readFile(new URL('./main.js', import.meta.url), 'utf8'))
-  .replace(/^import [^\n]+\n/, '').replaceAll('import.meta.url', '"https://example.test/main.js"');
+  .replace(/^import [^\n]+\n/gm, '').replaceAll('import.meta.url', '"https://example.test/main.js"');
 
-async function controllerFixture({ files = new Map(), failAppendTurn = null, seed = 'cpu' } = {}) {
+async function controllerFixture({ files = new Map(), markers = new Map(), failAppendTurn = null, seed = 'cpu', beforeClose = async () => {}, claim = async () => {} } = {}) {
   const elements = new Map(), requests = [], commits = [], errors = [];
   class Element {
     constructor() { this.textContent = ''; this.handlers = {}; this.disabled = false; this.children = []; this.value = seed; }
@@ -175,6 +175,7 @@ async function controllerFixture({ files = new Map(), failAppendTurn = null, see
           offset += next.length;
         },
         async close() {
+          await beforeClose(name, bytes.toString());
           if (name.endsWith('.csv')) {
             const rows = readCsv(bytes.toString());
             if (keepExistingData && rows.length === failAppendTurn) throw new Error('Injected CSV save failure');
@@ -188,6 +189,7 @@ async function controllerFixture({ files = new Map(), failAppendTurn = null, see
   });
   class FakeWorker {
     handlers = {};
+    terminate() {}
     addEventListener(name, fn) { this.handlers[name] = fn; }
     postMessage(message) {
       requests.push(structuredClone(message));
@@ -215,13 +217,14 @@ async function controllerFixture({ files = new Map(), failAppendTurn = null, see
   const context = vm.createContext({
     console, URL, Blob, Date, JSON, setTimeout, clearTimeout,
     CSV_HEADER, csvLine, readCsv, searchRows, verifyCompleted, Worker:FakeWorker,
-    location:{href:'https://example.test/'},localStorage:{getItem:()=>null,removeItem(){}},
-    navigator:{userAgent:'Synthetic local test, not a device run',storage:{getDirectory:async()=>({getFileHandle:async(name)=>handle(name)})}},
+    prepareApp:async()=>({crossOriginIsolated:true,sharedArrayBufferAvailable:true}),claimRuntime:claim,
+    location:{href:'https://example.test/'},localStorage:{getItem:key=>markers.get(key)??null,setItem:(key,value)=>markers.set(key,value),removeItem:key=>markers.delete(key)},
+    navigator:{userAgent:'Synthetic local test, not a device run',storage:{persist:async()=>true,getDirectory:async()=>({getFileHandle:async(name)=>handle(name)})}},
     document:{querySelector:get,createElement:()=>new Element(),body:new Element()},
   });
   vm.runInContext(mainSource,context);
   for (let i=0;i<10;i++) await new Promise((resolve)=>setImmediate(resolve));
-  return {files,requests,commits,errors,elements,get,context};
+  return {files,markers,requests,commits,errors,elements,get,context};
 }
 
 let finishedFiles;
@@ -315,7 +318,7 @@ await check('A changed replay prompt is preserved diagnostically and never reach
 const phoneJson=await readFile(new URL('./evidence/phone-precrash-20260917.json',import.meta.url),'utf8');
 const phoneCsv=await readFile(new URL('./evidence/phone-precrash-20260917.csv',import.meta.url),'utf8');
 const diagnosticSource=(await readFile(new URL('./stability.js',import.meta.url),'utf8'))
-  .replace(/^import [^\n]+\n/,'').replace(/^export /gm,'').replaceAll('import.meta.url','"https://example.test/stability.js"')
+  .replace(/^import [^\n]+\n/gm,'').replace(/^export /gm,'').replaceAll('import.meta.url','"https://example.test/stability.js"')
   .replace('void restore();','const diagnosticReady = restore();');
 
 async function diagnosticControllerFixture({files=new Map(),failGenerationSave=false,beforeClose=async()=>{}}={}) {
@@ -362,7 +365,7 @@ async function diagnosticControllerFixture({files=new Map(),failGenerationSave=f
       })().catch(error=>this.emit({type:'command-error',requestId:message.requestId,error:error.message}));
     }
   }
-  const context=vm.createContext({console,URL,Blob,Date,JSON,TextEncoder,setTimeout,clearTimeout,readCsv,searchRows,Worker:DiagnosticWorker,crypto:{subtle:webcrypto.subtle,randomUUID:()=>`test-${++fileNumber}`},location:{href:'https://example.test/stability.html'},navigator:{userAgent:'Synthetic controller test',storage:{getDirectory:async()=>({getDirectoryHandle:async(name)=>{assert.equal(name,'granite-claptrap-stability');return directory;}})}},fetch:async(url)=>({ok:true,text:async()=>String(url).endsWith('.json')?phoneJson:phoneCsv}),document:{querySelector:get,createElement:()=>new Element(),body:new Element()}});
+  const context=vm.createContext({prepareApp:async()=>({crossOriginIsolated:true}),claimRuntime:async()=>{},console,URL,Blob,Date,JSON,TextEncoder,setTimeout,clearTimeout,readCsv,searchRows,Worker:DiagnosticWorker,crypto:{subtle:webcrypto.subtle,randomUUID:()=>`test-${++fileNumber}`},location:{href:'https://example.test/stability.html'},navigator:{userAgent:'Synthetic controller test',storage:{getDirectory:async()=>({getDirectoryHandle:async(name)=>{assert.equal(name,'granite-claptrap-stability');return directory;}})}},fetch:async(url)=>({ok:true,text:async()=>String(url).endsWith('.json')?phoneJson:phoneCsv}),document:{querySelector:get,createElement:()=>new Element(),body:new Element()}});
   vm.runInContext(diagnosticSource,context);
   context.captureDownload=(text,name)=>downloads.push({text,name});
   vm.runInContext('downloadText = captureDownload;',context);
@@ -467,4 +470,110 @@ await check('Collector failure during a turn retains the event and error without
   assert.ok(report.events.some(e=>e.type==='search-request'));
   assert.equal(report.export.source,'unsaved-memory');
 });
-console.log(JSON.stringify({kind:'synthetic-plumbing-and-stability-checks',realGraniteGeneration:false,results},null,2));
+
+
+await check('Worker requires isolation before either model loads and requests four threads on eight processors', async () => {
+  const normal = await workerFixture([]);
+  const environment = normal.events.find(e => e.type === 'runtime-start').environment;
+  assert.equal(environment.requestedThreads, 4);
+  assert.equal(environment.sharedWasmMemoryProbe, true);
+  assert.equal(normal.events.find(e => e.type === 'runtime-ready').runtimeThreads, 4);
+  const unsafe = await workerFixture([], undefined, { skipInitialize: true, isolated: false });
+  const result = await unsafe.send({command:'initialize',requestId:'unsafe'}, 'runtime-ready');
+  assert.equal(result.type, 'command-error');
+  assert.match(result.error, /not isolated/);
+  assert.equal(unsafe.loads.length, 0);
+});
+
+await check('Actual chat stops before CSV when saving a received result fails and restores its error marker', async () => {
+  const f = await controllerFixture({ beforeClose: async (name, text) => {
+    if (name.endsWith('.json') && JSON.parse(text).runtimeEvents.at(-1)?.type === 'turn-result') throw new Error('Injected result save failure');
+  }});
+  await f.get('#start').click();
+  assert.equal(readCsv(f.files.get('granite-claptrap-conversation.csv')).length, 0);
+  assert.equal(f.requests.filter(r => r.command === 'generate-turn').length, 1);
+  assert.ok(vm.runInContext('evidence.runtimeEvents.some(e => e.type === "turn-result")', f.context));
+  assert.match(vm.runInContext('evidence.error', f.context), /Injected result save failure/);
+  const restored = await controllerFixture({files:f.files, markers:f.markers});
+  assert.match(restored.get('#status').textContent, /Injected result save failure/);
+  assert.equal(restored.get('#start').disabled, true);
+  assert.equal(restored.requests.length, 0);
+});
+
+await check('CSV committed before a failed JSON close is reconciled from the exact durable prepared result', async () => {
+  const f = await controllerFixture({ beforeClose: async (name, text) => {
+    if (name.endsWith('.json') && JSON.parse(text).turns.length === 1) throw new Error('Injected post-CSV JSON failure');
+  }});
+  await f.get('#start').click();
+  const csv = f.files.get('granite-claptrap-conversation.csv');
+  assert.equal(readCsv(csv).length, 1);
+  const saved = JSON.parse(f.files.get('granite-claptrap-evidence.json'));
+  assert.equal(saved.pendingTurn.turn, 1); assert.equal(saved.turns.length, 0);
+  assert.equal(f.requests.filter(r => r.command === 'generate-turn').length, 1);
+  const restored = await controllerFixture({files:f.files, markers:f.markers});
+  assert.equal(vm.runInContext('evidence.turns.length', restored.context), 1);
+  assert.equal(vm.runInContext('evidence.pendingTurn', restored.context), null);
+  assert.equal(vm.runInContext('evidence.turns[0].actor.outputText', restored.context), readCsv(csv)[0].response);
+  assert.match(restored.get('#status').textContent, /Injected post-CSV JSON failure/);
+  assert.equal(restored.files.get('granite-claptrap-conversation.csv'), csv);
+  assert.equal(restored.requests.length, 0);
+});
+
+const appSource = (await readFile(new URL('./app-shell.js', import.meta.url), 'utf8'))
+  .replace(/^export /gm, '').replaceAll('import.meta.url', '"https://example.test/app-shell.js"');
+await check('Two actual controllers share one owner; the second cannot create a worker or overwrite files', async () => {
+  let held = false;
+  const locks = { async request(name, options, fn) {
+    assert.equal(name, 'granite-claptrap-runtime-and-files'); assert.equal(options.ifAvailable, true);
+    const lock = held ? null : {}; held = true; return fn(lock);
+  }};
+  const owner = vm.createContext({navigator:{locks}});
+  vm.runInContext(appSource, owner);
+  const claim = () => vm.runInContext('claimRuntime()', owner);
+  const files = new Map();
+  const first = await controllerFixture({files, claim});
+  const before = [...files];
+  const second = await controllerFixture({files, claim, seed:'gpu'});
+  assert.match(second.get('#status').textContent, /already open/);
+  await second.get('#start').click();
+  assert.equal(second.requests.length, 0); assert.deepEqual([...files], before);
+  await first.get('#start').click();
+  assert.equal(readCsv(files.get('granite-claptrap-conversation.csv')).length, 100);
+  assert.equal(JSON.parse(files.get('granite-claptrap-evidence.json')).completed, true);
+});
+
+await check('Interrupted chat reload exposes saved checkpoints without restarting a model', async () => {
+  const saved = JSON.parse(finishedFiles.get('granite-claptrap-evidence.json'));
+  saved.completed = false; saved.running = true;
+  const files = new Map(finishedFiles); files.set('granite-claptrap-evidence.json', JSON.stringify(saved));
+  const f = await controllerFixture({files});
+  assert.match(f.get('#status').textContent, /interrupted/);
+  assert.equal(f.requests.length, 0); assert.equal(f.get('#start').disabled, true);
+});
+
+await check('Offline shell returns isolated document and worker, caches executable modules, and leaves weights to the runtime cache', async () => {
+  const handlers = {}, entries = new Map(), fetched = [];
+  let online = true;
+  const cache = {async match(req){return entries.get(String(req.url ?? req))?.clone();},async put(req,res){entries.set(String(req.url ?? req),res.clone());}};
+  const context = vm.createContext({URL,Request,Response,Headers,
+    caches:{open:async()=>cache,keys:async()=>[],delete:async()=>true},
+    fetch:async req=>{if(!online)throw new Error('Offline');fetched.push(String(req.url ?? req));return new Response('fixture',{headers:{'Content-Type':'text/javascript'}});},
+    self:{registration:{scope:'https://example.test/claptrap/'},clients:{claim:async()=>{}},addEventListener:(type,fn)=>{handlers[type]=fn;}},
+  });
+  vm.runInContext(await readFile(new URL('./sw.js',import.meta.url),'utf8'),context);
+  let install; handlers.install({waitUntil:promise=>{install=promise;}}); await install;
+  assert.equal(fetched.some(url=>url.includes('huggingface.co')),false);
+  async function get(url){let response;handlers.fetch({request:new Request(url),respondWith:promise=>{response=promise;}});return response ? await response : null;}
+  const module='https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0';
+  await get(module);
+  online=false;
+  for(const path of ['index.html','runtime-worker.js']) {
+    const response=await get('https://example.test/claptrap/'+path);
+    assert.equal(response.headers.get('Cross-Origin-Opener-Policy'),'same-origin');
+    assert.equal(response.headers.get('Cross-Origin-Embedder-Policy'),'require-corp');
+  }
+  assert.equal(await (await get(module)).text(),'fixture');
+  assert.equal(await get('https://huggingface.co/model/weights.onnx'),null);
+});
+
+console.log(JSON.stringify({kind:'synthetic-plumbing-and-installed-repair-checks',realGraniteGeneration:false,results},null,2));

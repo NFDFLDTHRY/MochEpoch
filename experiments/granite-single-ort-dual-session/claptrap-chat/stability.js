@@ -1,4 +1,5 @@
 import { readCsv, searchRows } from "./turn-boundary.js";
+import { prepareApp, claimRuntime } from "./app-shell.js";
 
 const EXPERIMENT = "granite-claptrap-crash-isolation";
 const DIRECTORY = "granite-claptrap-stability";
@@ -10,7 +11,7 @@ const saved = document.querySelector("#saved");
 const download = document.querySelector("#download");
 const checkpointDownload = document.querySelector("#download-checkpoint");
 const collectorStatus = document.querySelector("#collector-status");
-let directory, currentHandle, evidence, inputs, csvText, sourceHashes;
+let directory, currentHandle, evidence, inputs, csvText, sourceHashes, appEnvironment;
 let worker, usedPage = false, activeInput = null, requestSequence = 0;
 let writes = Promise.resolve();
 let trialActive = false, currentFilename = "", saveFailure = null;
@@ -199,7 +200,7 @@ async function startTrial(trial) {
   evidence = {
     experiment: EXPERIMENT, version: 2, trial, createdAt: new Date().toISOString(),
     pageUrl: location.href, userAgent: navigator.userAgent,
-    sourceHashes, sourceCodeCommit: "37aef813ac2490a87325dca66377eef41ac4a594",
+    appEnvironment, sourceHashes, sourceCodeCommit: "37aef813ac2490a87325dca66377eef41ac4a594",
     status: "running", error: null, events: [], results: [],
     note: "Fixed-input diagnostic replay. Checkpoint writes affect timing. Not the 100-turn conversation or a speed benchmark.",
   };
@@ -262,6 +263,8 @@ async function startTrial(trial) {
 
 async function restore() {
   try {
+    appEnvironment = await prepareApp();
+    await claimRuntime();
     const texts = await Promise.all(["json", "csv"].map(async (extension) => {
       const response = await fetch(new URL(`./evidence/phone-precrash-20260917.${extension}`, import.meta.url));
       if (!response.ok) throw new Error(`Could not load source ${extension}: HTTP ${response.status}`);
