@@ -25,14 +25,17 @@
   <p>Replay the same recorded CPU input under three runtime conditions. One trial per page load. Each response still generates 100 conversational tokens with the pinned q4 model.</p>
   <p id="fixture">Checking the original phone input...</p>
   <p id="status" role="status">Restoring diagnostic evidence...</p>
+  <p id="collector-status" aria-live="polite">Checking saved evidence...</p>
   <div class="trials">
     <button id="cpu-only" disabled>1. CPU alone</button>
     <button id="both-idle" disabled>2. Both loaded, then CPU</button>
     <button id="gpu-then-cpu" disabled>3. GPU generation, then the fixed CPU input</button>
   </div>
-  <button id="download" disabled>Download current evidence</button>
+  <button id="download" disabled>Download final evidence</button>
+  <button id="download-checkpoint" disabled>Download live checkpoint (unfinished)</button>
   <a class="reload" href="./stability.html">Reload for the next trial</a>
   <p>Checkpoints are saved before model loading and generation. Token progress is best-effort. After a crash, reload this page and export the restored evidence. A missing completion record means the trial was interrupted; it does not identify why.</p>
+  <p>Wait for COMPLETE or FAILED, then download the final evidence. A live checkpoint includes unsaved diagnostics and remains available if saving stalls. If saving fails, download the failure report before reloading.</p>
   <p>This is a diagnostic replay. It leaves the chat conversation files intact. Checkpoint writes affect timing, so this page is not a speed benchmark.</p>
   <h2>Saved trials</h2>
   <ul id="saved"></ul>

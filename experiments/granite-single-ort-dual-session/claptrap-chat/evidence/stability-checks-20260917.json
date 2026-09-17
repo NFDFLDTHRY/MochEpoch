@@ -76,6 +76,18 @@
       {
         "name": "Diagnostic disk failure sends no successful acknowledgement and stops before generation",
         "pass": true
+      },
+      {
+        "name": "Collector failure exports the unsaved error instead of the stale running file",
+        "pass": true
+      },
+      {
+        "name": "Final export waits for completion while live checkpoints remain available during a stalled save",
+        "pass": true
+      },
+      {
+        "name": "Collector failure during a turn retains the event and error without retrying inference",
+        "pass": true
       }
     ]
   },
@@ -1206,7 +1218,7 @@
       ]
     }
   ],
-  "targetPhoneTrials": "Three uploaded running snapshots inspected; no completed response or recorded error. Awaiting operator confirmation of crash versus export during execution.",
+  "targetPhoneTrials": "User reports collector stopped before tasks completed. These are not three reported Chrome crashes; exact phone collector error is absent from the old exports.",
   "phoneObservations": [
     {
       "filename": "cpu-only-2026-09-17T17-59-28.402Z-2f9f5225-d59c-4404-856a-828cddac7126.json",
@@ -1232,7 +1244,7 @@
         },
         "lastSavedEvent": "generation-start",
         "lastSavedLane": "cpu",
-        "interpretation": "Unfinished snapshot. Export/reload/crash timing and actual browser outcome are not recorded; no cause assigned."
+        "interpretation": "User reports collector stopped before tasks completed. Raw snapshot has no recorded error or completed response; exact collector failure remains unidentified."
       }
     },
     {
@@ -1256,7 +1268,7 @@
         },
         "lastSavedEvent": "load-progress",
         "lastSavedLane": "cpu",
-        "interpretation": "Unfinished snapshot. Export/reload/crash timing and actual browser outcome are not recorded; no cause assigned."
+        "interpretation": "User reports collector stopped before tasks completed. Raw snapshot has no recorded error or completed response; exact collector failure remains unidentified."
       }
     },
     {
@@ -1284,8 +1296,38 @@
         },
         "lastSavedEvent": "runtime-ready",
         "lastSavedLane": null,
-        "interpretation": "Unfinished snapshot. Export/reload/crash timing and actual browser outcome are not recorded; no cause assigned."
+        "interpretation": "User reports collector stopped before tasks completed. Raw snapshot has no recorded error or completed response; exact collector failure remains unidentified."
       }
     }
-  ]
+  ],
+  "operatorReport": {
+    "source": "User in active Work conversation",
+    "text": "No, your evidence collector stopped before the tasks were completed."
+  },
+  "collectorRepair": {
+    "beforeRepairCodeCommit": "7d6d8fb7cfe4299ce1346c5dd73bf6c4151be6a0",
+    "syntheticReproduction": {
+      "realGraniteGeneration": false,
+      "saveFailure": {
+        "uiStatus": "FAILED: Error: Injected diagnostic disk failure. Export the saved evidence, then reload for another trial.",
+        "exportStatus": "running",
+        "exportError": null,
+        "exportResults": 0
+      },
+      "pendingCompletionWrite": {
+        "taskResponsesGenerated": 1,
+        "earlyExportStatus": "running",
+        "earlyExportResults": 1,
+        "afterWriteStatus": "complete",
+        "afterWriteResults": 1
+      }
+    },
+    "verifiedSourceSha256": {
+      "stability.js": "57808324fa6293819cbd445b5804bfa930837e4da3fefa0f12abe73593994187",
+      "stability.html": "10fa14d219ecc6cde28e0e48aae3e1a8dd0bb339ab2d3d283fb38af70fc6173f",
+      "checks.mjs": "9b944f9cff9f9bcfa2a2ad0dfa4ebff8564676a94eb787a982d2d7cdeb5e4f26"
+    },
+    "browserObservations": [],
+    "limit": "Synthetic collector defects reproduced and repaired; neither exact phone collector error nor original Chrome crash cause is identified."
+  }
 }

@@ -318,8 +318,8 @@ const diagnosticSource=(await readFile(new URL('./stability.js',import.meta.url)
   .replace(/^import [^\n]+\n/,'').replace(/^export /gm,'').replaceAll('import.meta.url','"https://example.test/stability.js"')
   .replace('void restore();','const diagnosticReady = restore();');
 
-async function diagnosticControllerFixture({files=new Map(),failGenerationSave=false}={}) {
-  const elements=new Map(),requests=[],generations=[],errors=[],retrievals=[];
+async function diagnosticControllerFixture({files=new Map(),failGenerationSave=false,beforeClose=async()=>{}}={}) {
+  const elements=new Map(),requests=[],generations=[],errors=[],retrievals=[],downloads=[];
   let fileNumber=0;
   class Element {
     constructor(){this.textContent='';this.disabled=true;this.children=[];this.handlers={};}
@@ -328,7 +328,7 @@ async function diagnosticControllerFixture({files=new Map(),failGenerationSave=f
     click(){return this.handlers.click?.();} remove(){}
   }
   const get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
-  const fileHandle=name=>({kind:'file',async getFile(){return{name,size:Buffer.byteLength(files.get(name)??''),text:async()=>files.get(name)??''};},async createWritable(){let text='';return{async write(value){text=value;},async close(){const parsed=JSON.parse(text);if(failGenerationSave && parsed.events.at(-1)?.type==='generation-start')throw new Error('Injected diagnostic disk failure');files.set(name,text);},async abort(){}};}});
+  const fileHandle=name=>({kind:'file',async getFile(){const text=files.get(name)??'';return{name,size:Buffer.byteLength(text),text:async()=>text};},async createWritable(){let text='';return{async write(value){text=value;},async close(){const parsed=JSON.parse(text);await beforeClose(parsed);if(failGenerationSave && parsed.events.at(-1)?.type==='generation-start')throw new Error('Injected diagnostic disk failure');files.set(name,text);},async abort(){}};}});
   const directory={async getFileHandle(name){return fileHandle(name);},async *entries(){for(const name of files.keys())if(name.startsWith('cpu-only-')||name.startsWith('both-idle-')||name.startsWith('gpu-then-cpu-'))yield[name,fileHandle(name)];}};
   class DiagnosticWorker {
     handlers={}; callbacks=new Map(); checkpointId=0; terminated=false;
@@ -364,8 +364,10 @@ async function diagnosticControllerFixture({files=new Map(),failGenerationSave=f
   }
   const context=vm.createContext({console,URL,Blob,Date,JSON,TextEncoder,setTimeout,clearTimeout,readCsv,searchRows,Worker:DiagnosticWorker,crypto:{subtle:webcrypto.subtle,randomUUID:()=>`test-${++fileNumber}`},location:{href:'https://example.test/stability.html'},navigator:{userAgent:'Synthetic controller test',storage:{getDirectory:async()=>({getDirectoryHandle:async(name)=>{assert.equal(name,'granite-claptrap-stability');return directory;}})}},fetch:async(url)=>({ok:true,text:async()=>String(url).endsWith('.json')?phoneJson:phoneCsv}),document:{querySelector:get,createElement:()=>new Element(),body:new Element()}});
   vm.runInContext(diagnosticSource,context);
+  context.captureDownload=(text,name)=>downloads.push({text,name});
+  vm.runInContext('downloadText = captureDownload;',context);
   await vm.runInContext('diagnosticReady',context);
-  return{context,get,files,requests,generations,errors,retrievals};
+  return{context,get,files,requests,generations,errors,retrievals,downloads};
 }
 
 let savedDiagnosticFiles;
@@ -413,5 +415,56 @@ await check('Diagnostic disk failure sends no successful acknowledgement and sto
   assert.match(f.get('#status').textContent,/FAILED/);
   const durable=JSON.parse([...f.files.values()][0]);
   assert.equal(durable.events.some(e=>e.type==='generation-start'),false);
+});
+await check('Collector failure exports the unsaved error instead of the stale running file',async()=>{
+  const f=await diagnosticControllerFixture({failGenerationSave:true});
+  await f.get('#cpu-only').click();
+  const durable=JSON.parse([...f.files.values()][0]);
+  assert.equal(durable.status,'running');assert.equal(durable.error,null);
+  assert.match(f.get('#collector-status').textContent,/save failed/);
+  assert.equal(f.get('#download').textContent,'Download failure report');
+  await f.get('#download').click();
+  const report=JSON.parse(f.downloads[0].text);
+  assert.equal(report.status,'failed');assert.match(report.error,/Injected diagnostic disk failure/);
+  assert.equal(report.export.source,'unsaved-memory');
+  assert.match(report.export.saveFailure.error,/Injected diagnostic disk failure/);
+  assert.ok(report.events.some(e=>e.type==='collector-save-failed'));
+  assert.equal(report.export.committedEvents,durable.events.length);
+  assert.equal(f.generations.length,0);
+});
+await check('Final export waits for completion while live checkpoints remain available during a stalled save',async()=>{
+  let release,holding=false;
+  const gate=new Promise(resolve=>release=resolve);
+  const f=await diagnosticControllerFixture({beforeClose:async record=>{if(record.status==='complete'){holding=true;await gate;}}});
+  const run=f.get('#cpu-only').click();
+  for(let i=0;i<100 && !holding;i++)await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(holding,true);assert.equal(f.generations.length,1);
+  assert.equal(f.get('#download').disabled,true);
+  await f.get('#download').click();assert.equal(f.downloads.length,0);
+  await f.get('#download-checkpoint').click();
+  const live=JSON.parse(f.downloads[0].text);
+  assert.equal(live.export.source,'live-memory');assert.equal(live.export.outcome,'unfinished');
+  assert.equal(live.export.pendingWrites,1);
+  release();await run;
+  await f.get('#download').click();
+  const report=JSON.parse(f.downloads[1].text);
+  assert.equal(report.status,'complete');assert.equal(report.results.length,1);
+  assert.equal(report.export.source,'committed-file-snapshot');
+  assert.equal(report.export.committedEvents,report.events.length);
+  assert.equal(f.get('#download').disabled,false);
+  assert.equal(f.get('#download-checkpoint').disabled,true);
+  assert.match(f.get('#collector-status').textContent,/0 write\(s\) pending/);
+});
+await check('Collector failure during a turn retains the event and error without retrying inference',async()=>{
+  const f=await diagnosticControllerFixture({beforeClose:async record=>{if(record.events.at(-1)?.type==='search-request')throw new Error('Injected mid-turn write failure');}});
+  await f.get('#gpu-then-cpu').click();
+  assert.equal(f.generations.length,1);
+  assert.equal(f.generations[0].lane,'gpu');
+  assert.equal(f.requests.some(r=>r.command==='search-result'),false);
+  await f.get('#download').click();
+  const report=JSON.parse(f.downloads[0].text);
+  assert.equal(report.status,'failed');assert.match(report.error,/Injected mid-turn write failure/);
+  assert.ok(report.events.some(e=>e.type==='search-request'));
+  assert.equal(report.export.source,'unsaved-memory');
 });
 console.log(JSON.stringify({kind:'synthetic-plumbing-and-stability-checks',realGraniteGeneration:false,results},null,2));

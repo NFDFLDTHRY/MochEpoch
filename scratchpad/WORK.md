@@ -1,11 +1,11 @@
 # Claptrap crash isolation result
 
 proposal_id: 20260917-claptrap-crash-isolation
-status: BLOCKED
+status: IN_PROGRESS
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 code_commit: 7d6d8fb7cfe4299ce1346c5dd73bf6c4151be6a0
-remaining_gate: operator confirmation of browser outcomes for the received phone snapshots
+remaining_gate: repair and verify incomplete exports from the approved diagnostic collector
 
 ## Changed
 
@@ -65,10 +65,27 @@ These snapshots cannot distinguish export during execution from a crash,
 manual reload, or another interruption. Their filenames contain trial creation
 times, not export times. Missing later events do not prove they never happened.
 
-## Smallest next operation
+## Operator correction and reproduced collector defects
 
-Ask which trials actually showed Chrome's Aw, Snap page and whether these
-exports were taken after recovery or while the page was still loading/running.
-Use that operator observation to interpret the saved boundaries before choosing
-a repair or requesting a rerun. The actual phone crash cause and real
-100-response, 50-CPU/50-GPU conversation remain unresolved.
+The user reports that the evidence collector stopped before the tasks completed.
+These uploads must not be described as three reported Chrome crashes or blamed
+on early manual export. The exact phone collector failure is absent from the
+old export format.
+
+Two defects were reproduced synthetically against the published controller:
+an injected save failure produces a FAILED page while the exported file still
+says running with no error; and export during a held final write returns the
+older running file despite a generated response, until that write completes.
+
+Reopen the same approved diagnostic work to repair these defects. Expected
+files remain stability.js, stability.html, checks.mjs,
+evidence/stability-checks-20260917.json, VERIFICATION.md, and this WORK.md.
+No model/runtime, prompts, topology, or normal chat changes are part of this
+collector repair. Final export will await queued saves, while a clearly labeled
+incomplete checkpoint remains available. Failed persistence must be visible and
+downloadable from the current in-memory diagnostic record without pretending
+that it was saved. No automatic retry or inference after a failed checkpoint.
+
+Run focused slow-write and rejected-write checks, then verify real CPU generation,
+export, and reload in the available browser. The original phone instability
+and full 100-response conversation remain unresolved.

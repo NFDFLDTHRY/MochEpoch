@@ -222,7 +222,38 @@ that a token or forward pass completed.
 
 These snapshots do not establish three crashes. Export while execution is
 active, a manual reload, a crash, or another interruption can leave this state.
-Neither export time nor the actual browser outcome is recorded. The operator
-must clarify which trials showed Aw, Snap and whether each export was taken
-after recovery or while the trial was running before a repair is selected.
-The existing cloud CPU success remains a separate result.
+Neither export time nor the actual browser outcome is recorded. The user
+subsequently clarified that the evidence collector stopped before the tasks
+completed. These are not three reported Chrome crashes. The existing cloud
+CPU success remains a separate result.
+
+### Collector repair
+
+Synthetic execution reproduced two defects in the published collector:
+
+- After an injected checkpoint-save failure, the page showed FAILED while its
+  exported file still said running with no error and no results. The rejected
+  write chain prevented the failure record from being persisted, and export
+  read only the old committed file.
+- With the final write held pending after a generated response, export returned
+  the earlier running snapshot. Once that write finished, export said complete.
+
+The diagnostic controller now displays saved-event and pending-write counts.
+Final export is available only after the trial finishes or fails, waits for
+queued writes, and uses the exact successfully committed snapshot. A separate
+live checkpoint can export received diagnostics even while storage is stalled;
+its metadata marks the report unfinished and identifies memory as its source.
+Persistence failure stops the diagnostic run and enables a failure report with
+the unsaved error and events. It does not retry storage or continue inference
+past a rejected checkpoint. Unsaved diagnostics require download before reload.
+
+Every new export identifies its export time, source, and outcome. Current-run
+exports also include committed-event count, pending writes, and any save error.
+Older saved files remain readable. Runtime, model input, sampling, token budget,
+and the normal chat are unchanged.
+
+Twenty-one synthetic checks pass, including final-write delay, a failed initial
+generation checkpoint, and a collector failure during a turn. Reproduction
+results and verified source hashes are retained in the existing evidence file.
+These defects explain how incomplete exports can occur; they do not identify
+the exact failure on the phone or the cause of the original Chrome crash.

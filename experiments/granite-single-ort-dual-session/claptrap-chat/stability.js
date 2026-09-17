@@ -8,9 +8,13 @@ const log = document.querySelector("#log");
 const output = document.querySelector("#output");
 const saved = document.querySelector("#saved");
 const download = document.querySelector("#download");
+const checkpointDownload = document.querySelector("#download-checkpoint");
+const collectorStatus = document.querySelector("#collector-status");
 let directory, currentHandle, evidence, inputs, csvText, sourceHashes;
 let worker, usedPage = false, activeInput = null, requestSequence = 0;
 let writes = Promise.resolve();
+let trialActive = false, currentFilename = "", saveFailure = null;
+let pendingWrites = 0, committedEvents = 0, committedAt = null, committedText = "";
 const pending = new Map();
 
 function errorText(error) { return `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`; }
@@ -55,10 +59,28 @@ async function writeText(handle, text) {
   catch (error) { await writable.abort().catch(() => {}); throw error; }
 }
 
+function showCollector() {
+  collectorStatus.textContent = saveFailure
+    ? `Collector save failed after ${committedEvents} saved events: ${saveFailure.error}. Download the failure report before reloading; it includes unsaved diagnostics.`
+    : `Collector: ${committedEvents} events saved; ${pendingWrites} write(s) pending.${trialActive ? " Collecting." : ""}`;
+}
+
 function persist() {
+  if (saveFailure) return writes; // Fail closed; never retry a rejected checkpoint.
   const snapshot = JSON.stringify(evidence);
-  writes = writes.then(() => writeText(currentHandle, snapshot));
-  // Callers still await this same promise and stop on failure.
+  const eventCount = evidence.events.length;
+  const handle = currentHandle;
+  pendingWrites++;
+  showCollector();
+  writes = writes.then(async () => {
+    await writeText(handle, snapshot);
+    committedText = snapshot;
+    committedEvents = eventCount;
+    committedAt = new Date().toISOString();
+  }).catch((error) => {
+    saveFailure ??= { error: errorText(error), at: new Date().toISOString(), committedEvents, committedAt };
+    throw error;
+  }).finally(() => { pendingWrites--; showCollector(); });
   writes.catch(() => {});
   return writes;
 }
@@ -125,8 +147,28 @@ function downloadText(text, name) {
 async function exportHandle(handle) {
   try {
     const file = await handle.getFile();
-    downloadText(await file.text(), file.name);
+    const record = JSON.parse(await file.text());
+    record.export = { exportedAt: new Date().toISOString(), source: "saved-file", outcome: record.status === "running" ? "unfinished" : record.status };
+    downloadText(JSON.stringify(record), file.name);
   } catch (error) { status.textContent = `Export failed: ${errorText(error)}`; }
+}
+
+async function exportCurrent(checkpoint = false) {
+  if (trialActive && !checkpoint) return;
+  if (!usedPage) return currentHandle && exportHandle(currentHandle);
+  const activeAtRequest = trialActive;
+  // Final reports wait for queued writes. A live checkpoint remains available
+  // even if storage has stalled, and explicitly labels its unsaved contents.
+  if (!checkpoint) await writes.catch(() => {});
+  const fromMemory = checkpoint || Boolean(saveFailure) || !committedText;
+  const record = fromMemory ? JSON.parse(JSON.stringify(evidence)) : JSON.parse(committedText);
+  record.export = {
+    exportedAt: new Date().toISOString(),
+    source: checkpoint ? "live-memory" : fromMemory ? "unsaved-memory" : "committed-file-snapshot",
+    outcome: activeAtRequest || record.status === "running" ? "unfinished" : record.status,
+    activeAtRequest, committedEvents, committedAt, pendingWrites, saveFailure,
+  };
+  downloadText(JSON.stringify(record), currentFilename);
 }
 
 function addSaved(handle, record, filename) {
@@ -144,21 +186,30 @@ function addSaved(handle, record, filename) {
 async function startTrial(trial) {
   if (usedPage || !TRIALS.includes(trial)) return;
   usedPage = true;
+  trialActive = true;
+  saveFailure = null; pendingWrites = 0; committedEvents = 0; committedAt = null; committedText = "";
+  currentHandle = null;
+  download.disabled = true;
+  download.textContent = "Download final evidence";
+  checkpointDownload.disabled = true;
+  status.textContent = "Running. Wait for COMPLETE or FAILED before downloading the final evidence.";
+  showCollector();
   for (const id of TRIALS) document.querySelector(`#${id}`).disabled = true;
   log.textContent = ""; output.textContent = "";
   evidence = {
-    experiment: EXPERIMENT, version: 1, trial, createdAt: new Date().toISOString(),
+    experiment: EXPERIMENT, version: 2, trial, createdAt: new Date().toISOString(),
     pageUrl: location.href, userAgent: navigator.userAgent,
     sourceHashes, sourceCodeCommit: "37aef813ac2490a87325dca66377eef41ac4a594",
     status: "running", error: null, events: [], results: [],
     note: "Fixed-input diagnostic replay. Checkpoint writes affect timing. Not the 100-turn conversation or a speed benchmark.",
   };
   const filename = `${trial}-${evidence.createdAt.replaceAll(":", "-")}-${crypto.randomUUID()}.json`;
+  currentFilename = filename;
   try {
     currentHandle = await directory.getFileHandle(filename, { create: true });
     writes = Promise.resolve();
     await persist();
-    download.disabled = false;
+    checkpointDownload.disabled = false;
     worker = new Worker(new URL("./runtime-worker.js", import.meta.url), { type: "module", name: "claptrap-stability" });
     worker.addEventListener("message", (event) => { void receive(event.data); });
     worker.addEventListener("error", (event) => {
@@ -182,10 +233,21 @@ async function startTrial(trial) {
     status.textContent = `COMPLETE: ${trial}. Recorded input matched; each response reached 100 conversational tokens and completed tensor cleanup. Export, then reload for the next trial.`;
   } catch (error) {
     evidence.status = "failed"; evidence.error = errorText(error);
-    await persist().catch(() => {});
-    status.textContent = `FAILED: ${evidence.error}. Export the saved evidence, then reload for another trial.`;
+    if (saveFailure) {
+      const entry = { type: "collector-save-failed", receivedAt: new Date().toISOString(), ...saveFailure };
+      evidence.events.push(entry);
+      log.textContent += JSON.stringify(entry) + "\n";
+    } else if (currentHandle) {
+      await persist().catch(() => {});
+    }
+    status.textContent = `FAILED: ${evidence.error}. ${saveFailure || !committedText ? "Download the failure report before reloading; its newest diagnostics are not saved." : "Download the failure report, then reload for another trial."}`;
   } finally {
     worker?.terminate();
+    trialActive = false;
+    download.disabled = false;
+    download.textContent = evidence.status === "complete" ? "Download final evidence" : "Download failure report";
+    checkpointDownload.disabled = true;
+    showCollector();
     activeInput = null;
     if (currentHandle) {
       try {
@@ -230,16 +292,21 @@ async function restore() {
     const latest = previous[0];
     if (latest) {
       currentHandle = latest.handle;
+      committedText = JSON.stringify(latest.record);
+      committedEvents = latest.record.events.length;
       download.disabled = false;
+      download.textContent = latest.record.status === "running" ? "Download saved unfinished evidence" : "Download saved evidence";
       log.textContent = latest.record.events.map((entry) => JSON.stringify(entry) + "\n").join("");
       output.textContent = latest.record.results.map((result) => `${result.lane.toUpperCase()}\n${result.outputText}\n\n`).join("");
     }
     document.querySelector("#fixture").textContent = `Recorded CPU input: ${inputs.cpu.expectedFirstInput.inputTokenCount} tokens. Identical messages, timestamp, and tool template in all trials.`;
     status.textContent = latest ? "Saved diagnostics restored. Choose a trial for a fresh runtime, or export a saved trial." : "Ready. Choose one trial.";
+    showCollector();
     for (const id of TRIALS) document.querySelector(`#${id}`).disabled = false;
   } catch (error) { status.textContent = `Setup failed: ${errorText(error)}. Existing files have not been changed.`; }
 }
 
 for (const trial of TRIALS) document.querySelector(`#${trial}`).addEventListener("click", () => startTrial(trial));
-download.addEventListener("click", () => currentHandle && exportHandle(currentHandle));
+download.addEventListener("click", () => exportCurrent());
+checkpointDownload.addEventListener("click", () => trialActive && exportCurrent(true));
 void restore();
