@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Granite Claptrap Zoo</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 1rem; max-width: 72rem; margin-inline: auto; line-height: 1.4; }
+    h1 { margin-top: 0; font-size: 1.5rem; }
+    button, select { min-height: 2.8rem; font: inherit; }
+    button { font-weight: 700; padding-inline: .9rem; }
+    button:disabled { opacity: .45; }
+    .panel, .message, details { border: 1px solid currentColor; border-radius: .6rem; }
+    .panel { padding: .8rem; margin-bottom: .8rem; }
+    .controls { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .6rem; }
+    .status-grid p { margin: .15rem 0; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+    #room { display: flex; flex-direction: column; gap: .7rem; }
+    .message { padding: .8rem; max-width: 92%; }
+    .message.cpu { align-self: flex-start; }
+    .message.gpu { align-self: flex-end; }
+    .message header { display: flex; flex-wrap: wrap; gap: .5rem; font-size: .86rem; opacity: .8; margin-bottom: .35rem; }
+    .message p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .message details { margin-top: .6rem; padding: .5rem; font-size: .9rem; }
+    .message pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: .4rem 0 0; }
+    #machine-log { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 20rem; overflow-y: auto; }
+    .ok { font-weight: 700; }
+    .warn { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Granite Claptrap Zoo</h1>
+
+  <section class="panel">
+    <div class="status-grid">
+      <div>
+        <p><strong>Model:</strong> Granite 4.0 350M q4</p>
+        <p><strong>CPU seat:</strong> WASM</p>
+        <p><strong>GPU seat:</strong> WebGPU</p>
+      </div>
+      <div>
+        <p><strong>System prompt:</strong> <span class="mono">You are Claptrap.</span></p>
+        <p><strong>Seed:</strong> <span class="mono">Welcome to the Zoo</span></p>
+        <p><strong>Run:</strong> 100 turns, 50 per seat, 100 new tokens per reply</p>
+      </div>
+    </div>
+    <p id="status" class="ok">Checking saved experiment files.</p>
+    <p><span id="cpu-status">CPU: not loaded</span> · <span id="gpu-status">GPU: not loaded</span></p>
+    <p id="turn-progress">0/100 saved · CPU 0/50 · GPU 0/50 · seed excluded</p>
+    <div class="controls">
+      <label for="seed-seat"><strong>Seed speaker:</strong></label>
+      <select id="seed-seat">
+        <option value="cpu">CPU Claptrap</option>
+        <option value="gpu">GPU Claptrap</option>
+      </select>
+      <button id="start" disabled>Start</button>
+      <button id="pause" disabled>Pause</button>
+      <button id="stop" disabled>Stop after current turn</button>
+      <button id="download-csv">Download conversation CSV</button>
+      <button id="download-evidence">Download evidence JSON</button>
+      <button id="clear" disabled>Clear saved conversation</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <p id="memory-status">Conversation memory: checking OPFS...</p>
+  </section>
+
+  <main id="room" aria-live="polite"></main>
+
+  <details class="panel">
+    <summary>Machine evidence log</summary>
+    <pre id="machine-log"></pre>
+  </details>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

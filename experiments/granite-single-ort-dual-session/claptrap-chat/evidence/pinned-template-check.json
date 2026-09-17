@@ -1,0 +1,14 @@
+{
+  "kind": "pinned-runtime-template-and-stopping-API-check",
+  "realGraniteGeneration": false,
+  "transformersVersion": "4.3.0",
+  "jinjaVersion": "0.5.10",
+  "modelRevision": "6c9a6f61601df51e76b1efff0974d8d26c2a25b5",
+  "passed": true,
+  "checks": [
+    "Actual pinned Jinja template accepts native tool-call history and tool-response message",
+    "Pinned tokenizer config identifies native tool marker IDs",
+    "Actual Transformers.js StoppingCriteria subclass composes through StoppingCriteriaList"
+  ],
+  "renderedFixture": "<|start_of_role|>system<|end_of_role|>You are Claptrap.\n\nYou are a helpful assistant with access to the following tools. You may call one or more tools to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"search_conversation\", \"description\": \"Search saved conversation\", \"parameters\": {\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\"}}, \"required\": [\"query\"]}}}\n</tools>\n\nFor each tool call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n</tool_call>. If a tool does not exist in the provided list of tools, notify the user that you do not have the ability to fulfill the request.<|end_of_text|>\n<|start_of_role|>user<|end_of_role|>Current timestamp: 2026-09-17T00:00:00Z\nMessage from the other speaker:\nWelcome to the Zoo<|end_of_text|>\n<|start_of_role|>assistant<|end_of_role|>Hi\n<tool_call>\n{\"name\": \"search_conversation\", \"arguments\": {\"query\": \"alpha beta gamma\"}}\n</tool_call><|end_of_text|>\n<|start_of_role|>user<|end_of_role|>\n<tool_response>\n{\"query\":\"alpha beta gamma\",\"words\":[\"alpha\",\"beta\",\"gamma\"],\"valid\":true,\"error\":null,\"rows\":[{\"turn\":1,\"timestamp\":\"2026-09-17T00:00:00Z\",\"speaker\":\"cpu_claptrap\",\"backend\":\"wasm\",\"response\":\"alpha beta gamma\"}]}\n</tool_response><|end_of_text|>\n<|start_of_role|>assistant<|end_of_role|>"
+}

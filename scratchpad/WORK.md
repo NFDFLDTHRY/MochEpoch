@@ -1,23 +1,116 @@
-# Current Work status
+# Claptrap diagnostic result and installable-app boundary
 
-status: NO_ACTIVE_PROPOSAL
+proposal_id: 20260917-claptrap-crash-isolation
+status: COMPLETE
 repository: NFDFLDTHRY/MochEpoch
-branch: main
+branch: experiment/granite-single-ort-dual-session
+code_commit: a21b07a2a454bff6db3dc457547e88330f4c6466
+remaining_gate: installable-app integration, isolation/thread configuration, actual-chat persistence defects, original Chrome crash cause, and full conversation endurance unresolved
 
-There is no active ChatGPT Work proposal.
+## Product boundary reaffirmed by the user
 
-The previous proposal `20260915T024510Z-sites-exact-history` was cancelled and rejected. Its matching historical review remains in `scratchpad/REVIEW.md`. Do not execute that Site experiment or treat it as a current next step.
+MochEpoch is an installable, offline-capable WebApp game. GitHack is a
+development/browser-test delivery surface. The development URL is not the
+product architecture. Granite resources must be obtained automatically and
+persisted for later launches; the player must not repeat file-picker,
+download/open-file/load-model steps. The service-worker installation must not
+depend on completing the entire model download.
 
-The Chrome read/resolve/render verification that the old cancelled note pointed toward has already been completed and recorded under `evidence/`.
+This operation built and audited the standalone Claptrap conversation and
+diagnostic pages under experiments/granite-single-ort-dual-session/claptrap-chat.
+It did not implement or validate the installable app's manifest, service
+worker, offline launch, model-cache recovery, or update lifecycle. COMPLETE
+above refers to this diagnostic operation, not to that product or its stability.
 
-The architecture-audit phase is closed. See `docs/ARCHITECTURE_CLOSURE.md`.
+The user supplied separate StrawDummy machine-surface evidence from Screechrac.
+It records successful independent JavaScript worker scaling and a working
+CPU-worker/WebGPU pipeline while shared memory was unavailable. The observed
+ONNX WASM threading and Transformers.js serialization restrictions must not be
+generalized into a claim that the phone or installable WebApps cannot use
+parallel workers or CPU/GPU pipelines. StrawDummy is device capability evidence,
+not MochEpoch architecture; its full export has not been copied into this repo.
 
-The architecture itself is locked. Before architecture-related work, read `docs/ARCHITECTURE_LOCK.json` and verify that `docs/GAME_BLUEPRINT.md` still has Git blob SHA `5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945`. A mismatch is a blocker. Do not modify the blueprint or lock unless the user explicitly instructs an unlock, replacement, or new architecture version.
+## Operator correction
 
-Do not reopen vocabulary-by-vocabulary architecture review unless the user changes the blueprint, executable evidence contradicts an invariant, implementation proves incompatible machinery is required, or current authoritative docs materially contradict each other. Even then, report the conflict first; reopening discussion does not itself unlock the blueprint.
+The user reported that the evidence collector stopped before the tasks completed.
+The three prior phone exports are not three reported Chrome crashes. Their exact
+bytes and the user's correction are retained in the existing evidence file.
 
-The next project work is executable: establish one real Granite 350M browser/WebApp JSON-in → JSON-out call, save evidence, then build only the thinnest Witness and deterministic CSV-return path the proven interface requires.
+## Reproduced and repaired
 
-If ChatGPT Work is used again, it must read `scratchpad/README.md` plus the current authoritative repository docs, replace this file with one new narrowly scoped `status: PROPOSED` operation, and stop for proposal-specific approval before changing implementation files.
+Synthetic execution of the published collector reproduced two defects: a save
+failure exported the stale running file without its error, and a pending final
+write allowed an older running snapshot to be exported after a response existed.
 
-This scratchpad does not define project architecture. Current architecture and implementation order come from `AGENTS.md`, the locked `docs/GAME_BLUEPRINT.md`, and `docs/MOCK_EPOCH_IMPLEMENTATION_PLAN.md`, with `docs/ARCHITECTURE_CLOSURE.md` recording the audit stop condition and `docs/ARCHITECTURE_LOCK.json` controlling blueprint changes.
+Repaired stability.js and stability.html within the approved diagnostic scope:
+final export waits until the trial completes or fails and queued saves settle;
+a separate live checkpoint remains downloadable during a storage stall; a failed
+save provides an explicitly unsaved report containing the error and received
+events. Saved-event and pending-write counts are visible. Exports identify time,
+source, outcome, and save status. No storage retry or inference continuation after
+a rejected checkpoint is added. Existing files remain readable.
+
+Worker/runtime code, prompts, sampling, token budget, model precision, dual
+residency, and the normal conversation are unchanged by this collector repair.
+Main and the locked architecture remain unchanged.
+
+## Executed checks
+
+Twenty-one synthetic checks pass. They cover rejected writes before inference,
+a write failure during a turn, and a stalled final write with a live export.
+Syntax and whitespace checks pass.
+
+A real cloud CPU-only replay with the repaired collector completed the identical
+351-token input and 100-token response in 79,877.60 ms. A live export at 23 events
+was labeled unfinished; collection continued after download. The final export
+contained all 36 events, zero pending writes, and a complete result. The live
+23-event record exactly matched its prefix. Both downloaded files were verified,
+and reload restored the exact full event list and output. The browser's download
+event notifications timed out, although the actual files arrived.
+
+Reproduction results, source hashes, and real browser exports are retained in
+experiments/granite-single-ort-dual-session/claptrap-chat/evidence/stability-checks-20260917.json.
+
+## Completed phone evidence
+
+All three subsequent phone trials at the repaired code commit completed and
+exported fully committed final snapshots, with no recorded error or pending
+write. Their exact bytes and hashes are retained in the existing evidence file.
+The collector-on-phone gate is now satisfied for these trials.
+
+CPU alone generated 100 tokens in 164.95 seconds; CPU with the GPU loaded and
+idle took 169.87 seconds. In the third trial, the WebGPU session generated 100
+tokens in 27.60 seconds, followed by CPU generation in 172.12 seconds. Every CPU
+input and output token sequence matched across conditions. GPU output matched
+the original phone's first turn. The two sessions generated sequentially.
+
+The CPU configuration explicitly forces one WASM inference thread. The phone
+reports eight logical processors, no cross-origin isolation, and no shared
+array buffer. Multicore performance has not been tested. GPU and CPU inputs
+differ, and diagnostic writes affect timing, so these are not controlled
+CPU/GPU speed comparisons. No runtime or hosting configuration was changed
+while recording these results.
+
+## Smallest next operation
+
+The original Chrome crash remains unexplained; all short replays succeeded.
+The follow-up actual-controller audit reproduced two distinct defects:
+an evidence write failure leaves saved CSV ahead of diagnostics and loses the
+error on reload; two controllers sharing the fixed storage filenames can
+overwrite each other's results. Exact synthetic outcomes are in the existing
+evidence file. Neither reproduction establishes the phone crash cause.
+
+Isolation and CPU thread configuration are separate changes: the code always
+forces one thread even if headers are supplied. Concurrent CPU/GPU execution
+also encounters both the application's busy guard and Transformers.js 4.3.0's
+browser inference chain. The original chat used sequential generation too;
+concurrency has not been established as its crash trigger.
+
+The next implementation proposal must fit the installable-app boundary above:
+identify the app origin and service-worker/cache lifecycle, then specify the
+minimum integration and execution checks needed there. Any isolation/thread
+change needs verification in that actual lifecycle. Full chat execution must
+include its real CSV writes, rendering, and evidence collection. A concurrent
+load experiment is distinct from the plan's alternating conversation. No new
+hosting, runtime, app shell, or chat-controller implementation is included in
+this completed audit.
