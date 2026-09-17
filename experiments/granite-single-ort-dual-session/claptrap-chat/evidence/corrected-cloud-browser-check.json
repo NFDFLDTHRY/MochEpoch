@@ -1,0 +1,311 @@
+{
+  "kind": "real-cloud-browser-startup-and-reload-check",
+  "source": "Observed page DOM status and non-progress machine log. These are selected events, not the downloaded full diagnostic JSON.",
+  "realGraniteConversation": false,
+  "generatedConversationTurns": 0,
+  "initialCorrectedBuild": {
+    "source": "Visible page status and non-progress machine log; selected events, not the downloaded evidence file.",
+    "codeCommit": "a0a2ce8eda92b9153176ade5035ca0be6578aaf7",
+    "pageUrl": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/a0a2ce8eda92b9153176ade5035ca0be6578aaf7/experiments/granite-single-ort-dual-session/claptrap-chat/index.html",
+    "observedAt": "2026-09-17T11:53:58.947Z",
+    "observation": {
+      "cpu": "CPU: resident",
+      "events": [
+        {
+          "actorSystemPrompt": "You are Claptrap.",
+          "atMs": 1789645907506.3,
+          "environment": {
+            "crossOriginIsolated": false,
+            "hardwareConcurrency": 5,
+            "resolvedProxy": false,
+            "resolvedSimd": "fixed",
+            "resolvedThreads": 1,
+            "sharedArrayBufferAvailable": false
+          },
+          "fixedNewTokens": 100,
+          "loadOrder": [
+            "cpu",
+            "gpu"
+          ],
+          "modelId": "onnx-community/granite-4.0-350m-ONNX-web",
+          "modelRevision": "6c9a6f61601df51e76b1efff0974d8d26c2a25b5",
+          "oneTransformersModuleRealm": true,
+          "oneWorker": true,
+          "requestId": "request-1",
+          "transformersVersion": "4.3.0",
+          "type": "runtime-start"
+        },
+        {
+          "atMs": 1789645907506.3,
+          "tokenizerStart": 1789645907506.3,
+          "type": "tokenizer-load-start"
+        },
+        {
+          "atMs": 1789645907787.6,
+          "durationMs": 281.199951171875,
+          "tokenizerEnd": 1789645907787.5,
+          "tokenizerStart": 1789645907506.3,
+          "type": "tokenizer-load-complete"
+        },
+        {
+          "atMs": 1789645907787.7002,
+          "device": "wasm",
+          "dtype": "q4",
+          "lane": "cpu",
+          "startedAt": 1789645907787.7002,
+          "type": "session-load-start"
+        },
+        {
+          "atMs": 1789645911521.5,
+          "device": "wasm",
+          "dtype": "q4",
+          "durationMs": 3733.699951171875,
+          "finishedAt": 1789645911521.4,
+          "lane": "cpu",
+          "observedModelFiles": [
+            "onnx/model_q4.onnx",
+            "onnx/model_q4.onnx_data"
+          ],
+          "startedAt": 1789645907787.7002,
+          "type": "session-load-complete"
+        },
+        {
+          "atMs": 1789645911521.5,
+          "lane": "cpu",
+          "secondLane": "gpu",
+          "type": "first-session-resident"
+        },
+        {
+          "atMs": 1789645911521.5,
+          "device": "webgpu",
+          "dtype": "q4",
+          "lane": "gpu",
+          "startedAt": 1789645911521.5,
+          "type": "session-load-start"
+        },
+        {
+          "atMs": 1789645912993.3,
+          "command": "initialize",
+          "error": "Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome.",
+          "lane": null,
+          "requestId": "request-1",
+          "turn": null,
+          "type": "command-error"
+        }
+      ],
+      "gpu": "GPU: loading 71.1%",
+      "progress": "0/100 saved · CPU 0/50 · GPU 0/50 · seed excluded",
+      "status": "ERROR: Error: Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome.. Saved CSV remains available. Reload before retrying a failed runtime."
+    },
+    "download": {
+      "attempted": true,
+      "eventReceived": false,
+      "timeoutMs": 15000
+    },
+    "realConversationTurns": 0
+  },
+  "finalCodeCommit": "37aef813ac2490a87325dca66377eef41ac4a594",
+  "finalPageUrl": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/37aef813ac2490a87325dca66377eef41ac4a594/experiments/granite-single-ort-dual-session/claptrap-chat/index.html",
+  "finalStartup": {
+    "observedAt": "2026-09-17T11:55:33.626Z",
+    "cpu": "CPU: resident",
+    "events": [
+      {
+        "actorSystemPrompt": "You are Claptrap.",
+        "atMs": 1789646112584.1,
+        "environment": {
+          "crossOriginIsolated": false,
+          "hardwareConcurrency": 5,
+          "resolvedProxy": false,
+          "resolvedSimd": "fixed",
+          "resolvedThreads": 1,
+          "sharedArrayBufferAvailable": false
+        },
+        "fixedNewTokens": 100,
+        "loadOrder": [
+          "cpu",
+          "gpu"
+        ],
+        "modelId": "onnx-community/granite-4.0-350m-ONNX-web",
+        "modelRevision": "6c9a6f61601df51e76b1efff0974d8d26c2a25b5",
+        "oneTransformersModuleRealm": true,
+        "oneWorker": true,
+        "requestId": "request-1",
+        "transformersVersion": "4.3.0",
+        "type": "runtime-start"
+      },
+      {
+        "atMs": 1789646112584.1,
+        "tokenizerStart": 1789646112584.1,
+        "type": "tokenizer-load-start"
+      },
+      {
+        "atMs": 1789646112839,
+        "durationMs": 254.89990234375,
+        "tokenizerEnd": 1789646112839,
+        "tokenizerStart": 1789646112584.1,
+        "type": "tokenizer-load-complete"
+      },
+      {
+        "atMs": 1789646112839.1,
+        "device": "wasm",
+        "dtype": "q4",
+        "lane": "cpu",
+        "startedAt": 1789646112839.1,
+        "type": "session-load-start"
+      },
+      {
+        "atMs": 1789646117341.6,
+        "device": "wasm",
+        "dtype": "q4",
+        "durationMs": 4502.5,
+        "finishedAt": 1789646117341.6,
+        "lane": "cpu",
+        "observedModelFiles": [
+          "onnx/model_q4.onnx",
+          "onnx/model_q4.onnx_data"
+        ],
+        "startedAt": 1789646112839.1,
+        "type": "session-load-complete"
+      },
+      {
+        "atMs": 1789646117341.7,
+        "lane": "cpu",
+        "secondLane": "gpu",
+        "type": "first-session-resident"
+      },
+      {
+        "atMs": 1789646117341.7,
+        "device": "webgpu",
+        "dtype": "q4",
+        "lane": "gpu",
+        "startedAt": 1789646117341.7,
+        "type": "session-load-start"
+      },
+      {
+        "atMs": 1789646118456.9,
+        "command": "initialize",
+        "error": "Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome.",
+        "lane": null,
+        "requestId": "request-1",
+        "turn": null,
+        "type": "command-error"
+      }
+    ],
+    "gpu": "GPU: failed to load",
+    "progress": "0/100 saved · CPU 0/50 · GPU 0/50 · seed excluded",
+    "renderedTurns": 0,
+    "status": "ERROR: Error: Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome.. Saved CSV remains available. Reload before retrying a failed runtime.",
+    "earlierRestoredVisibleEventsOmitted": 8
+  },
+  "afterReload": {
+    "pageUrl": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/37aef813ac2490a87325dca66377eef41ac4a594/experiments/granite-single-ort-dual-session/claptrap-chat/index.html",
+    "observedAt": "2026-09-17T11:56:00.289Z",
+    "restored": {
+      "events": [
+        {
+          "actorSystemPrompt": "You are Claptrap.",
+          "atMs": 1789646112584.1,
+          "environment": {
+            "crossOriginIsolated": false,
+            "hardwareConcurrency": 5,
+            "resolvedProxy": false,
+            "resolvedSimd": "fixed",
+            "resolvedThreads": 1,
+            "sharedArrayBufferAvailable": false
+          },
+          "fixedNewTokens": 100,
+          "loadOrder": [
+            "cpu",
+            "gpu"
+          ],
+          "modelId": "onnx-community/granite-4.0-350m-ONNX-web",
+          "modelRevision": "6c9a6f61601df51e76b1efff0974d8d26c2a25b5",
+          "oneTransformersModuleRealm": true,
+          "oneWorker": true,
+          "receivedAt": "2026-09-17T11:55:12.584Z",
+          "requestId": "request-1",
+          "transformersVersion": "4.3.0",
+          "type": "runtime-start"
+        },
+        {
+          "atMs": 1789646112584.1,
+          "receivedAt": "2026-09-17T11:55:12.586Z",
+          "tokenizerStart": 1789646112584.1,
+          "type": "tokenizer-load-start"
+        },
+        {
+          "atMs": 1789646112839,
+          "durationMs": 254.89990234375,
+          "receivedAt": "2026-09-17T11:55:12.839Z",
+          "tokenizerEnd": 1789646112839,
+          "tokenizerStart": 1789646112584.1,
+          "type": "tokenizer-load-complete"
+        },
+        {
+          "atMs": 1789646112839.1,
+          "device": "wasm",
+          "dtype": "q4",
+          "lane": "cpu",
+          "receivedAt": "2026-09-17T11:55:12.840Z",
+          "startedAt": 1789646112839.1,
+          "type": "session-load-start"
+        },
+        {
+          "atMs": 1789646117341.6,
+          "device": "wasm",
+          "dtype": "q4",
+          "durationMs": 4502.5,
+          "finishedAt": 1789646117341.6,
+          "lane": "cpu",
+          "observedModelFiles": [
+            "onnx/model_q4.onnx",
+            "onnx/model_q4.onnx_data"
+          ],
+          "receivedAt": "2026-09-17T11:55:17.342Z",
+          "startedAt": 1789646112839.1,
+          "type": "session-load-complete"
+        },
+        {
+          "atMs": 1789646117341.7,
+          "lane": "cpu",
+          "receivedAt": "2026-09-17T11:55:17.343Z",
+          "secondLane": "gpu",
+          "type": "first-session-resident"
+        },
+        {
+          "atMs": 1789646117341.7,
+          "device": "webgpu",
+          "dtype": "q4",
+          "lane": "gpu",
+          "receivedAt": "2026-09-17T11:55:17.344Z",
+          "startedAt": 1789646117341.7,
+          "type": "session-load-start"
+        },
+        {
+          "atMs": 1789646118456.9,
+          "command": "initialize",
+          "error": "Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome.",
+          "lane": null,
+          "receivedAt": "2026-09-17T11:55:18.457Z",
+          "requestId": "request-1",
+          "turn": null,
+          "type": "command-error"
+        }
+      ],
+      "memory": "CSV and machine evidence storage ready.",
+      "progress": "0/100 saved · CPU 0/50 · GPU 0/50 · seed excluded",
+      "renderedTurns": 0,
+      "status": "Saved run error: Error: Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome."
+    }
+  },
+  "checks": {
+    "cpuQ4Loaded": true,
+    "gpuQ4Loaded": false,
+    "gpuFailureLabelVisible": true,
+    "nonProgressEventsRestoredExactly": true,
+    "zeroSavedTurnsPreserved": true,
+    "evidenceDownloadReceiptConfirmed": false
+  },
+  "remaining": "Run the real 100-response experiment and preserve CSV plus JSON on the target device with working WebGPU. Browser automation did not receive the clicked evidence download within 15 seconds."
+}

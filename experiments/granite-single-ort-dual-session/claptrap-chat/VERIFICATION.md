@@ -3,6 +3,9 @@
 Date: 2026-09-17
 Starting build: `8f9e86f36177f4525edbd80a54650e696405bf95`
 Branch: `experiment/granite-single-ort-dual-session`
+Published code: `37aef813ac2490a87325dca66377eef41ac4a594`
+
+[Open the verified code build](https://raw.githack.com/NFDFLDTHRY/MochEpoch/37aef813ac2490a87325dca66377eef41ac4a594/experiments/granite-single-ort-dual-session/claptrap-chat/index.html)
 
 ## Where work stopped
 
@@ -80,6 +83,19 @@ The original build executed in the available cloud Chrome browser, loaded the
 CPU q4 session, then failed WebGPU session creation with `Failed to get GPU
 adapter`. Selected exact visible events are retained in
 `evidence/original-cloud-browser-startup.json`.
+
+The corrected published build also executed in that browser. The final code
+build loaded its CPU q4 session in 4502.5 ms, then encountered the same WebGPU
+adapter error. The GPU label changed to `failed to load`. After reload, the
+saved error and all eight non-progress events from that attempt appeared in
+the page again, with zero saved conversational turns. The exact selected
+observations and comparison are in `evidence/corrected-cloud-browser-check.json`.
+
+The evidence download control was clicked on the corrected build; browser
+automation received no download event within 15 seconds. Download delivery is
+therefore unverified in this environment. This is recorded separately from
+the successful OPFS diagnostic restoration; no downloaded full run file is
+claimed by the browser observation record.
 
 That browser limitation is separate from the user's successful phone residency
 run. It was not used to alter the runtime topology or switch the GPU seat to CPU.
