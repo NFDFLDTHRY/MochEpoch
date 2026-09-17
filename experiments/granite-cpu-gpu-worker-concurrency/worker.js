@@ -8,7 +8,7 @@ const MODEL_ID = "onnx-community/granite-4.0-350m-ONNX-web";
 const TRANSFORMERS_VERSION = "4.3.0";
 const MAX_NEW_TOKENS = 16;
 const HEARTBEAT_MS = 5000;
-const PROGRESS_THROTTLE_MS = 1000;
+const PROGRESS_THROTTLE_MS = 500;
 const MESSAGES = [
   {
     role: "system",
@@ -100,16 +100,21 @@ function summarizeProgress(info) {
 
 function makeProgressReporter(owner) {
   const lastProgressAt = new Map();
+  const latestProgress = new Map();
 
   return (info) => {
     const progress = summarizeProgress(info);
-    const key = `${progress.file ?? progress.name ?? "unknown"}`;
+    const key = `${progress.status}:${progress.file ?? progress.name ?? "aggregate"}`;
     const now = nowMs();
+    const isHighFrequency = progress.status === "progress" || progress.status === "progress_total";
 
-    if (progress.status === "progress") {
+    if (isHighFrequency) {
+      latestProgress.set(key, progress);
       const previousAt = lastProgressAt.get(key) ?? -Infinity;
       if (now - previousAt < PROGRESS_THROTTLE_MS) return;
       lastProgressAt.set(key, now);
+      post("load-progress", { owner, progress: latestProgress.get(key) });
+      return;
     }
 
     post("load-progress", { owner, progress });
