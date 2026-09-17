@@ -257,3 +257,20 @@ generation checkpoint, and a collector failure during a turn. Reproduction
 results and verified source hashes are retained in the existing evidence file.
 These defects explain how incomplete exports can occur; they do not identify
 the exact failure on the phone or the cause of the original Chrome crash.
+
+The repaired collector at `a21b07a2a454bff6db3dc457547e88330f4c6466` then
+executed the CPU-only replay in cloud Chrome. A live export contained 23 events
+and was labeled unfinished/live-memory. Generation and collection continued
+after that export. One generation completed all 100 conversational tokens in
+79,877.60 ms. Final export enabled only after completion, contained all 36
+events, and reported complete/committed-file-snapshot with zero pending writes.
+Its first 23 events exactly matched the live export. Both actual downloads were
+verified despite automation download-event timeouts. Reload restored the exact
+36 events and output. Full observations and both exports are retained under
+`collectorRepair.browserObservations` in the evidence file.
+
+Next, verify CPU alone on the phone using this repaired collector before
+repeating the remaining conditions. Use final evidence after COMPLETE/FAILED;
+if collection stalls, use the live checkpoint. Download a failure report before
+reload when the page says its newest diagnostics are unsaved. The original
+phone instability and repaired collector's behavior on that device remain open.
