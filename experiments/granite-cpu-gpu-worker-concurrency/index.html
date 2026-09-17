@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Granite CPU/GPU Worker Concurrency Probe</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 1rem; max-width: 58rem; margin-inline: auto; line-height: 1.4; }
+    h1 { font-size: 1.35rem; }
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .75rem; margin-block: 1rem; }
+    button { min-height: 3.25rem; font: inherit; font-weight: 700; }
+    button:disabled { opacity: .5; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .75rem; }
+    article, pre { border: 1px solid currentColor; border-radius: .5rem; padding: .75rem; }
+    article p { margin: .25rem 0; }
+    .ok { font-weight: 700; }
+    .bad { font-weight: 700; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 10rem; }
+    code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <h1>Granite CPU/GPU Worker Concurrency Probe</h1>
+  <p>This page measures whether separate dedicated workers allow Granite CPU/WASM and GPU/WebGPU inference to overlap. It does not read or mutate MochEpoch game state.</p>
+
+  <section class="grid" aria-label="environment">
+    <article>
+      <h2>Environment</h2>
+      <p id="gpu-availability"></p>
+      <p id="hardware-concurrency"></p>
+      <p><small id="page-url"></small></p>
+    </article>
+    <article>
+      <h2>CPU lane</h2>
+      <p>Device: wasm</p>
+      <p>Dtype: q4</p>
+      <p id="cpu-status">Not initialized.</p>
+    </article>
+    <article>
+      <h2>GPU lane</h2>
+      <p>Device: webgpu</p>
+      <p>Dtype: q4f16</p>
+      <p id="gpu-status">Not initialized.</p>
+    </article>
+  </section>
+
+  <section class="controls" aria-label="experiment controls">
+    <button id="initialize">Initialize lanes</button>
+    <button id="phase1" disabled>Run Phase 1</button>
+    <button id="download">Download evidence JSON</button>
+  </section>
+
+  <article id="summary" hidden>
+    <h2>Phase 1 summary</h2>
+    <p id="cpu-baseline"></p>
+    <p id="gpu-baseline"></p>
+    <p id="sequential-reference"></p>
+    <p id="concurrent-makespan"></p>
+    <p id="overlap-time"></p>
+    <p id="time-saved"></p>
+    <p id="overlap-ratio"></p>
+  </article>
+
+  <h2>Event log</h2>
+  <pre id="log" aria-live="polite"></pre>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
