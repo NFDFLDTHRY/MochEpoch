@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Granite Single ORT Dual Session Probe</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 1rem; max-width: 68rem; margin-inline: auto; line-height: 1.4; }
+    button { min-height: 3.25rem; font: inherit; font-weight: 700; margin: .25rem; }
+    button:disabled { opacity: .5; }
+    .notice, pre { border: 1px solid currentColor; border-radius: .5rem; padding: .75rem; }
+    .notice { border-width: 2px; font-weight: 700; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 14rem; }
+  </style>
+</head>
+<body>
+  <h1>Granite single-ORT dual-session probe</h1>
+  <p class="notice" id="status">One Worker. One Transformers.js import. One ONNX Runtime Web environment. Two q4 sessions.</p>
+  <p>This probe only asks whether one ORT environment can keep a WASM q4 session and a WebGPU q4 session resident together. It does not run inference.</p>
+  <section>
+    <button id="cpu-first">Load CPU then GPU</button>
+    <button id="gpu-first">Load GPU then CPU</button>
+    <button id="download">Download evidence</button>
+    <button id="clear">Clear persisted evidence</button>
+  </section>
+  <h2>Event log</h2>
+  <pre id="log"></pre>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
