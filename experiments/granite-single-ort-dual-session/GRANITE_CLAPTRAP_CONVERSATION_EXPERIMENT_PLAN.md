@@ -1,5 +1,39 @@
 # Moch Epoch Granite 350M Conversation Experiment Plan
 
+## User-directed two-call amendment — 2026-09-17
+
+After an installed-phone run produced five replies of assistant/tooling narration
+and zero searches, the user explicitly selected two calls per turn and recording
+only the second output. This supersedes the original optional-retrieval flow for
+the current Claptrap experiment. Earlier raw exports remain historical evidence.
+It does not establish a mandatory two-stage architecture for MochEpoch generally.
+
+Each completed turn now consists of one retrieval generation, one deterministic
+CSV search, and one response generation on the same resident seat. The retrieval
+call retains Granite's native tool template and receives a query-selection task.
+The harness may prefill the native call for the sole required search function;
+the model supplies the query itself, and the exact prefill is recorded separately
+from generated tokens. Its existing finite tool allowance is 96 generated tokens.
+There is no `NO_SEARCH` path or empty-CSV exception. A parseable invalid query
+returns the existing deterministic search error without adding words.
+
+The response call receives the exact actor system `You are Claptrap.`, the original
+timestamp and incoming message, the native tool request, and the actual CSV result.
+It does not receive the retrieval-task instruction or first-call narration, and
+it does not advertise a further tool call. Exactly 100 newly generated tokens from
+this second call are the response. Only that response is displayed as speech,
+appended to the authoritative conversation CSV, and sent to the other seat.
+Both calls and the search result remain in separate diagnostic evidence.
+
+A malformed/truncated retrieval call or another tool request during the response
+fails visibly and creates no conversation row. No automatic retries, query
+rewriting, output sanitization, personality coaching, or third call is added.
+A complete run is 100 replies from 200 generations, 50 replies per seat. The seed
+is excluded. Both q4 sessions remain resident; generation remains sequential.
+
+The optional tool-use wording in the original sections below describes the prior
+baseline and is superseded by this explicit amendment for current execution.
+
 ## Purpose
 
 Build a browser experiment where two resident copies of Granite 4.0 350M q4 hold a visible 100-turn conversation while all durable memory lives outside the model in an append-only CSV. The experiment should reveal how Granite behaves over repeated fresh turns and whether CPU/WASM and GPU/WebGPU execution produce any observable divergence when every other condition is held constant.

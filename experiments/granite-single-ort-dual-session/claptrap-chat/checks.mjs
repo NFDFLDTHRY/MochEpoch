@@ -111,31 +111,59 @@ async function workerFixture(scripts, searchResult = { query: 'alpha beta gamma'
   return { events, prompts, options, disposals, loads, send };
 }
 
-await check('No-search turns use one generation; each new turn receives only new input', async () => {
-  const f = await workerFixture([Array(100).fill(65), Array(100).fill(66)]);
+const queryIds = query => [...textIds(JSON.stringify(query).slice(1) + '}}\n'), close];
+await check('Every turn retrieves then responds; only second output is speech and the next turn starts fresh', async () => {
+  const f = await workerFixture([queryIds('alpha beta gamma'), Array(100).fill(65), queryIds('newest robot words'), Array(100).fill(66)]);
   for (let turn = 1; turn <= 2; turn++) {
     const result = await f.send({ command: 'generate-turn', requestId: `t${turn}`, lane: turn === 1 ? 'cpu' : 'gpu', turn, timestamp: 'now', incomingText: turn === 1 ? 'Welcome to the Zoo' : 'only latest text' }, 'turn-result');
-    assert.equal(result.type, 'turn-result');
+    assert.equal(result.type, 'turn-result', result.error);
     assert.equal(result.generatedTokenCount, 100);
-    assert.equal(result.generationCallCount, 1);
+    assert.equal(result.generationCallCount, 2);
+    assert.equal(result.responseCall, 2);
+    assert.equal(result.outputText, (turn === 1 ? 'A' : 'B').repeat(100));
+    assert.deepEqual(result.generatedSpeechIds, result.calls[1].generatedIds);
+    assert.equal(result.calls[0].phase, 'retrieval');
+    assert.equal(result.calls[1].phase, 'response');
   }
-  assert.equal(f.prompts[1].messages.length, 2);
-  assert.equal(JSON.stringify(f.prompts[1]).includes('Welcome to the Zoo'), false);
-  assert.equal(f.prompts[0].messages[0].content, 'You are Claptrap.');
+  assert.equal(f.prompts[2].messages.length, 2);
+  assert.equal(JSON.stringify(f.prompts[2]).includes('Welcome to the Zoo'), false);
+  assert.equal(JSON.stringify(f.prompts[2]).includes('alpha beta gamma'), false);
   assert.equal(f.prompts[0].config.tools[0].function.name, 'search_conversation');
-  assert.deepEqual(f.disposals, ['output','input','output','input']);
+  const response = f.prompts[1];
+  assert.equal(response.messages[0].content, 'You are Claptrap.');
+  assert.equal(response.messages[1].content, 'Current timestamp: now\nMessage from the other speaker:\nWelcome to the Zoo');
+  assert.equal(Object.hasOwn(response.config, 'tools'), false);
+  assert.equal(response.messages[2].content, '');
+  assert.equal(response.messages[2].tool_calls[0].function.arguments.query, 'alpha beta gamma');
+  assert.deepEqual(JSON.parse(response.messages[3].content).rows, [row(1, 'alpha beta gamma')]);
+  assert.deepEqual(f.disposals, ['output','input','output','input','output','input','output','input']);
 });
-await check('An emitted native tool call alone causes another call; speech totals exactly 100', async () => {
-  const native = JSON.stringify({ name: 'search_conversation', arguments: { query: 'alpha beta gamma' } });
-  const f = await workerFixture([[...textIds('Hi'), open, ...textIds(native), close], Array(100).fill(66)]);
-  const result = await f.send({ command:'generate-turn', requestId:'tool', lane:'cpu', turn:1, timestamp:'now', incomingText:'newest message' }, 'turn-result');
-  assert.equal(result.type, 'turn-result');
-  assert.equal(result.generatedTokenCount, 100);
-  assert.equal(result.outputText, 'Hi' + 'B'.repeat(98));
-  assert.equal(result.generationCallCount, 2);
-  assert.equal(f.prompts[1].messages[2].tool_calls[0].function.name, 'search_conversation');
-  assert.deepEqual(JSON.parse(f.prompts[1].messages[3].content).rows, [row(1, 'alpha beta gamma')]);
-  assert.equal(result.retrievals.length, 1);
+await check('Zero matches and invalid three-word queries reach the response unchanged without repair', async () => {
+  for (const query of ['missing robot words', 'two words']) {
+    const retrieval = searchRows([], 'search_conversation', query);
+    const f = await workerFixture([queryIds(query), Array(100).fill(66)], retrieval);
+    const result = await f.send({command:'generate-turn',requestId:'query',lane:'cpu',turn:1,timestamp:'now',incomingText:'seed'}, 'turn-result');
+    assert.equal(result.type, 'turn-result', result.error);
+    assert.equal(f.events.find(e => e.type === 'search-request').query, query);
+    assert.deepEqual(JSON.parse(f.prompts[1].messages[3].content), retrieval);
+    assert.equal(result.outputText, 'B'.repeat(100));
+    assert.equal(result.calls.length, 2);
+  }
+});
+await check('First-pass narration or truncation cannot become speech or trigger a blind second call', async () => {
+  const f = await workerFixture([textIds('I am a helpful assistant with tools.')]);
+  const result = await f.send({command:'generate-turn',requestId:'bad',lane:'cpu',turn:1,timestamp:'now',incomingText:'seed'}, 'turn-result');
+  assert.equal(result.type, 'command-error');
+  assert.equal(f.options.length, 1);
+  assert.equal(f.events.some(e => e.type === 'turn-result'), false);
+  assert.equal(f.events.some(e => e.type === 'generation-output' && e.phase === 'retrieval'), true);
+});
+await check('A second-pass tool call fails visibly instead of being counted as a reply or making a third call', async () => {
+  const f = await workerFixture([queryIds('alpha beta gamma'), [open, ...textIds('{}'), close]]);
+  const result = await f.send({command:'generate-turn',requestId:'bad-response',lane:'cpu',turn:1,timestamp:'now',incomingText:'seed'}, 'turn-result');
+  assert.equal(result.type, 'command-error');
+  assert.equal(f.options.length, 2);
+  assert.equal(f.events.some(e => e.type === 'turn-result'), false);
 });
 await check('Malformed native output remains evidence and produces no completed turn', async () => {
   const f = await workerFixture([[open, ...textIds('{broken'), close]]);
@@ -212,7 +240,11 @@ async function controllerFixture({ files = new Map(), markers = new Map(), failA
               type:'turn-result',requestId:message.requestId,lane:message.lane,turn:message.turn,
               systemPrompt:'You are Claptrap.',generatedTokenCount:100,
               generatedSpeechIds:Array(100).fill(65),inputTokenCount:20,durationMs:1,
-              outputText:`Synthetic ${message.turn}, "speech"\n🧐`,calls:[],retrievals:[],
+              outputText:`Synthetic ${message.turn}, "speech"\n🧐`,
+              turnProtocol:'retrieval-then-response-v1',responseCall:2,generationCallCount:2,
+              calls:[{call:1,phase:'retrieval',rawText:'query material must not become speech',generatedIds:[70]},
+                {call:2,phase:'response',generatedIds:Array(100).fill(65)}],
+              retrievals:[{valid:true,query:'alpha beta gamma',rows:[]}],
             }});
           }
         } catch (error) { errors.push(error); }
@@ -245,6 +277,8 @@ await check('100 synthetic replies alternate 50/50 and commit CSV before each ne
   const e = JSON.parse(f.files.get('granite-claptrap-evidence.json'));
   assert.equal(e.completed,true);
   assert.equal(e.summary.seedCounted,false);
+  assert.equal(e.summary.generationCalls,200);
+  assert.equal(f.files.get('granite-claptrap-conversation.csv').includes('query material'),false);
   assert.equal(e.turns[0].incomingText,'Welcome to the Zoo');
   finishedFiles = f.files;
 });
@@ -370,7 +404,7 @@ async function diagnosticControllerFixture({files=new Map(),failGenerationSave=f
       })().catch(error=>this.emit({type:'command-error',requestId:message.requestId,error:error.message}));
     }
   }
-  const context=vm.createContext({prepareApp:async()=>({crossOriginIsolated:true}),claimRuntime:async()=>{},console,URL,Blob,Date,JSON,TextEncoder,setTimeout,clearTimeout,readCsv,searchRows,Worker:DiagnosticWorker,crypto:{subtle:webcrypto.subtle,randomUUID:()=>`test-${++fileNumber}`},location:{href:'https://example.test/stability.html'},navigator:{userAgent:'Synthetic controller test',storage:{getDirectory:async()=>({getDirectoryHandle:async(name)=>{assert.equal(name,'granite-claptrap-stability');return directory;}})}},fetch:async(url)=>({ok:true,text:async()=>String(url).endsWith('.json')?phoneJson:phoneCsv}),document:{querySelector:get,createElement:()=>new Element(),body:new Element()}});
+  const context=vm.createContext({prepareApp:async()=>({crossOriginIsolated:true}),claimRuntime:async()=>{},console,URL,Blob,Date,JSON,TextEncoder,setTimeout,clearTimeout,CSV_HEADER,csvLine,readCsv,searchRows,Worker:DiagnosticWorker,crypto:{subtle:webcrypto.subtle,randomUUID:()=>`test-${++fileNumber}`},location:{href:'https://example.test/stability.html'},navigator:{userAgent:'Synthetic controller test',storage:{getDirectory:async()=>({getDirectoryHandle:async(name)=>{assert.equal(name,'granite-claptrap-stability');return directory;}})}},fetch:async(url)=>({ok:true,text:async()=>String(url).endsWith('.json')?phoneJson:phoneCsv}),document:{querySelector:get,createElement:()=>new Element(),body:new Element()}});
   vm.runInContext(diagnosticSource,context);
   context.captureDownload=(text,name)=>downloads.push({text,name});
   vm.runInContext('downloadText = captureDownload;',context);

@@ -30,13 +30,14 @@ let evidence = freshEvidence();
 
 function freshEvidence() {
   return {
-    experiment: EXPERIMENT, version: 3, createdAt: new Date().toISOString(),
+    experiment: EXPERIMENT, version: 4, createdAt: new Date().toISOString(),
     pageUrl: location.href, userAgent: navigator.userAgent,
     fixedConditions: {
       actorSystemPrompt: "You are Claptrap.", seedText: SEED_TEXT,
       totalTurns: 100, turnsPerSeat: 50, conversationalTokensPerTurn: 100,
       cpuBackend: "wasm", gpuBackend: "webgpu", dtype: "q4",
-      retrieval: "Native tool call within the actor turn; no preliminary planner.",
+      turnProtocol: "retrieval-then-response-v1",
+      retrieval: "Call 1 generates the search query; call 2 alone is the 100-token reply. Two calls per completed turn.",
     },
     seedSeat: null, runtimeEvents: [], turns: [], completed: false,
     stoppedEarly: false, running: false, interrupted: false, pendingTurn: null, error: null,
@@ -144,9 +145,9 @@ async function receive(entry) {
       loadingLane = null;
       document.querySelector(`#${entry.lane}-status`).textContent = `${entry.lane.toUpperCase()}: resident${entry.lane === "cpu" ? ` · ${entry.runtimeThreads} WASM threads` : ""}`;
     } else if (entry.type === "generation-start") {
-      status.textContent = `Turn ${entry.turn}/100: ${entry.lane.toUpperCase()} generating (${entry.speechTokensRemaining} conversational tokens remaining).`;
+      status.textContent = `Turn ${entry.turn}/100: ${entry.lane.toUpperCase()} · ${entry.phase === "retrieval" ? "1/2 selecting search words" : "2/2 composing reply"}.`;
     } else if (entry.type === "generation-progress") {
-      status.textContent = `Turn ${entry.turn}/100: ${entry.lane.toUpperCase()} · call ${entry.call} · ${entry.rawGeneratedTokens} raw tokens generated. Conversation and tool tokens are counted separately.`;
+      status.textContent = `Turn ${entry.turn}/100: ${entry.lane.toUpperCase()} · ${entry.phase === "retrieval" ? "1/2 selecting search words" : "2/2 composing reply"} · ${entry.rawGeneratedTokens} tokens generated. Only the second call is conversation.`;
     } else if (entry.type === "runtime-ready") {
       runtimeReady = true;
     } else if (entry.type === "gpu-device-lost") {
@@ -257,7 +258,7 @@ async function restore() {
       evidence.error ||= "CSV and diagnostic counts differ. Export both files before clearing; no rows were changed during recovery.";
     }
     if (evidence.completed) {
-      try { verifyCompleted(rows, evidence.turns, evidence.seedSeat); }
+      try { verifyCompleted(rows, evidence.turns, evidence.seedSeat, 100, evidence.version >= 4); }
       catch (error) { evidence.completed = false; evidence.error = errorText(error); }
     }
     if (evidence.running) { evidence.running = false; evidence.interrupted = true; }
@@ -309,6 +310,10 @@ async function runConversation(firstLane) {
       lane, turn, timestamp: startedTimestamp, incomingText,
     }, "turn-result");
     if (result.generatedTokenCount !== 100) throw new Error(`Turn ${turn} returned ${result.generatedTokenCount} conversational tokens.`);
+    if (result.turnProtocol !== "retrieval-then-response-v1" || result.generationCallCount !== 2 || result.responseCall !== 2 ||
+        result.calls?.length !== 2 || result.calls[0].phase !== "retrieval" || result.calls[1].phase !== "response" || result.retrievals?.length !== 1) {
+      throw new Error(`Turn ${turn} did not complete retrieval followed by the response call. No CSV row appended.`);
+    }
     const row = {
       turn, timestamp: new Date().toISOString(), speaker: `${lane}_claptrap`,
       backend: lane === "cpu" ? "wasm" : "webgpu", response: result.outputText,
@@ -320,6 +325,7 @@ async function runConversation(firstLane) {
         systemPrompt: result.systemPrompt, inputTokenCount: result.inputTokenCount,
         generatedTokenCount: result.generatedTokenCount, generatedSpeechIds: result.generatedSpeechIds,
         durationMs: result.durationMs, outputText: result.outputText,
+        turnProtocol: result.turnProtocol, responseCall: result.responseCall, generationCallCount: result.generationCallCount,
       },
       calls: result.calls, retrievals: result.retrievals,
     };
@@ -334,7 +340,7 @@ async function runConversation(firstLane) {
   const rows = await readRows();
   if (runtimeFailed) throw new Error(evidence.error || "Runtime failed.");
   if (rows.length === TOTAL_TURNS) {
-    evidence.summary = verifyCompleted(rows, evidence.turns, firstLane);
+    evidence.summary = verifyCompleted(rows, evidence.turns, firstLane, 100, true);
     evidence.completed = true;
 
   } else {
@@ -343,7 +349,7 @@ async function runConversation(firstLane) {
   }
   evidence.running = false;
   await persistEvidence();
-  status.textContent = evidence.completed ? "COMPLETE: 100 responses saved. CPU 50, GPU 50. Seed excluded."
+  status.textContent = evidence.completed ? "COMPLETE: 100 responses saved from 200 calls. CPU 50, GPU 50. Seed excluded."
     : `Stopped after ${rows.length} saved turn(s). Export before clearing.`;
 }
 

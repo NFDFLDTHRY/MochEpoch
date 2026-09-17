@@ -11,6 +11,9 @@ const TRANSFORMERS_VERSION = "4.3.0";
 const ACTOR_SYSTEM_PROMPT = "You are Claptrap.";
 const FIXED_NEW_TOKENS = 100;
 const TOOL_TOKEN_BUDGET = 96; // Existing fixture tool-output bound, separate from speech.
+const TURN_PROTOCOL = "retrieval-then-response-v1";
+// The harness selects the sole required tool. Granite generates the query.
+const RETRIEVAL_PREFIX = '<tool_call>\n{"name":"search_conversation","arguments":{"query":"';
 import { inspectTokens } from "./turn-boundary.js";
 const SEARCH_TOOL = [{
   type: "function",
@@ -37,6 +40,7 @@ let busy = false;
 let toolOpenToken, toolCloseToken;
 let waitingForSearch = null;
 let diagnostic = false;
+let legacyReplay = false;
 let checkpointSequence = 0;
 let waitingForCheckpoint = null;
 
@@ -197,16 +201,19 @@ async function disposeInputs(inputs, outputs) {
   }
 }
 
-async function generatePiece(lane, messages, speechLimit, requestId, turn, call, expectedFirstInput) {
+async function generatePiece(lane, messages, speechLimit, requestId, turn, call, expectedFirstInput, phase = "legacy") {
   let inputs = null, outputs = null;
   const startedAt = nowMs();
   try {
+    const retrieval = phase === "retrieval";
+    const assistantPrefix = retrieval ? RETRIEVAL_PREFIX : "";
     const prompt = tokenizer.apply_chat_template(messages, {
-      tokenize: false, add_generation_prompt: true, tools: SEARCH_TOOL,
-    });
+      tokenize: false, add_generation_prompt: true,
+      ...(phase === "response" ? {} : { tools: SEARCH_TOOL }),
+    }) + assistantPrefix;
     inputs = tokenizer(prompt);
     const inputTokenCount = inputs.input_ids.dims.at(-1);
-    if (diagnostic && call === 1 && (!expectedFirstInput ||
+    if (legacyReplay && call === 1 && (!expectedFirstInput ||
         expectedFirstInput.renderedPrompt !== prompt ||
         expectedFirstInput.inputTokenCount !== inputTokenCount ||
         JSON.stringify(expectedFirstInput.messages) !== JSON.stringify(messages))) {
@@ -215,17 +222,17 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call,
     }
     // The stop criterion counts speech only. A native tool block has its own
     // finite output allowance and is never counted as conversational tokens.
-    const rawLimit = speechLimit + TOOL_TOKEN_BUDGET;
+    const rawLimit = retrieval ? TOOL_TOKEN_BUDGET : phase === "response" ? speechLimit : speechLimit + TOOL_TOKEN_BUDGET;
     const contextLimit = models[lane].config.max_position_embeddings;
     if (!Number.isInteger(contextLimit) || inputTokenCount + rawLimit > contextLimit) {
       throw new Error(`Prompt (${inputTokenCount}) plus output bound (${rawLimit}) exceeds model context (${contextLimit}). No truncation performed.`);
     }
     await checkpoint("generation-start", {
-      requestId, lane, turn, call, startedAt, inputTokenCount,
+      requestId, lane, turn, call, phase, startedAt, inputTokenCount, assistantPrefix,
       messages, renderedPrompt: prompt, speechTokensRemaining: speechLimit,
       rawTokenLimit: rawLimit, doSample: false,
       pastKeyValuesSupplied: false, returnDictInGenerate: false,
-      ...(diagnostic ? { recordedFirstInputMatched: call === 1 } : {}),
+      ...(legacyReplay ? { recordedFirstInputMatched: call === 1 } : {}),
     });
     let promptSeen = false, rawGeneratedTokens = 0;
     const streamer = {
@@ -233,25 +240,25 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call,
         if (!promptSeen) { promptSeen = true; return; } // generate() first streams the prompt.
         rawGeneratedTokens += batch[0].length;
         if (rawGeneratedTokens === 1 || rawGeneratedTokens % 10 === 0) {
-          post("generation-progress", { requestId, lane, turn, call, rawGeneratedTokens, elapsedMs: nowMs() - startedAt });
+          post("generation-progress", { requestId, lane, turn, call, phase, rawGeneratedTokens, elapsedMs: nowMs() - startedAt });
         }
       },
       end() {},
     };
     outputs = await models[lane].generate({
       ...inputs,
-      min_new_tokens: rawLimit,
+      min_new_tokens: retrieval ? 0 : rawLimit,
       max_new_tokens: rawLimit,
       do_sample: false,
       return_dict_in_generate: false,
-      stopping_criteria: new TurnBoundary(inputTokenCount, speechLimit),
+      stopping_criteria: retrieval ? new RetrievalBoundary(inputTokenCount) : new TurnBoundary(inputTokenCount, speechLimit),
       ...(streamer ? { streamer } : {}),
     });
-    await checkpoint("generation-returned", { requestId, lane, turn, call, rawGeneratedTokens });
+    await checkpoint("generation-returned", { requestId, lane, turn, call, phase, rawGeneratedTokens });
     const generatedIds = outputs.tolist()[0].slice(inputTokenCount).map(Number);
     const rawText = tokenizer.decode(generatedIds, { skip_special_tokens: false });
     const result = {
-      call, inputTokenCount, generatedIds, rawText, startedAt,
+      call, phase, assistantPrefix, inputTokenCount, generatedIds, rawText, startedAt,
       finishedAt: nowMs(), durationMs: nowMs() - startedAt,
     };
     post("generation-output", { requestId, lane, turn, ...result });
@@ -263,13 +270,14 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call,
     await disposeInputs(inputs, outputs);
     inputs = null; outputs = null;
     await checkpoint("tensor-cleanup-complete", {
-      requestId, lane, turn, call,
+      requestId, lane, turn, call, phase,
       note: "Existing input/output disposal completed. Actual RAM/GPU reclamation is not measured.",
     });
   }
 }
 
-async function generateTurn(message) {
+// Retained only for the explicitly labeled, byte-identical old phone replay.
+async function generateReplayTurn(message) {
   const { requestId, lane, turn, timestamp, incomingText } = message;
   if (!initialized || !models[lane]) throw new Error("Runtime is not ready.");
   const messages = [
@@ -329,12 +337,67 @@ async function generateTurn(message) {
   // command can see only the fresh input it receives from the controller.
 }
 
+class RetrievalBoundary extends StoppingCriteria {
+  constructor(promptLength) { super(); this.promptLength = promptLength; }
+  _call(sequences) {
+    return sequences.map((ids) => ids.length > this.promptLength && Number(ids.at(-1)) === toolCloseToken);
+  }
+}
+
+async function generateTurn(message) {
+  if (legacyReplay) return generateReplayTurn(message);
+  const { requestId, lane, turn, timestamp, incomingText } = message;
+  if (!initialized || !models[lane]) throw new Error("Runtime is not ready.");
+  const startedAt = nowMs();
+  const system = { role: "system", content: ACTOR_SYSTEM_PROMPT };
+  const incoming = { role: "user", content: `Current timestamp: ${timestamp}\nMessage from the other speaker:\n${incomingText}` };
+  const queryMessages = [system, { role: "user", content:
+    `Select a search query containing at least three words relevant to the incoming message. Call search_conversation once with that query.\n\n${incoming.content}` }];
+  const queryCall = await generatePiece(lane, queryMessages, 0, requestId, turn, 1, null, "retrieval");
+  const serializedCall = queryCall.assistantPrefix + queryCall.rawText;
+  if (queryCall.generatedIds.at(-1) !== toolCloseToken || !serializedCall.endsWith("</tool_call>")) {
+    throw new Error("Retrieval call ended without its native closing marker. Raw output saved; no conversation row produced.");
+  }
+  const rawTool = serializedCall.slice("<tool_call>".length, -"</tool_call>".length).trim();
+  let nativeCall;
+  try { nativeCall = JSON.parse(rawTool); }
+  catch { throw new Error("Retrieval call is not JSON. Raw output saved; no query repair or conversation row produced."); }
+  if (nativeCall.name !== "search_conversation" || typeof nativeCall.arguments?.query !== "string") {
+    throw new Error("Retrieval call must name search_conversation and contain a string query. Raw output saved.");
+  }
+  const retrieval = await new Promise((resolve, reject) => {
+    waitingForSearch = { requestId, call: 1, resolve, reject };
+    post("search-request", { requestId, call: 1, phase: "retrieval", lane, turn,
+      name: nativeCall.name, query: nativeCall.arguments.query, rawTool });
+  });
+  // The query task and any first-call narration are not the actor's utterance.
+  // Keep the original input, native tool request and actual CSV result only.
+  const responseMessages = [system, incoming,
+    { role: "assistant", content: "", tool_calls: [{ type: "function", function: nativeCall }] },
+    { role: "tool", content: JSON.stringify(retrieval) }];
+  const response = await generatePiece(lane, responseMessages, FIXED_NEW_TOKENS, requestId, turn, 2, null, "response");
+  const boundary = inspectTokens(response.generatedIds, FIXED_NEW_TOKENS, toolOpenToken, toolCloseToken);
+  if (boundary.error || boundary.inTool || boundary.toolComplete || boundary.speech.length !== FIXED_NEW_TOKENS) {
+    throw new Error("Response call did not produce 100 speech tokens without another tool request. Raw output saved; no conversation row produced.");
+  }
+  const outputText = tokenizer.decode(response.generatedIds, { skip_special_tokens: true });
+  if (!outputText.trim()) throw new Error("Response call produced empty speech. Raw output saved.");
+  post("turn-result", {
+    requestId, lane, turn, timestamp, systemPrompt: ACTOR_SYSTEM_PROMPT,
+    turnProtocol: TURN_PROTOCOL, responseCall: 2, generationCallCount: 2,
+    outputText, generatedTokenCount: response.generatedIds.length, generatedSpeechIds: response.generatedIds,
+    inputTokenCount: response.inputTokenCount, calls: [queryCall, response], retrievals: [retrieval],
+    startedAt, finishedAt: nowMs(), durationMs: nowMs() - startedAt,
+  });
+}
+
 async function initialize(requestId, options) {
   if (initialized || models.cpu || models.gpu) {
     throw new Error("Runtime already initialized or initializing. Reload for a fresh runtime.");
   }
 
   diagnostic = options.diagnostic === true;
+  legacyReplay = diagnostic && options.turnProtocol !== TURN_PROTOCOL;
   const loadOrder = diagnostic ? options.lanes : ["cpu", "gpu"];
   if (![JSON.stringify(["cpu"]), JSON.stringify(["cpu", "gpu"])].includes(JSON.stringify(loadOrder))) {
     throw new Error("Diagnostic lanes must be CPU only or CPU then GPU.");
@@ -346,6 +409,7 @@ async function initialize(requestId, options) {
     modelId: MODEL_ID,
     modelRevision: MODEL_REVISION,
     actorSystemPrompt: ACTOR_SYSTEM_PROMPT,
+    turnProtocol: legacyReplay ? "legacy-optional-retrieval-replay" : TURN_PROTOCOL,
     fixedNewTokens: FIXED_NEW_TOKENS,
     oneWorker: true,
     oneTransformersModuleRealm: true,

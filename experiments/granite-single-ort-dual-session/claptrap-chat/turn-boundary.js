@@ -83,7 +83,7 @@ export function inspectTokens(ids, speechLimit, openToken, closeToken) {
   return { speech, tool, inTool, stop: false };
 }
 
-export function verifyCompleted(rows, turns, firstLane, total = 100) {
+export function verifyCompleted(rows, turns, firstLane, total = 100, requireTwoCalls = false) {
   if (rows.length !== total || turns.length !== total) throw new Error("Incomplete conversation/evidence pair.");
   for (let i = 0; i < total; i++) {
     const lane = i % 2 === 0 ? firstLane : firstLane === "cpu" ? "gpu" : "cpu";
@@ -95,6 +95,14 @@ export function verifyCompleted(rows, turns, firstLane, total = 100) {
         turns[i].incomingText !== (i ? rows[i - 1].response : "Welcome to the Zoo")) {
       throw new Error(`Conversation/evidence boundary mismatch at turn ${i + 1}.`);
     }
+    if (requireTwoCalls && (turns[i].actor.turnProtocol !== "retrieval-then-response-v1" ||
+        turns[i].actor.responseCall !== 2 || turns[i].actor.generationCallCount !== 2 ||
+        turns[i].calls?.length !== 2 || turns[i].calls[0].phase !== "retrieval" ||
+        turns[i].calls[1].phase !== "response" || turns[i].retrievals?.length !== 1 ||
+        JSON.stringify(turns[i].actor.generatedSpeechIds) !== JSON.stringify(turns[i].calls[1].generatedIds))) {
+      throw new Error(`Retrieval/response boundary mismatch at turn ${i + 1}.`);
+    }
   }
-  return { turns: total, cpuTurns: total / 2, gpuTurns: total / 2, strictAlternation: true, seedCounted: false };
+  return { turns: total, cpuTurns: total / 2, gpuTurns: total / 2, strictAlternation: true, seedCounted: false,
+    ...(requireTwoCalls ? { generationCalls: total * 2, responseCall: 2 } : {}) };
 }

@@ -1,0 +1,145 @@
+{
+  "experiment": "claptrap-retrieval-then-response",
+  "planCommit": "7043cdb6d9f9b87de2a9342b2c6d0809213780b8",
+  "synthetic": {
+    "kind": "synthetic-plumbing-and-installed-repair-checks",
+    "realGraniteGeneration": false,
+    "results": [
+      {
+        "name": "CSV preserves commas, quotes, CRLF, empty fields, and Unicode",
+        "pass": true
+      },
+      {
+        "name": "Malformed or nonsequential CSV stops instead of silently dropping history",
+        "pass": true
+      },
+      {
+        "name": "Retrieval requires three words, uses all terms, and preserves exact rows",
+        "pass": true
+      },
+      {
+        "name": "Native tool tokens do not count as conversational tokens",
+        "pass": true
+      },
+      {
+        "name": "Every turn retrieves then responds; only second output is speech and the next turn starts fresh",
+        "pass": true
+      },
+      {
+        "name": "Zero matches and invalid three-word queries reach the response unchanged without repair",
+        "pass": true
+      },
+      {
+        "name": "First-pass narration or truncation cannot become speech or trigger a blind second call",
+        "pass": true
+      },
+      {
+        "name": "A second-pass tool call fails visibly instead of being counted as a reply or making a third call",
+        "pass": true
+      },
+      {
+        "name": "Malformed native output remains evidence and produces no completed turn",
+        "pass": true
+      },
+      {
+        "name": "100 synthetic replies alternate 50/50 and commit CSV before each next call",
+        "pass": true
+      },
+      {
+        "name": "GPU seed still produces 50/50 with the seed excluded",
+        "pass": true
+      },
+      {
+        "name": "Reload restores CSV and diagnostics without calling a model or resetting history",
+        "pass": true
+      },
+      {
+        "name": "A failed CSV append preserves prior rows and prevents the next actor call",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic model loading waits for the start checkpoint acknowledgement",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic generation waits for durable evidence, then reports first token, progress, and cleanup",
+        "pass": true
+      },
+      {
+        "name": "A rejected diagnostic checkpoint prevents model inference",
+        "pass": true
+      },
+      {
+        "name": "A changed replay prompt is preserved diagnostically and never reaches inference",
+        "pass": true
+      },
+      {
+        "name": "All three trials replay identical captured CPU input; GPU warmup speech stays outside it",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic reload exposes saved trials without a model call or a conversation write",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic disk failure sends no successful acknowledgement and stops before generation",
+        "pass": true
+      },
+      {
+        "name": "Collector failure exports the unsaved error instead of the stale running file",
+        "pass": true
+      },
+      {
+        "name": "Final export waits for completion while live checkpoints remain available during a stalled save",
+        "pass": true
+      },
+      {
+        "name": "Collector failure during a turn retains the event and error without retrying inference",
+        "pass": true
+      },
+      {
+        "name": "Worker requires isolation before either model loads and requests four threads on eight processors",
+        "pass": true
+      },
+      {
+        "name": "Actual chat stops before CSV when saving a received result fails and restores its error marker",
+        "pass": true
+      },
+      {
+        "name": "CSV committed before a failed JSON close is reconciled from the exact durable prepared result",
+        "pass": true
+      },
+      {
+        "name": "Two actual controllers share one owner; the second cannot create a worker or overwrite files",
+        "pass": true
+      },
+      {
+        "name": "Interrupted chat reload exposes saved checkpoints without restarting a model",
+        "pass": true
+      },
+      {
+        "name": "Offline shell returns isolated document and worker, caches executable modules, and leaves weights to the runtime cache",
+        "pass": true
+      },
+      {
+        "name": "Actual chat does not export completion while the final evidence close is stalled",
+        "pass": true
+      },
+      {
+        "name": "Reload refuses stale completion when a clear was interrupted between the two files",
+        "pass": true
+      },
+      {
+        "name": "GPU startup failure releases both lanes and survives actual-controller reload",
+        "pass": true
+      }
+    ]
+  },
+  "browserVerification": {
+    "status": "pending",
+    "realGenerationClaimed": false
+  },
+  "limits": [
+    "Synthetic checks do not establish real model behavior or 100-turn phone endurance."
+  ]
+}

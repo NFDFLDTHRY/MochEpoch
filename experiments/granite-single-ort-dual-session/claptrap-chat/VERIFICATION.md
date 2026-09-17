@@ -548,3 +548,28 @@ retaining the search schema, native tool protocol, and all other experimental
 conditions. Record both raw outputs. Do not strip tooling narration from ordinary
 prose, invent a missing final answer, coach Claptrap's personality, or remove
 retrieval from the real conversation merely to make the displayed text look right.
+
+## Two-call turn implementation — 2026-09-17
+
+The user selected a required retrieval generation followed by a response
+generation, with only the second output recorded as speech. The previous proposed
+template-wording removal test is superseded by this instruction. Native tool
+framing remains in the retrieval call; the reply call uses the exact actor system,
+original incoming message, native request, and actual CSV search result.
+
+The first call has a recorded harness-supplied native tool prefix selecting the
+single required search function. Granite generates the query itself. The prefix
+is not misreported as generated tokens. First-call text never enters the response
+budget or CSV. Malformed/truncated queries and unexpected second-pass tool calls
+stop visibly; parseable invalid queries return the existing deterministic error.
+A successful turn always has two generations, including when CSV is empty.
+
+Thirty-two synthetic checks pass, including second-output-only speech, unchanged
+incoming message/tool results, empty/invalid retrieval, malformed output, no third
+call, fresh context, 100-turn 50/50 alternation from both seed seats, 200-call
+accounting, and existing persistence/isolation/ownership/reload protections.
+These are synthetic plumbing results. Browser inference verification is pending.
+The new CPU two-call diagnostic uses the same worker turn function, two turns
+starting at the seed, and an initially empty OPFS CSV of its own. Existing crash
+replays still explicitly use the original optional-retrieval turn and recorded
+phone inputs. Neither diagnostic substitutes for 100-turn dual-session endurance.

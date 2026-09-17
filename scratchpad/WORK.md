@@ -1,7 +1,7 @@
 # Claptrap retrieval call followed by response call
 
 proposal_id: 20260917-claptrap-two-call-turn
-status: PROPOSED
+status: IN_PROGRESS
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 base_commit: 11be0cd3bc3c0aeca4f02d9754c4133f1274870b

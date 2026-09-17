@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#111111">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <title>Claptrap crash isolation</title>
+  <title>Claptrap diagnostics</title>
   <style>
     :root { font-family: system-ui, sans-serif; line-height: 1.5; }
     body { max-width: 54rem; margin: auto; padding: 1rem; }
@@ -26,7 +26,10 @@
 <body>
   <p id="app-status" role="status">Preparing app…</p>
   <button id="install" hidden>Install Claptrap Zoo</button>
-  <h1>Claptrap crash isolation</h1>
+  <h1>Claptrap diagnostics</h1>
+  <p>Current turn test: two CPU replies, each with a retrieval call followed by a response call. Only response-call text enters its own diagnostic CSV. This does not test GPU residency or the full 100-turn conversation.</p>
+  <button id="cpu-two-call" disabled>Test two-call turns on CPU</button>
+  <h2>Legacy crash replays</h2>
   <p>Replay the same recorded CPU input under three runtime conditions. One trial per page load. Each response still generates 100 conversational tokens with the pinned q4 model.</p>
   <p id="fixture">Checking the original phone input...</p>
   <p id="status" role="status">Restoring diagnostic evidence...</p>

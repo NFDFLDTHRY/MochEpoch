@@ -1,9 +1,9 @@
-import { readCsv, searchRows } from "./turn-boundary.js";
+import { CSV_HEADER, csvLine, readCsv, searchRows } from "./turn-boundary.js";
 import { prepareApp, claimRuntime } from "./app-shell.js";
 
 const EXPERIMENT = "granite-claptrap-crash-isolation";
 const DIRECTORY = "granite-claptrap-stability";
-const TRIALS = ["cpu-only", "both-idle", "gpu-then-cpu"];
+const TRIALS = ["cpu-only", "both-idle", "gpu-then-cpu", "cpu-two-call"];
 const status = document.querySelector("#status");
 const log = document.querySelector("#log");
 const output = document.querySelector("#output");
@@ -13,6 +13,7 @@ const checkpointDownload = document.querySelector("#download-checkpoint");
 const collectorStatus = document.querySelector("#collector-status");
 let directory, currentHandle, evidence, inputs, csvText, sourceHashes, appEnvironment;
 let worker, usedPage = false, activeInput = null, requestSequence = 0;
+let probeConversationHandle = null;
 let writes = Promise.resolve();
 let trialActive = false, currentFilename = "", saveFailure = null;
 let pendingWrites = 0, committedEvents = 0, committedAt = null, committedText = "";
@@ -101,15 +102,16 @@ function rejectPending(error) {
 async function receive(entry) {
   try {
     if (entry.type === "session-load-start") status.textContent = `Saving checkpoint, then loading ${entry.lane.toUpperCase()} q4...`;
-    if (entry.type === "generation-start") status.textContent = `${entry.lane.toUpperCase()}: saving verified input before inference (${entry.inputTokenCount} tokens).`;
-    if (entry.type === "generation-progress") status.textContent = `${entry.lane.toUpperCase()}: ${entry.rawGeneratedTokens} raw tokens generated in this call.`;
+    if (entry.type === "generation-start") status.textContent = `${entry.lane.toUpperCase()}: ${entry.phase ?? "replay"}, turn ${entry.turn}, call ${entry.call}; saving input before inference (${entry.inputTokenCount} tokens).`;
+    if (entry.type === "generation-progress") status.textContent = `${entry.lane.toUpperCase()}: ${entry.phase ?? "replay"}, turn ${entry.turn}, call ${entry.call}; ${entry.rawGeneratedTokens} raw tokens generated.`;
     await record(entry);
     if (entry.requiresSave) {
       worker.postMessage({ command: "checkpoint-ack", checkpointId: entry.checkpointId });
     }
     if (entry.type === "search-request") {
       if (entry.lane !== activeInput?.lane) throw new Error("Search does not belong to the active replay.");
-      const rows = entry.lane === "cpu" ? readCsv(csvText) : [];
+      const rows = probeConversationHandle ? readCsv(await (await probeConversationHandle.getFile()).text())
+        : entry.lane === "cpu" ? readCsv(csvText) : [];
       const result = searchRows(rows, entry.name, entry.query);
       await record({ type: "search-result", requestId: entry.requestId, lane: entry.lane, turn: entry.turn, call: entry.call, result });
       worker.postMessage({ command: "search-result", requestId: entry.requestId, call: entry.call, result });
@@ -186,6 +188,7 @@ function addSaved(handle, record, filename) {
 
 async function startTrial(trial) {
   if (usedPage || !TRIALS.includes(trial)) return;
+  const twoCall = trial === "cpu-two-call";
   usedPage = true;
   trialActive = true;
   saveFailure = null; pendingWrites = 0; committedEvents = 0; committedAt = null; committedText = "";
@@ -200,14 +203,23 @@ async function startTrial(trial) {
   evidence = {
     experiment: EXPERIMENT, version: 2, trial, createdAt: new Date().toISOString(),
     pageUrl: location.href, userAgent: navigator.userAgent,
-    appEnvironment, sourceHashes, sourceCodeCommit: "37aef813ac2490a87325dca66377eef41ac4a594",
+    appEnvironment, sourceHashes: twoCall ? null : sourceHashes,
+    sourceCodeCommit: twoCall ? null : "37aef813ac2490a87325dca66377eef41ac4a594",
+    turnProtocol: twoCall ? "retrieval-then-response-v1" : "legacy-optional-retrieval-replay",
     status: "running", error: null, events: [], results: [],
-    note: "Fixed-input diagnostic replay. Checkpoint writes affect timing. Not the 100-turn conversation or a speed benchmark.",
+    note: twoCall ? "Two real CPU turns through the current chat turn function: seed, then the first response. Private diagnostic CSV starts empty. No GPU session or 50/50 endurance is tested."
+      : "Fixed-input diagnostic replay. Checkpoint writes affect timing. Not the 100-turn conversation or a speed benchmark.",
   };
   const filename = `${trial}-${evidence.createdAt.replaceAll(":", "-")}-${crypto.randomUUID()}.json`;
   currentFilename = filename;
   try {
     currentHandle = await directory.getFileHandle(filename, { create: true });
+    if (twoCall) {
+      evidence.conversationFilename = filename.replace(/\.json$/, ".csv");
+      probeConversationHandle = await directory.getFileHandle(evidence.conversationFilename, { create: true });
+      evidence.conversationCsv = CSV_HEADER + "\r\n";
+      await writeText(probeConversationHandle, evidence.conversationCsv);
+    }
     writes = Promise.resolve();
     await persist();
     checkpointDownload.disabled = false;
@@ -219,19 +231,35 @@ async function startTrial(trial) {
       rejectPending(error);
     });
     worker.addEventListener("messageerror", () => rejectPending(new Error("Worker message could not be decoded.")));
-    await rpc("initialize", { diagnostic: true, lanes: trial === "cpu-only" ? ["cpu"] : ["cpu", "gpu"] }, "runtime-ready");
-    const sequence = trial === "gpu-then-cpu" ? [inputs.gpu, inputs.cpu] : [inputs.cpu];
-    for (const input of sequence) {
+    await rpc("initialize", { diagnostic: true, lanes: trial === "cpu-only" || twoCall ? ["cpu"] : ["cpu", "gpu"],
+      ...(twoCall ? { turnProtocol: "retrieval-then-response-v1" } : {}) }, "runtime-ready");
+    const sequence = twoCall ? [1, 2] : trial === "gpu-then-cpu" ? [inputs.gpu, inputs.cpu] : [inputs.cpu];
+    for (const item of sequence) {
+      const input = twoCall ? { lane: "cpu", turn: item, timestamp: new Date().toISOString(),
+        incomingText: item === 1 ? "Welcome to the Zoo" : readCsv(await (await probeConversationHandle.getFile()).text()).at(-1).response } : item;
       activeInput = input;
       const result = await rpc("generate-turn", input, "turn-result");
       if (result.generatedTokenCount !== 100) throw new Error("Diagnostic response did not contain 100 conversational tokens.");
+      if (twoCall && (result.turnProtocol !== "retrieval-then-response-v1" || result.generationCallCount !== 2 ||
+          result.responseCall !== 2 || result.calls?.[0]?.phase !== "retrieval" || result.calls?.[1]?.phase !== "response" || result.retrievals?.length !== 1)) {
+        throw new Error("Two-call probe returned an incomplete retrieval/response boundary.");
+      }
       evidence.results.push(result);
       await persist();
+      if (twoCall) {
+        const row = { turn: input.turn, timestamp: new Date().toISOString(), speaker: "cpu_claptrap", backend: "wasm", response: result.outputText };
+        const before = await (await probeConversationHandle.getFile()).text();
+        await writeText(probeConversationHandle, before + csvLine(row));
+        evidence.conversationCsv = await (await probeConversationHandle.getFile()).text();
+        await persist();
+      }
       output.textContent += `${input.lane.toUpperCase()}\n${result.outputText}\n\n`;
     }
     evidence.status = "complete";
     await persist();
-    status.textContent = `COMPLETE: ${trial}. Recorded input matched; each response reached 100 conversational tokens and completed tensor cleanup. Export, then reload for the next trial.`;
+    status.textContent = twoCall
+      ? "COMPLETE: two CPU replies from four calls. Each query searched the diagnostic CSV; only second-call responses were saved and passed on. Export the evidence."
+      : `COMPLETE: ${trial}. Recorded input matched; each response reached 100 conversational tokens and completed tensor cleanup. Export, then reload for the next trial.`;
   } catch (error) {
     evidence.status = "failed"; evidence.error = errorText(error);
     if (saveFailure) {
@@ -302,7 +330,7 @@ async function restore() {
       log.textContent = latest.record.events.map((entry) => JSON.stringify(entry) + "\n").join("");
       output.textContent = latest.record.results.map((result) => `${result.lane.toUpperCase()}\n${result.outputText}\n\n`).join("");
     }
-    document.querySelector("#fixture").textContent = `Recorded CPU input: ${inputs.cpu.expectedFirstInput.inputTokenCount} tokens. Identical messages, timestamp, and tool template in all trials.`;
+    document.querySelector("#fixture").textContent = `Legacy replay CPU input: ${inputs.cpu.expectedFirstInput.inputTokenCount} tokens. The separate two-call probe uses the seed, a new empty diagnostic CSV, and then its own first response.`;
     status.textContent = latest ? "Saved diagnostics restored. Choose a trial for a fresh runtime, or export a saved trial." : "Ready. Choose one trial.";
     showCollector();
     for (const id of TRIALS) document.querySelector(`#${id}`).disabled = false;
