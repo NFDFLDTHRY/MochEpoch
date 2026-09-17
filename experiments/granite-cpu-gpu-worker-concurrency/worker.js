@@ -5,7 +5,10 @@ import {
 } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
 
 const MODEL_ID = "onnx-community/granite-4.0-350m-ONNX-web";
+const TRANSFORMERS_VERSION = "4.3.0";
 const MAX_NEW_TOKENS = 16;
+const HEARTBEAT_MS = 5000;
+const PROGRESS_THROTTLE_MS = 1000;
 const MESSAGES = [
   {
     role: "system",
@@ -25,6 +28,9 @@ let requestedDtype = null;
 let tokenizer = null;
 let model = null;
 let prepared = null;
+let currentStage = "idle";
+let loadStartMs = null;
+let heartbeatTimer = null;
 
 function nowMs() {
   return performance.timeOrigin + performance.now();
@@ -44,9 +50,70 @@ function post(type, detail = {}) {
     workerId,
     device: requestedDevice,
     dtype: requestedDtype,
+    stage: currentStage,
     atMs: nowMs(),
     ...detail,
   });
+}
+
+function setStage(stage, detail = {}) {
+  currentStage = stage;
+  post("checkpoint", { checkpoint: stage, ...detail });
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    post("heartbeat", {
+      loadElapsedMs: loadStartMs === null ? null : nowMs() - loadStartMs,
+    });
+  }, HEARTBEAT_MS);
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer !== null) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+function finiteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function summarizeProgress(info) {
+  if (!info || typeof info !== "object") {
+    return { status: "unknown", raw: String(info) };
+  }
+
+  return {
+    status: typeof info.status === "string" ? info.status : null,
+    name: typeof info.name === "string" ? info.name : null,
+    file: typeof info.file === "string" ? info.file : null,
+    loaded: finiteNumber(info.loaded),
+    total: finiteNumber(info.total),
+    progress: finiteNumber(info.progress),
+    task: typeof info.task === "string" ? info.task : null,
+    model: typeof info.model === "string" ? info.model : null,
+  };
+}
+
+function makeProgressReporter(owner) {
+  const lastProgressAt = new Map();
+
+  return (info) => {
+    const progress = summarizeProgress(info);
+    const key = `${progress.file ?? progress.name ?? "unknown"}`;
+    const now = nowMs();
+
+    if (progress.status === "progress") {
+      const previousAt = lastProgressAt.get(key) ?? -Infinity;
+      if (now - previousAt < PROGRESS_THROTTLE_MS) return;
+      lastProgressAt.set(key, now);
+    }
+
+    post("load-progress", { owner, progress });
+  };
 }
 
 function tokenLength(tensor) {
@@ -133,26 +200,61 @@ async function initialize(message) {
   workerId = message.workerId;
   requestedDevice = message.device;
   requestedDtype = message.dtype;
+  loadStartMs = nowMs();
 
-  const loadStartMs = nowMs();
+  currentStage = "load-start";
   post("load-start", {
     modelId: MODEL_ID,
-    transformersVersion: "4.3.0",
+    transformersVersion: TRANSFORMERS_VERSION,
     loadStartMs,
+    webgpuVisibleInWorker: Boolean(self.navigator?.gpu),
   });
+  startHeartbeat();
 
   try {
-    tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID);
+    const tokenizerStartMs = nowMs();
+    setStage("tokenizer-load-start", { tokenizerStartMs });
+    tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID, {
+      progress_callback: makeProgressReporter("tokenizer"),
+    });
+    const tokenizerEndMs = nowMs();
+    setStage("tokenizer-load-complete", {
+      tokenizerStartMs,
+      tokenizerEndMs,
+      tokenizerDurationMs: tokenizerEndMs - tokenizerStartMs,
+    });
+
+    const modelStartMs = nowMs();
+    setStage("model-load-start", { modelStartMs });
     model = await AutoModelForCausalLM.from_pretrained(MODEL_ID, {
       device: requestedDevice,
       dtype: requestedDtype,
+      progress_callback: makeProgressReporter("model"),
     });
+    const modelEndMs = nowMs();
+    setStage("model-load-complete", {
+      modelStartMs,
+      modelEndMs,
+      modelDurationMs: modelEndMs - modelStartMs,
+    });
+
+    const promptStartMs = nowMs();
+    setStage("prompt-prepare-start", { promptStartMs });
     prepared = await preparePrompt();
+    const promptEndMs = nowMs();
+    setStage("prompt-prepare-complete", {
+      promptStartMs,
+      promptEndMs,
+      promptDurationMs: promptEndMs - promptStartMs,
+      inputTokenCount: prepared.inputTokenCount,
+    });
 
     const loadEndMs = nowMs();
+    currentStage = "ready";
+    stopHeartbeat();
     post("ready", {
       modelId: MODEL_ID,
-      transformersVersion: "4.3.0",
+      transformersVersion: TRANSFORMERS_VERSION,
       loadStartMs,
       loadEndMs,
       loadDurationMs: loadEndMs - loadStartMs,
@@ -161,12 +263,16 @@ async function initialize(message) {
     });
   } catch (error) {
     const loadEndMs = nowMs();
+    const failedStage = currentStage;
+    currentStage = "error";
+    stopHeartbeat();
     post("load-error", {
       modelId: MODEL_ID,
-      transformersVersion: "4.3.0",
+      transformersVersion: TRANSFORMERS_VERSION,
       loadStartMs,
       loadEndMs,
       loadDurationMs: loadEndMs - loadStartMs,
+      failedStage,
       error: serializeError(error),
     });
   }
@@ -187,10 +293,12 @@ self.addEventListener("message", async (event) => {
         await generate(message.label ?? "run", true);
         break;
       case "dispose":
+        stopHeartbeat();
         await model?.dispose?.();
         model = null;
         tokenizer = null;
         prepared = null;
+        currentStage = "disposed";
         post("disposed");
         break;
       default:
