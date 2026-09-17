@@ -1,116 +1,64 @@
-# Claptrap diagnostic result and installable-app boundary
+# Approved Claptrap installed-app repair
 
-proposal_id: 20260917-claptrap-crash-isolation
-status: COMPLETE
+proposal_id: 20260917-claptrap-installed-repair
+status: APPROVED_IN_PROGRESS
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
-code_commit: a21b07a2a454bff6db3dc457547e88330f4c6466
-remaining_gate: installable-app integration, isolation/thread configuration, actual-chat persistence defects, original Chrome crash cause, and full conversation endurance unresolved
+base_commit: 7995a2c0c6305a7fc73496007f1ae406073db94e
 
-## Product boundary reaffirmed by the user
+## Approval and scope
 
-MochEpoch is an installable, offline-capable WebApp game. GitHack is a
-development/browser-test delivery surface. The development URL is not the
-product architecture. Granite resources must be obtained automatically and
-persisted for later launches; the player must not repeat file-picker,
-download/open-file/load-model steps. The service-worker installation must not
-depend on completing the entire model download.
+The user corrected the mistaken interpretation of their acknowledgement as a
+stop request: "O, it was not. I was acknowledging the change you had me make.
+Do the repair." This explicitly authorizes the previously discussed repair of
+the actual chat, isolation/CPU threading, and installable WebApp lifecycle.
+No further approval gate is being inserted. Earlier diagnostic results remain
+in VERIFICATION.md and the committed evidence; diagnostic completion did not
+establish that the full conversation or installed app worked.
 
-This operation built and audited the standalone Claptrap conversation and
-diagnostic pages under experiments/granite-single-ort-dual-session/claptrap-chat.
-It did not implement or validate the installable app's manifest, service
-worker, offline launch, model-cache recovery, or update lifecycle. COMPLETE
-above refers to this diagnostic operation, not to that product or its stability.
+## Concrete changes
 
-The user supplied separate StrawDummy machine-surface evidence from Screechrac.
-It records successful independent JavaScript worker scaling and a working
-CPU-worker/WebGPU pipeline while shared memory was unavailable. The observed
-ONNX WASM threading and Transformers.js serialization restrictions must not be
-generalized into a claim that the phone or installable WebApps cannot use
-parallel workers or CPU/GPU pipelines. StrawDummy is device capability evidence,
-not MochEpoch architecture; its full export has not been copied into this repo.
+Within experiments/granite-single-ort-dual-session/claptrap-chat only:
 
-## Operator correction
+- Add a manifest, icons, service worker, and small startup module. Cache the
+  local shell independently of model installation. Use same-origin service
+  worker response headers for isolation on the existing development host;
+  verify document and worker isolation before loading models. Retain pinned
+  Transformers.js model/WASM caching for later launches. No new hosting service.
+- Configure shared-memory WASM inference threads from available processors
+  (half, capped at four); record the requested and runtime-reported setting.
+  Preserve the single runtime, q4 models, and CPU/GPU residency.
+- Acquire one origin-wide runtime/storage owner before creating any worker or
+  writing files, shared by the actual conversation and diagnostic page.
+- Repair actual-chat evidence writes, preserve received results/errors in
+  exports, checkpoint before advancing, and identify interrupted runs after
+  reload. Add the existing token-progress and GPU-loss observations to chat.
+- Extend the existing checks only for these observed failure paths and app
+  startup/cache behavior. Record executed verification and limitations here,
+  in VERIFICATION.md, and in a compact evidence JSON.
 
-The user reported that the evidence collector stopped before the tasks completed.
-The three prior phone exports are not three reported Chrome crashes. Their exact
-bytes and the user's correction are retained in the existing evidence file.
+Files: main.js, runtime-worker.js, index.html, stability.js, stability.html,
+checks.mjs; new app-shell.js, sw.js, manifest.webmanifest, icon.svg/icon PNGs,
+repair-checks.mjs and evidence/installed-repair-20260917.json if needed.
+Documentation: this WORK.md and the experiment VERIFICATION.md.
 
-## Reproduced and repaired
+## Preserved boundaries
 
-Synthetic execution of the published collector reproduced two defects: a save
-failure exported the stale running file without its error, and a pending final
-write allowed an older running snapshot to be exported after a response existed.
+The locked blueprint SHA was checked against current main and matches.
+No architecture/lock, main branch, world CSV fixture, model, precision, prompt,
+seed, token budget, native tool semantics, or actor behavior change. Granite's
+own framing remains experimental output. The real test is the agreed alternating
+100-response conversation (50 CPU + 50 GPU, seed excluded), with both sessions
+resident. Simultaneous generation is not part of that conversation plan.
+No paid service, CI, backend, new host, or unrelated Screechrac implementation.
 
-Repaired stability.js and stability.html within the approved diagnostic scope:
-final export waits until the trial completes or fails and queued saves settle;
-a separate live checkpoint remains downloadable during a storage stall; a failed
-save provides an explicitly unsaved report containing the error and received
-events. Saved-event and pending-write counts are visible. Exports identify time,
-source, outcome, and save status. No storage retry or inference continuation after
-a rejected checkpoint is added. Existing files remain readable.
+## Verification and reporting
 
-Worker/runtime code, prompts, sampling, token budget, model precision, dual
-residency, and the normal conversation are unchanged by this collector repair.
-Main and the locked architecture remain unchanged.
-
-## Executed checks
-
-Twenty-one synthetic checks pass. They cover rejected writes before inference,
-a write failure during a turn, and a stalled final write with a live export.
-Syntax and whitespace checks pass.
-
-A real cloud CPU-only replay with the repaired collector completed the identical
-351-token input and 100-token response in 79,877.60 ms. A live export at 23 events
-was labeled unfinished; collection continued after download. The final export
-contained all 36 events, zero pending writes, and a complete result. The live
-23-event record exactly matched its prefix. Both downloaded files were verified,
-and reload restored the exact full event list and output. The browser's download
-event notifications timed out, although the actual files arrived.
-
-Reproduction results, source hashes, and real browser exports are retained in
-experiments/granite-single-ort-dual-session/claptrap-chat/evidence/stability-checks-20260917.json.
-
-## Completed phone evidence
-
-All three subsequent phone trials at the repaired code commit completed and
-exported fully committed final snapshots, with no recorded error or pending
-write. Their exact bytes and hashes are retained in the existing evidence file.
-The collector-on-phone gate is now satisfied for these trials.
-
-CPU alone generated 100 tokens in 164.95 seconds; CPU with the GPU loaded and
-idle took 169.87 seconds. In the third trial, the WebGPU session generated 100
-tokens in 27.60 seconds, followed by CPU generation in 172.12 seconds. Every CPU
-input and output token sequence matched across conditions. GPU output matched
-the original phone's first turn. The two sessions generated sequentially.
-
-The CPU configuration explicitly forces one WASM inference thread. The phone
-reports eight logical processors, no cross-origin isolation, and no shared
-array buffer. Multicore performance has not been tested. GPU and CPU inputs
-differ, and diagnostic writes affect timing, so these are not controlled
-CPU/GPU speed comparisons. No runtime or hosting configuration was changed
-while recording these results.
-
-## Smallest next operation
-
-The original Chrome crash remains unexplained; all short replays succeeded.
-The follow-up actual-controller audit reproduced two distinct defects:
-an evidence write failure leaves saved CSV ahead of diagnostics and loses the
-error on reload; two controllers sharing the fixed storage filenames can
-overwrite each other's results. Exact synthetic outcomes are in the existing
-evidence file. Neither reproduction establishes the phone crash cause.
-
-Isolation and CPU thread configuration are separate changes: the code always
-forces one thread even if headers are supplied. Concurrent CPU/GPU execution
-also encounters both the application's busy guard and Transformers.js 4.3.0's
-browser inference chain. The original chat used sequential generation too;
-concurrency has not been established as its crash trigger.
-
-The next implementation proposal must fit the installable-app boundary above:
-identify the app origin and service-worker/cache lifecycle, then specify the
-minimum integration and execution checks needed there. Any isolation/thread
-change needs verification in that actual lifecycle. Full chat execution must
-include its real CSV writes, rendering, and evidence collection. A concurrent
-load experiment is distinct from the plan's alternating conversation. No new
-hosting, runtime, app shell, or chat-controller implementation is included in
-this completed audit.
+Run the existing synthetic checks plus targeted failed-save/reload, exclusive
+ownership, thread/isolation, and shell/cache checks. Publish on the existing
+experiment branch and exercise the actual page in the available browser. Verify
+service worker control, isolation, shared memory and real CPU execution; inspect
+errors rather than silently falling back to one thread. The cloud browser's
+WebGPU adapter has previously been unavailable, so full dual-session endurance
+must remain unproven unless actual execution establishes it. Publish a usable
+phone link, distinguishing repaired code from a completed 100-response run.
