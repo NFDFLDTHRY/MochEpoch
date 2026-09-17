@@ -157,3 +157,42 @@ prompt mismatch, all three fixed-input trials, explicit retrieval, restoration,
 and preservation of the chat files. These checks are not real model inference.
 Executed results are in `evidence/stability-checks-20260917.json`; browser and
 target-device results will be added only after execution.
+
+### Executed CPU-only replay
+
+Code commit: `7d6d8fb7cfe4299ce1346c5dd73bf6c4151be6a0`.
+The published `stability.html` ran in cloud Chrome on 2026-09-17. Its CPU q4
+session loaded in 4,829.10 ms. The exact recorded 351-token CPU input matched
+before inference. One generation produced 100 conversational tokens in
+80,089.30 ms, made no retrieval call, and completed input/output tensor cleanup.
+The trial was saved as complete. This is one CPU-only replay in the cloud,
+not a target-phone result or a speed comparison with the original run.
+
+The export button delivered an 18,426-byte JSON file. Browser automation's
+download event timed out, but the actual file arrived in the shared download
+directory and was parsed. Its SHA-256 is
+`e70324cee1934637ed710304ccc393213e0959bdd98373be869e287ee2204a06`.
+The complete parsed export and delivery observation are retained inside
+`evidence/stability-checks-20260917.json`. Both original fixture hashes matched
+the supplied bytes. After reload, all 36 saved events and generated output
+matched the downloaded export exactly; the trial remained available for export.
+No new inference was started by restoration.
+
+The phone evidence was inspected before publication under the user's explicit
+conditional approval. It contains no names, contact details, locations,
+credentials, or unique device identifiers. It contains generated speech,
+timestamps, generic browser/runtime metadata, and the public experiment URL.
+
+### Remaining target-device operation
+
+Open the commit-pinned `stability.html` on the phone and run trials 1, 2, and 3,
+reloading between trials. Export each result. If Chrome crashes, reload that
+same diagnostic page and export the restored trial before starting another.
+The fixed CPU input is identical across all trials. Trial 3 deliberately uses
+the original CPU input even if its fresh GPU response differs.
+
+The cloud browser cannot supply the two GPU trials because it has no WebGPU
+adapter. The phone crash cause and any stabilization repair remain unresolved.
+Use the phone outcomes to choose the next minimum change. Do not infer an OOM,
+leak, or runtime defect solely from the Aw, Snap screenshot. The full 100-response,
+50-CPU/50-GPU conversation is still outstanding.
