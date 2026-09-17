@@ -196,3 +196,33 @@ adapter. The phone crash cause and any stabilization repair remain unresolved.
 Use the phone outcomes to choose the next minimum change. Do not infer an OOM,
 leak, or runtime defect solely from the Aw, Snap screenshot. The full 100-response,
 50-CPU/50-GPU conversation is still outstanding.
+
+### Received phone snapshots
+
+The three supplied phone exports from the same code commit are preserved in
+`evidence/stability-checks-20260917.json`, under `phoneObservations`.
+Each `rawExportText` retains the exact uploaded UTF-8 bytes; byte length and
+SHA-256 were checked after writing. The exports contain the public experiment
+URL, generic browser/runtime metadata, timestamps, and the earlier model text.
+No names, contact details, locations, credentials, or unique device identifiers
+were found. Both source fixture hashes match in every file.
+
+| Trial | Created (UTC) | Last saved event (UTC) | What is recorded |
+| --- | --- | --- | --- |
+| CPU alone | 17:59:28.402 | 17:59:39.523 | CPU loaded; identical 351-token input saved before inference. No first-token progress event. |
+| Both loaded, then CPU | 17:59:49.183 | 17:59:51.583 | CPU model transfer last reported 21.90%; no completed CPU load or GPU load start. |
+| GPU generation, then CPU | 17:59:57.803 | 18:00:23.707 | Both sessions loaded; runtime ready; no generation-start event. |
+
+All three files say `status: running`, have `error: null`, and contain no
+results. They record no generation-progress, generation-returned,
+tensor-cleanup-complete, turn-result, command-error, or GPU-device-lost events.
+Missing events are not evidence that those operations never happened later.
+The first saved generation-start is a checkpoint before inference, not proof
+that a token or forward pass completed.
+
+These snapshots do not establish three crashes. Export while execution is
+active, a manual reload, a crash, or another interruption can leave this state.
+Neither export time nor the actual browser outcome is recorded. The operator
+must clarify which trials showed Aw, Snap and whether each export was taken
+after recovery or while the trial was running before a repair is selected.
+The existing cloud CPU success remains a separate result.

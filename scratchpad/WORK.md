@@ -1,11 +1,11 @@
 # Claptrap crash isolation result
 
 proposal_id: 20260917-claptrap-crash-isolation
-status: COMPLETE
+status: BLOCKED
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 code_commit: 7d6d8fb7cfe4299ce1346c5dd73bf6c4151be6a0
-remaining_gate: target-phone trials; crash cause and stabilization repair unresolved
+remaining_gate: operator confirmation of browser outcomes for the received phone snapshots
 
 ## Changed
 
@@ -45,9 +45,30 @@ Main and the locked architecture remain unchanged. No crash cause, memory leak,
 OOM, or successful stabilization repair is claimed. The cloud has no WebGPU
 adapter; it cannot run the two GPU trials.
 
+## Received phone evidence
+
+The user supplied all three trial exports. They were inspected for personal
+identifiers and retained as exact UTF-8 text with verified byte counts and
+SHA-256 values in the existing stability-checks evidence file. No new runtime
+change has been made from these observations.
+
+All three exports have status running, no error, and no completed result:
+
+- CPU alone: CPU loaded; the exact 351-token input was saved in generation-start
+  at 17:59:39.523 UTC. No first-token progress was recorded.
+- Both loaded, then CPU: the last saved event is CPU model transfer at 21.90%,
+  at 17:59:51.583 UTC. No GPU load is recorded.
+- GPU generation, then CPU: both sessions loaded and runtime-ready was saved
+  at 18:00:23.707 UTC. No generation-start is recorded.
+
+These snapshots cannot distinguish export during execution from a crash,
+manual reload, or another interruption. Their filenames contain trial creation
+times, not export times. Missing later events do not prove they never happened.
+
 ## Smallest next operation
 
-Run the published stability.html on the phone: trial 1, reload, trial 2, reload,
-trial 3. Export each result. After a crash, reload the same page and export the
-restored trial. Compare the saved phases before selecting a runtime change.
-The real 100-response, 50-CPU/50-GPU conversation remains outstanding.
+Ask which trials actually showed Chrome's Aw, Snap page and whether these
+exports were taken after recovery or while the page was still loading/running.
+Use that operator observation to interpret the saved boundaries before choosing
+a repair or requesting a rerun. The actual phone crash cause and real
+100-response, 50-CPU/50-GPU conversation remain unresolved.
