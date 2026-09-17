@@ -223,3 +223,159 @@ Stop and record evidence instead of adding machinery if:
 - the experiment reveals that the planned measurement cannot distinguish scheduling outcomes.
 
 Only change the smallest thing required by the observed failure.
+
+## Revision 4 plan: controlled same-artifact backend benchmark
+
+Run 003 established that two separate workers can keep a WASM Granite call and a WebGPU Granite call outstanding at the same time, but it did not provide a controlled CPU-versus-GPU speed comparison. The CPU used `q4`, the GPU used `q4f16`, the model repository revision was not pinned, and the requested sixteen-token generation actually terminated after two generated tokens.
+
+Revision 4 changes only what is required to make the speed comparison interpretable.
+
+### Question
+
+With the exact same Granite ONNX artifact, tokenizer/model revision, prompt, generated-token count, generation controls, and Transformers.js version, how fast is the WASM execution path relative to the WebGPU execution path on the target phone, and do those same two controlled lanes still overlap when launched from separate workers?
+
+### Exact model control
+
+Both lanes request:
+
+- model repository: `onnx-community/granite-4.0-350m-ONNX-web`;
+- pinned model-file revision: the verified model upload revision `6c9a6f6` unless the Hub requires its full resolved commit identifier;
+- dtype: `q4`;
+- expected graph file: `onnx/model_q4.onnx`;
+- expected external weights: `onnx/model_q4.onnx_data`.
+
+The q4 model files were introduced together in that model upload revision. No lane may silently fall back to q4f16, q8, fp16, fp32, or another artifact.
+
+The probe records the actual filenames and total byte counts reported by each worker. If the WebGPU lane rejects q4, stop and record that result rather than substituting another dtype.
+
+### CPU WASM control
+
+Before creating the CPU model session, explicitly request fixed-width WebAssembly SIMD through the ONNX environment exposed by Transformers.js.
+
+Record before and after session initialization:
+
+- `navigator.hardwareConcurrency`;
+- `self.crossOriginIsolated`;
+- whether `SharedArrayBuffer` exists;
+- requested WASM SIMD mode;
+- resolved WASM SIMD setting;
+- requested WASM thread count;
+- resolved WASM thread count.
+
+ONNX Runtime's current default behavior is one WASM thread when the browser is not cross-origin isolated. When isolation is available it defaults to at most four threads, using half the reported logical cores rounded up. Revision 4 makes the selected thread count explicit instead of leaving it implicit.
+
+For the first controlled run, preserve ONNX Runtime's own environment-dependent default policy but compute and set the resulting value explicitly: one thread when cross-origin isolation is unavailable; otherwise `min(4, ceil(hardwareConcurrency / 2))`. Do not add cross-origin-isolation machinery merely to obtain more threads in this revision. If GitHack constrains the CPU lane to one thread, report the benchmark explicitly as single-thread fixed-SIMD WASM versus WebGPU. A later run may test a thread-count sweep if the evidence justifies it.
+
+### Fixed generation work
+
+The current prompt naturally ends after two generated tokens. Revision 4 must force a fixed amount of generation work so both lanes execute the same number of decode steps.
+
+Use:
+
+- identical prepared input tokens on both lanes;
+- `do_sample: false`;
+- `min_new_tokens: 8`;
+- `max_new_tokens: 8`.
+
+Eight tokens is intentionally small enough for repeated phone runs while being long enough to reduce the dominance of one-time call and prefill overhead. The result is valid only if both lanes report exactly eight generated tokens.
+
+### Timing boundary
+
+Keep timing around `model.generate()` only.
+
+Do not include:
+
+- model/tokenizer download;
+- session construction;
+- prompt templating/tokenization;
+- output conversion to JavaScript arrays;
+- text decoding;
+- evidence serialization;
+- DOM rendering.
+
+Move the worker's start notification outside the measured interval so the `postMessage()` call itself is not charged to inference time. The completion result carries the authoritative generation start/end timestamps.
+
+### UI/evidence activity during measurement
+
+Loading telemetry remains available during initialization, but measured inference should be quiet.
+
+During benchmark runs:
+
+- stop the main page's 500 ms elapsed/activity DOM refresh loop or make it no-op until the measured call finishes;
+- do not append progress text while a measured generation is executing;
+- worker load heartbeats remain stopped once a worker is ready, as they already are;
+- preserve only start/completion/error evidence around measured inference.
+
+These changes remove small avoidable browser scheduling noise, especially from the CPU measurement.
+
+### Warmup and run order
+
+After both lanes are ready:
+
+1. one unmeasured fixed-eight-token CPU warmup;
+2. one unmeasured fixed-eight-token GPU warmup;
+3. three measured solo rounds with alternating order:
+   - round 1: CPU, then GPU;
+   - round 2: GPU, then CPU;
+   - round 3: CPU, then GPU;
+4. three measured concurrent rounds, dispatching both workers together each round.
+
+Record every individual duration. Use the median of the three solo CPU measurements and median of the three solo GPU measurements for the descriptive speed ratio. Do not hide individual runs.
+
+Alternating solo order reduces, but does not eliminate, mobile thermal and scheduler ordering effects.
+
+### Reported measurements
+
+Report at minimum:
+
+- CPU configuration: exact q4 artifact, fixed SIMD, resolved WASM thread count;
+- GPU configuration: exact q4 artifact, WebGPU;
+- input token count;
+- exactly eight generated tokens per valid measured run;
+- each solo duration;
+- median CPU solo duration;
+- median GPU solo duration;
+- median CPU and GPU tokens per second for the fixed generation;
+- CPU-to-GPU median duration ratio;
+- each concurrent CPU duration;
+- each concurrent GPU duration;
+- each concurrent batch makespan;
+- recorded interval overlap for each concurrent round.
+
+Do not describe the duration ratio as raw hardware throughput. It is the performance difference of the actual Transformers.js plus ONNX Runtime browser execution paths using the same model artifact.
+
+### Known runtime overhead intentionally retained
+
+Transformers.js performs the autoregressive generation loop and wraps browser ONNX session execution through its per-realm inference chain. That overhead remains because it is part of the runtime path MochEpoch intends to use.
+
+For WebGPU, Transformers.js requests GPU-buffer placement for key/value cache outputs, avoiding unnecessary cache round trips. Other generation outputs still return through the JavaScript generation path for token selection. Revision 4 therefore measures real application-path WebGPU performance rather than theoretical raw GPU kernel throughput.
+
+### Current-code audit summary
+
+The existing probe is not obviously adding a large artificial inference slowdown. Its timing begins immediately before `model.generate()` and ends immediately after it resolves; output conversion and text decoding happen after the end timestamp. Load-progress telemetry is only part of initialization, and worker heartbeats stop when a lane reaches ready.
+
+The material benchmark contaminants found in the current code are:
+
+1. CPU and GPU use different model artifacts (`q4` versus `q4f16`).
+2. The nominal sixteen-token generation actually produces only two tokens because EOS ends generation.
+3. WASM SIMD/thread configuration is implicit and the evidence does not record the resolved thread count.
+4. The model repository revision is not pinned.
+5. Solo measurements always run CPU first and GPU second.
+6. The main page continues a 500 ms DOM activity timer during measured inference.
+7. The worker posts its `inference-start` message after starting the timer, so that small message-post cost is included in the measured duration.
+
+The first four materially affect interpretation. The last three are smaller sources of measurement noise and should still be removed for the controlled benchmark.
+
+### Revision 4 stop conditions
+
+Stop and preserve evidence without fallback if:
+
+- WebGPU cannot load the exact q4 artifact;
+- either lane resolves a different model file than expected;
+- fixed SIMD cannot initialize on the CPU lane;
+- a measured run produces other than eight new tokens;
+- either backend throws during warmup or measurement;
+- the page/worker is terminated;
+- runtime conditions make the CPU thread count unresolved.
+
+Only after this controlled run should the experiment separately compare each backend's fastest practical representation, such as q4 on CPU versus q4f16 on GPU.
