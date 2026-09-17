@@ -16,7 +16,7 @@ const evidence = {
   },
   lanes: {
     cpu: { workerId: "cpu", device: "wasm", dtype: "q4" },
-    gpu: { workerId: "gpu", device: "webgpu", dtype: "q4f16" },
+    gpu: { workerId: "gpu", device: "webgpu", dtype: "q4" },
   },
   events: [],
   summary: null,
