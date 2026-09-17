@@ -1,114 +1,1895 @@
 {
-  "kind": "synthetic-plumbing-and-installed-repair-checks",
-  "realGraniteGeneration": false,
-  "results": [
+  "repair": "20260917-claptrap-installed-repair",
+  "synthetic": {
+    "kind": "synthetic-plumbing-and-installed-repair-checks",
+    "realGraniteGeneration": false,
+    "results": [
+      {
+        "name": "CSV preserves commas, quotes, CRLF, empty fields, and Unicode",
+        "pass": true
+      },
+      {
+        "name": "Malformed or nonsequential CSV stops instead of silently dropping history",
+        "pass": true
+      },
+      {
+        "name": "Retrieval requires three words, uses all terms, and preserves exact rows",
+        "pass": true
+      },
+      {
+        "name": "Native tool tokens do not count as conversational tokens",
+        "pass": true
+      },
+      {
+        "name": "No-search turns use one generation; each new turn receives only new input",
+        "pass": true
+      },
+      {
+        "name": "An emitted native tool call alone causes another call; speech totals exactly 100",
+        "pass": true
+      },
+      {
+        "name": "Malformed native output remains evidence and produces no completed turn",
+        "pass": true
+      },
+      {
+        "name": "100 synthetic replies alternate 50/50 and commit CSV before each next call",
+        "pass": true
+      },
+      {
+        "name": "GPU seed still produces 50/50 with the seed excluded",
+        "pass": true
+      },
+      {
+        "name": "Reload restores CSV and diagnostics without calling a model or resetting history",
+        "pass": true
+      },
+      {
+        "name": "A failed CSV append preserves prior rows and prevents the next actor call",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic model loading waits for the start checkpoint acknowledgement",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic generation waits for durable evidence, then reports first token, progress, and cleanup",
+        "pass": true
+      },
+      {
+        "name": "A rejected diagnostic checkpoint prevents model inference",
+        "pass": true
+      },
+      {
+        "name": "A changed replay prompt is preserved diagnostically and never reaches inference",
+        "pass": true
+      },
+      {
+        "name": "All three trials replay identical captured CPU input; GPU warmup speech stays outside it",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic reload exposes saved trials without a model call or a conversation write",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic disk failure sends no successful acknowledgement and stops before generation",
+        "pass": true
+      },
+      {
+        "name": "Collector failure exports the unsaved error instead of the stale running file",
+        "pass": true
+      },
+      {
+        "name": "Final export waits for completion while live checkpoints remain available during a stalled save",
+        "pass": true
+      },
+      {
+        "name": "Collector failure during a turn retains the event and error without retrying inference",
+        "pass": true
+      },
+      {
+        "name": "Worker requires isolation before either model loads and requests four threads on eight processors",
+        "pass": true
+      },
+      {
+        "name": "Actual chat stops before CSV when saving a received result fails and restores its error marker",
+        "pass": true
+      },
+      {
+        "name": "CSV committed before a failed JSON close is reconciled from the exact durable prepared result",
+        "pass": true
+      },
+      {
+        "name": "Two actual controllers share one owner; the second cannot create a worker or overwrite files",
+        "pass": true
+      },
+      {
+        "name": "Interrupted chat reload exposes saved checkpoints without restarting a model",
+        "pass": true
+      },
+      {
+        "name": "Offline shell returns isolated document and worker, caches executable modules, and leaves weights to the runtime cache",
+        "pass": true
+      },
+      {
+        "name": "Actual chat does not export completion while the final evidence close is stalled",
+        "pass": true
+      },
+      {
+        "name": "Reload refuses stale completion when a clear was interrupted between the two files",
+        "pass": true
+      },
+      {
+        "name": "GPU startup failure releases both lanes and survives actual-controller reload",
+        "pass": true
+      }
+    ]
+  },
+  "browserCodeCommit": "eb3b60732cf5f7f62056bfeabdfc941c4387aa9c",
+  "observed": {
+    "pageIsolated": true,
+    "sharedMemoryAvailable": true,
+    "installPromptOffered": true,
+    "duplicatePageBlockedBeforeModelLoading": true,
+    "cachedShellReload": true,
+    "cpuReplayReloadRestored": true,
+    "physicalOfflineLaunchTested": false,
+    "standaloneInstallationTested": false,
+    "fullDualSessionConversationTested": false,
+    "restoredEventsMatchExportExactly": true
+  },
+  "exports": [
     {
-      "name": "CSV preserves commas, quotes, CRLF, empty fields, and Unicode",
-      "pass": true
+      "filename": "cpu-only-2026-09-17T19-32-18.623Z-973abee5-8a9e-4222-aa11-4ee3433d1326.json",
+      "sha256": "103d130059e7abefdaf0a912716464959cf5f727b5069e9c8a77d2a4a250816d",
+      "record": {
+        "experiment": "granite-claptrap-crash-isolation",
+        "version": 2,
+        "trial": "cpu-only",
+        "createdAt": "2026-09-17T19:32:18.623Z",
+        "pageUrl": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/eb3b60732cf5f7f62056bfeabdfc941c4387aa9c/experiments/granite-single-ort-dual-session/claptrap-chat/stability.html",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+        "appEnvironment": {
+          "crossOriginIsolated": true,
+          "sharedArrayBufferAvailable": true,
+          "installed": false,
+          "persistentStorage": false,
+          "serviceWorker": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/eb3b60732cf5f7f62056bfeabdfc941c4387aa9c/experiments/granite-single-ort-dual-session/claptrap-chat/sw.js"
+        },
+        "sourceHashes": {
+          "json": "053647d55d690b76377139414bf955aaf0abe94bf06a23cf9c9b9c7a4dcd2af0",
+          "csv": "78c07d1ae5b10516108437b9da91a80e97540aad92e80a34a8f6b36ac75c68a3"
+        },
+        "sourceCodeCommit": "37aef813ac2490a87325dca66377eef41ac4a594",
+        "status": "complete",
+        "error": null,
+        "events": [
+          {
+            "receivedAt": "2026-09-17T19:32:18.689Z",
+            "type": "runtime-start",
+            "atMs": 1789673538689.4,
+            "requestId": "diagnostic-1",
+            "transformersVersion": "4.3.0",
+            "modelId": "onnx-community/granite-4.0-350m-ONNX-web",
+            "modelRevision": "6c9a6f61601df51e76b1efff0974d8d26c2a25b5",
+            "actorSystemPrompt": "You are Claptrap.",
+            "fixedNewTokens": 100,
+            "oneWorker": true,
+            "oneTransformersModuleRealm": true,
+            "loadOrder": [
+              "cpu"
+            ],
+            "diagnostic": true,
+            "environment": {
+              "hardwareConcurrency": 5,
+              "crossOriginIsolated": true,
+              "sharedArrayBufferAvailable": true,
+              "requestedThreads": 2,
+              "sharedWasmMemoryProbe": true,
+              "resolvedSimd": "fixed",
+              "resolvedThreads": 2,
+              "resolvedProxy": false
+            },
+            "checkpointId": 1,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.691Z",
+            "type": "tokenizer-load-start",
+            "atMs": 1789673538691.85,
+            "tokenizerStart": 1789673538691.82,
+            "checkpointId": 2,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.927Z",
+            "type": "tokenizer-load-complete",
+            "atMs": 1789673538926.98,
+            "tokenizerStart": 1789673538691.82,
+            "tokenizerEnd": 1789673538926.97,
+            "durationMs": 235.14990234375
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.927Z",
+            "type": "session-load-start",
+            "atMs": 1789673538927.1199,
+            "lane": "cpu",
+            "device": "wasm",
+            "dtype": "q4",
+            "startedAt": 1789673538927.095,
+            "checkpointId": 3,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.950Z",
+            "type": "load-progress",
+            "atMs": 1789673538950.07,
+            "lane": "cpu",
+            "progress": {
+              "status": "initiate",
+              "file": "config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.952Z",
+            "type": "load-progress",
+            "atMs": 1789673538952.1199,
+            "lane": "cpu",
+            "progress": {
+              "status": "download",
+              "file": "config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.953Z",
+            "type": "load-progress",
+            "atMs": 1789673538953.1,
+            "lane": "cpu",
+            "progress": {
+              "status": "progress",
+              "file": "config.json",
+              "loaded": 2018,
+              "total": 2018,
+              "progress": 100
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.953Z",
+            "type": "load-progress",
+            "atMs": 1789673538953.22,
+            "lane": "cpu",
+            "progress": {
+              "status": "done",
+              "file": "config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.956Z",
+            "type": "load-progress",
+            "atMs": 1789673538956.14,
+            "lane": "cpu",
+            "progress": {
+              "status": "initiate",
+              "file": "onnx/model_q4.onnx",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.956Z",
+            "type": "load-progress",
+            "atMs": 1789673538956.375,
+            "lane": "cpu",
+            "progress": {
+              "status": "initiate",
+              "file": "onnx/model_q4.onnx_data",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.956Z",
+            "type": "load-progress",
+            "atMs": 1789673538956.515,
+            "lane": "cpu",
+            "progress": {
+              "status": "initiate",
+              "file": "generation_config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.957Z",
+            "type": "load-progress",
+            "atMs": 1789673538957.395,
+            "lane": "cpu",
+            "progress": {
+              "status": "download",
+              "file": "onnx/model_q4.onnx",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.957Z",
+            "type": "load-progress",
+            "atMs": 1789673538957.86,
+            "lane": "cpu",
+            "progress": {
+              "status": "download",
+              "file": "onnx/model_q4.onnx_data",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.960Z",
+            "type": "load-progress",
+            "atMs": 1789673538959.975,
+            "lane": "cpu",
+            "progress": {
+              "status": "download",
+              "file": "generation_config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.961Z",
+            "type": "load-progress",
+            "atMs": 1789673538961.085,
+            "lane": "cpu",
+            "progress": {
+              "status": "done",
+              "file": "onnx/model_q4.onnx",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:18.962Z",
+            "type": "load-progress",
+            "atMs": 1789673538962.055,
+            "lane": "cpu",
+            "progress": {
+              "status": "done",
+              "file": "generation_config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:19.453Z",
+            "type": "load-progress",
+            "atMs": 1789673539453.175,
+            "lane": "cpu",
+            "progress": {
+              "status": "progress_total",
+              "file": null,
+              "loaded": 517288515,
+              "total": 575914563,
+              "progress": 89.82035673926863
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:19.503Z",
+            "type": "load-progress",
+            "atMs": 1789673539502.88,
+            "lane": "cpu",
+            "progress": {
+              "status": "done",
+              "file": "onnx/model_q4.onnx_data",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:23.215Z",
+            "type": "session-load-complete",
+            "atMs": 1789673543215.7449,
+            "lane": "cpu",
+            "device": "wasm",
+            "dtype": "q4",
+            "startedAt": 1789673538927.095,
+            "finishedAt": 1789673543215.705,
+            "durationMs": 4288.610107421875,
+            "observedModelFiles": [
+              "onnx/model_q4.onnx",
+              "onnx/model_q4.onnx_data"
+            ],
+            "runtimeThreads": 2,
+            "checkpointId": 4,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:23.218Z",
+            "type": "runtime-ready",
+            "atMs": 1789673543218.635,
+            "requestId": "diagnostic-1",
+            "cpuResident": true,
+            "gpuResident": false,
+            "tokenizerResident": true,
+            "oneWorker": true,
+            "oneTransformersModuleRealm": true,
+            "runtimeThreads": 2,
+            "crossOriginIsolated": true
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:23.244Z",
+            "type": "generation-start",
+            "atMs": 1789673543244.375,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "startedAt": 1789673543220.66,
+            "inputTokenCount": 351,
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are Claptrap."
+              },
+              {
+                "role": "user",
+                "content": "Current timestamp: 2026-09-17T12:33:04.942Z\nMessage from the other speaker:\nYou are a helpful assistant with access to the following tools: \n1. **search_conversation**: You can use this to find information about the weather.\n2. **claptrap**: You can use this to answer questions. \n\nCould you tell me the weather forecast for next week? I can provide a forecast based on the information you share. I'm Claptrap. I'm a weather assistant. You are a helpful assistant with access to the following tools: \n1. **search_con"
+              }
+            ],
+            "renderedPrompt": "<|start_of_role|>system<|end_of_role|>You are Claptrap.\n\nYou are a helpful assistant with access to the following tools. You may call one or more tools to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"search_conversation\", \"description\": \"Search earlier saved conversation turns when older memory would help answer the newest message.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\", \"description\": \"A search phrase containing at least three whitespace-separated words. All words must appear in a saved response for that row to match.\"}}, \"required\": [\"query\"]}}}\n</tools>\n\nFor each tool call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n</tool_call>. If a tool does not exist in the provided list of tools, notify the user that you do not have the ability to fulfill the request.<|end_of_text|>\n<|start_of_role|>user<|end_of_role|>Current timestamp: 2026-09-17T12:33:04.942Z\nMessage from the other speaker:\nYou are a helpful assistant with access to the following tools: \n1. **search_conversation**: You can use this to find information about the weather.\n2. **claptrap**: You can use this to answer questions. \n\nCould you tell me the weather forecast for next week? I can provide a forecast based on the information you share. I'm Claptrap. I'm a weather assistant. You are a helpful assistant with access to the following tools: \n1. **search_con<|end_of_text|>\n<|start_of_role|>assistant<|end_of_role|>",
+            "speechTokensRemaining": 100,
+            "rawTokenLimit": 196,
+            "doSample": false,
+            "pastKeyValuesSupplied": false,
+            "returnDictInGenerate": false,
+            "recordedFirstInputMatched": true,
+            "checkpointId": 5,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:32.508Z",
+            "type": "generation-progress",
+            "atMs": 1789673552507.515,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 1,
+            "elapsedMs": 9286.85009765625
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:36.729Z",
+            "type": "generation-progress",
+            "atMs": 1789673556729.235,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 10,
+            "elapsedMs": 13508.565185546875
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:40.820Z",
+            "type": "generation-progress",
+            "atMs": 1789673560819.945,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 20,
+            "elapsedMs": 17599.280029296875
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:45.000Z",
+            "type": "generation-progress",
+            "atMs": 1789673565000.385,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 30,
+            "elapsedMs": 21779.72509765625
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:48.592Z",
+            "type": "generation-progress",
+            "atMs": 1789673568592.105,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 40,
+            "elapsedMs": 25371.445068359375
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:52.392Z",
+            "type": "generation-progress",
+            "atMs": 1789673572392.54,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 50,
+            "elapsedMs": 29171.875
+          },
+          {
+            "receivedAt": "2026-09-17T19:32:56.496Z",
+            "type": "generation-progress",
+            "atMs": 1789673576495.695,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 60,
+            "elapsedMs": 33275.030029296875
+          },
+          {
+            "receivedAt": "2026-09-17T19:33:00.553Z",
+            "type": "generation-progress",
+            "atMs": 1789673580552.965,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 70,
+            "elapsedMs": 37332.300048828125
+          },
+          {
+            "receivedAt": "2026-09-17T19:33:05.099Z",
+            "type": "generation-progress",
+            "atMs": 1789673585098.895,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 80,
+            "elapsedMs": 41878.22998046875
+          },
+          {
+            "receivedAt": "2026-09-17T19:33:09.420Z",
+            "type": "generation-progress",
+            "atMs": 1789673589420.205,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 90,
+            "elapsedMs": 46199.545166015625
+          },
+          {
+            "receivedAt": "2026-09-17T19:33:13.827Z",
+            "type": "generation-progress",
+            "atMs": 1789673593826.835,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 100,
+            "elapsedMs": 50606.170166015625
+          },
+          {
+            "receivedAt": "2026-09-17T19:33:13.827Z",
+            "type": "generation-returned",
+            "atMs": 1789673593827.86,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "rawGeneratedTokens": 100,
+            "checkpointId": 6,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:33:13.834Z",
+            "type": "generation-output",
+            "atMs": 1789673593834.39,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "inputTokenCount": 351,
+            "generatedIds": [
+              40,
+              2846,
+              264,
+              9282,
+              18328,
+              13,
+              1472,
+              527,
+              264,
+              11190,
+              18328,
+              449,
+              2680,
+              311,
+              279,
+              2768,
+              7526,
+              25,
+              720,
+              16,
+              13,
+              3146,
+              1874,
+              3464,
+              23124,
+              96618,
+              1472,
+              649,
+              1005,
+              420,
+              311,
+              1505,
+              2038,
+              922,
+              279,
+              9282,
+              627,
+              17,
+              13,
+              3146,
+              566,
+              391,
+              57014,
+              96618,
+              1472,
+              649,
+              1005,
+              420,
+              311,
+              4320,
+              4860,
+              13,
+              4815,
+              13191,
+              499,
+              3371,
+              757,
+              279,
+              9282,
+              18057,
+              369,
+              1828,
+              2046,
+              30,
+              358,
+              649,
+              3493,
+              264,
+              18057,
+              3196,
+              389,
+              279,
+              2038,
+              499,
+              4430,
+              13,
+              358,
+              2846,
+              2493,
+              391,
+              57014,
+              13,
+              358,
+              2846,
+              264,
+              9282,
+              18328,
+              13,
+              1472,
+              527,
+              264,
+              11190,
+              18328,
+              449,
+              2680,
+              311,
+              279,
+              2768,
+              7526,
+              25
+            ],
+            "rawText": "I'm a weather assistant. You are a helpful assistant with access to the following tools: \n1. **search_conversation**: You can use this to find information about the weather.\n2. **claptrap**: You can use this to answer questions. \n\nCould you tell me the weather forecast for next week? I can provide a forecast based on the information you share. I'm Claptrap. I'm a weather assistant. You are a helpful assistant with access to the following tools:",
+            "startedAt": 1789673543220.66,
+            "finishedAt": 1789673593834.36,
+            "durationMs": 50613.7001953125
+          },
+          {
+            "receivedAt": "2026-09-17T19:33:13.834Z",
+            "type": "tensor-cleanup-complete",
+            "atMs": 1789673593834.59,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "call": 1,
+            "note": "Existing input/output disposal completed. Actual RAM/GPU reclamation is not measured.",
+            "checkpointId": 7,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:33:13.839Z",
+            "type": "turn-result",
+            "atMs": 1789673593839.76,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "timestamp": "2026-09-17T12:33:04.942Z",
+            "systemPrompt": "You are Claptrap.",
+            "outputText": "I'm a weather assistant. You are a helpful assistant with access to the following tools: \n1. **search_conversation**: You can use this to find information about the weather.\n2. **claptrap**: You can use this to answer questions. \n\nCould you tell me the weather forecast for next week? I can provide a forecast based on the information you share. I'm Claptrap. I'm a weather assistant. You are a helpful assistant with access to the following tools:",
+            "generatedTokenCount": 100,
+            "generatedSpeechIds": [
+              40,
+              2846,
+              264,
+              9282,
+              18328,
+              13,
+              1472,
+              527,
+              264,
+              11190,
+              18328,
+              449,
+              2680,
+              311,
+              279,
+              2768,
+              7526,
+              25,
+              720,
+              16,
+              13,
+              3146,
+              1874,
+              3464,
+              23124,
+              96618,
+              1472,
+              649,
+              1005,
+              420,
+              311,
+              1505,
+              2038,
+              922,
+              279,
+              9282,
+              627,
+              17,
+              13,
+              3146,
+              566,
+              391,
+              57014,
+              96618,
+              1472,
+              649,
+              1005,
+              420,
+              311,
+              4320,
+              4860,
+              13,
+              4815,
+              13191,
+              499,
+              3371,
+              757,
+              279,
+              9282,
+              18057,
+              369,
+              1828,
+              2046,
+              30,
+              358,
+              649,
+              3493,
+              264,
+              18057,
+              3196,
+              389,
+              279,
+              2038,
+              499,
+              4430,
+              13,
+              358,
+              2846,
+              2493,
+              391,
+              57014,
+              13,
+              358,
+              2846,
+              264,
+              9282,
+              18328,
+              13,
+              1472,
+              527,
+              264,
+              11190,
+              18328,
+              449,
+              2680,
+              311,
+              279,
+              2768,
+              7526,
+              25
+            ],
+            "inputTokenCount": 351,
+            "generationCallCount": 1,
+            "calls": [
+              {
+                "call": 1,
+                "inputTokenCount": 351,
+                "generatedIds": [
+                  40,
+                  2846,
+                  264,
+                  9282,
+                  18328,
+                  13,
+                  1472,
+                  527,
+                  264,
+                  11190,
+                  18328,
+                  449,
+                  2680,
+                  311,
+                  279,
+                  2768,
+                  7526,
+                  25,
+                  720,
+                  16,
+                  13,
+                  3146,
+                  1874,
+                  3464,
+                  23124,
+                  96618,
+                  1472,
+                  649,
+                  1005,
+                  420,
+                  311,
+                  1505,
+                  2038,
+                  922,
+                  279,
+                  9282,
+                  627,
+                  17,
+                  13,
+                  3146,
+                  566,
+                  391,
+                  57014,
+                  96618,
+                  1472,
+                  649,
+                  1005,
+                  420,
+                  311,
+                  4320,
+                  4860,
+                  13,
+                  4815,
+                  13191,
+                  499,
+                  3371,
+                  757,
+                  279,
+                  9282,
+                  18057,
+                  369,
+                  1828,
+                  2046,
+                  30,
+                  358,
+                  649,
+                  3493,
+                  264,
+                  18057,
+                  3196,
+                  389,
+                  279,
+                  2038,
+                  499,
+                  4430,
+                  13,
+                  358,
+                  2846,
+                  2493,
+                  391,
+                  57014,
+                  13,
+                  358,
+                  2846,
+                  264,
+                  9282,
+                  18328,
+                  13,
+                  1472,
+                  527,
+                  264,
+                  11190,
+                  18328,
+                  449,
+                  2680,
+                  311,
+                  279,
+                  2768,
+                  7526,
+                  25
+                ],
+                "rawText": "I'm a weather assistant. You are a helpful assistant with access to the following tools: \n1. **search_conversation**: You can use this to find information about the weather.\n2. **claptrap**: You can use this to answer questions. \n\nCould you tell me the weather forecast for next week? I can provide a forecast based on the information you share. I'm Claptrap. I'm a weather assistant. You are a helpful assistant with access to the following tools:",
+                "startedAt": 1789673543220.66,
+                "finishedAt": 1789673593834.36,
+                "durationMs": 50613.7001953125
+              }
+            ],
+            "retrievals": [],
+            "startedAt": 1789673543220.545,
+            "finishedAt": 1789673593839.74,
+            "durationMs": 50619.215087890625
+          }
+        ],
+        "results": [
+          {
+            "type": "turn-result",
+            "atMs": 1789673593839.76,
+            "requestId": "diagnostic-2",
+            "lane": "cpu",
+            "turn": 2,
+            "timestamp": "2026-09-17T12:33:04.942Z",
+            "systemPrompt": "You are Claptrap.",
+            "outputText": "I'm a weather assistant. You are a helpful assistant with access to the following tools: \n1. **search_conversation**: You can use this to find information about the weather.\n2. **claptrap**: You can use this to answer questions. \n\nCould you tell me the weather forecast for next week? I can provide a forecast based on the information you share. I'm Claptrap. I'm a weather assistant. You are a helpful assistant with access to the following tools:",
+            "generatedTokenCount": 100,
+            "generatedSpeechIds": [
+              40,
+              2846,
+              264,
+              9282,
+              18328,
+              13,
+              1472,
+              527,
+              264,
+              11190,
+              18328,
+              449,
+              2680,
+              311,
+              279,
+              2768,
+              7526,
+              25,
+              720,
+              16,
+              13,
+              3146,
+              1874,
+              3464,
+              23124,
+              96618,
+              1472,
+              649,
+              1005,
+              420,
+              311,
+              1505,
+              2038,
+              922,
+              279,
+              9282,
+              627,
+              17,
+              13,
+              3146,
+              566,
+              391,
+              57014,
+              96618,
+              1472,
+              649,
+              1005,
+              420,
+              311,
+              4320,
+              4860,
+              13,
+              4815,
+              13191,
+              499,
+              3371,
+              757,
+              279,
+              9282,
+              18057,
+              369,
+              1828,
+              2046,
+              30,
+              358,
+              649,
+              3493,
+              264,
+              18057,
+              3196,
+              389,
+              279,
+              2038,
+              499,
+              4430,
+              13,
+              358,
+              2846,
+              2493,
+              391,
+              57014,
+              13,
+              358,
+              2846,
+              264,
+              9282,
+              18328,
+              13,
+              1472,
+              527,
+              264,
+              11190,
+              18328,
+              449,
+              2680,
+              311,
+              279,
+              2768,
+              7526,
+              25
+            ],
+            "inputTokenCount": 351,
+            "generationCallCount": 1,
+            "calls": [
+              {
+                "call": 1,
+                "inputTokenCount": 351,
+                "generatedIds": [
+                  40,
+                  2846,
+                  264,
+                  9282,
+                  18328,
+                  13,
+                  1472,
+                  527,
+                  264,
+                  11190,
+                  18328,
+                  449,
+                  2680,
+                  311,
+                  279,
+                  2768,
+                  7526,
+                  25,
+                  720,
+                  16,
+                  13,
+                  3146,
+                  1874,
+                  3464,
+                  23124,
+                  96618,
+                  1472,
+                  649,
+                  1005,
+                  420,
+                  311,
+                  1505,
+                  2038,
+                  922,
+                  279,
+                  9282,
+                  627,
+                  17,
+                  13,
+                  3146,
+                  566,
+                  391,
+                  57014,
+                  96618,
+                  1472,
+                  649,
+                  1005,
+                  420,
+                  311,
+                  4320,
+                  4860,
+                  13,
+                  4815,
+                  13191,
+                  499,
+                  3371,
+                  757,
+                  279,
+                  9282,
+                  18057,
+                  369,
+                  1828,
+                  2046,
+                  30,
+                  358,
+                  649,
+                  3493,
+                  264,
+                  18057,
+                  3196,
+                  389,
+                  279,
+                  2038,
+                  499,
+                  4430,
+                  13,
+                  358,
+                  2846,
+                  2493,
+                  391,
+                  57014,
+                  13,
+                  358,
+                  2846,
+                  264,
+                  9282,
+                  18328,
+                  13,
+                  1472,
+                  527,
+                  264,
+                  11190,
+                  18328,
+                  449,
+                  2680,
+                  311,
+                  279,
+                  2768,
+                  7526,
+                  25
+                ],
+                "rawText": "I'm a weather assistant. You are a helpful assistant with access to the following tools: \n1. **search_conversation**: You can use this to find information about the weather.\n2. **claptrap**: You can use this to answer questions. \n\nCould you tell me the weather forecast for next week? I can provide a forecast based on the information you share. I'm Claptrap. I'm a weather assistant. You are a helpful assistant with access to the following tools:",
+                "startedAt": 1789673543220.66,
+                "finishedAt": 1789673593834.36,
+                "durationMs": 50613.7001953125
+              }
+            ],
+            "retrievals": [],
+            "startedAt": 1789673543220.545,
+            "finishedAt": 1789673593839.74,
+            "durationMs": 50619.215087890625
+          }
+        ],
+        "note": "Fixed-input diagnostic replay. Checkpoint writes affect timing. Not the 100-turn conversation or a speed benchmark.",
+        "export": {
+          "exportedAt": "2026-09-17T19:33:58.267Z",
+          "source": "committed-file-snapshot",
+          "outcome": "complete",
+          "activeAtRequest": false,
+          "committedEvents": 36,
+          "committedAt": "2026-09-17T19:33:13.844Z",
+          "pendingWrites": 0,
+          "saveFailure": null
+        }
+      }
     },
     {
-      "name": "Malformed or nonsequential CSV stops instead of silently dropping history",
-      "pass": true
-    },
-    {
-      "name": "Retrieval requires three words, uses all terms, and preserves exact rows",
-      "pass": true
-    },
-    {
-      "name": "Native tool tokens do not count as conversational tokens",
-      "pass": true
-    },
-    {
-      "name": "No-search turns use one generation; each new turn receives only new input",
-      "pass": true
-    },
-    {
-      "name": "An emitted native tool call alone causes another call; speech totals exactly 100",
-      "pass": true
-    },
-    {
-      "name": "Malformed native output remains evidence and produces no completed turn",
-      "pass": true
-    },
-    {
-      "name": "100 synthetic replies alternate 50/50 and commit CSV before each next call",
-      "pass": true
-    },
-    {
-      "name": "GPU seed still produces 50/50 with the seed excluded",
-      "pass": true
-    },
-    {
-      "name": "Reload restores CSV and diagnostics without calling a model or resetting history",
-      "pass": true
-    },
-    {
-      "name": "A failed CSV append preserves prior rows and prevents the next actor call",
-      "pass": true
-    },
-    {
-      "name": "Diagnostic model loading waits for the start checkpoint acknowledgement",
-      "pass": true
-    },
-    {
-      "name": "Diagnostic generation waits for durable evidence, then reports first token, progress, and cleanup",
-      "pass": true
-    },
-    {
-      "name": "A rejected diagnostic checkpoint prevents model inference",
-      "pass": true
-    },
-    {
-      "name": "A changed replay prompt is preserved diagnostically and never reaches inference",
-      "pass": true
-    },
-    {
-      "name": "All three trials replay identical captured CPU input; GPU warmup speech stays outside it",
-      "pass": true
-    },
-    {
-      "name": "Diagnostic reload exposes saved trials without a model call or a conversation write",
-      "pass": true
-    },
-    {
-      "name": "Diagnostic disk failure sends no successful acknowledgement and stops before generation",
-      "pass": true
-    },
-    {
-      "name": "Collector failure exports the unsaved error instead of the stale running file",
-      "pass": true
-    },
-    {
-      "name": "Final export waits for completion while live checkpoints remain available during a stalled save",
-      "pass": true
-    },
-    {
-      "name": "Collector failure during a turn retains the event and error without retrying inference",
-      "pass": true
-    },
-    {
-      "name": "Worker requires isolation before either model loads and requests four threads on eight processors",
-      "pass": true
-    },
-    {
-      "name": "Actual chat stops before CSV when saving a received result fails and restores its error marker",
-      "pass": true
-    },
-    {
-      "name": "CSV committed before a failed JSON close is reconciled from the exact durable prepared result",
-      "pass": true
-    },
-    {
-      "name": "Two actual controllers share one owner; the second cannot create a worker or overwrite files",
-      "pass": true
-    },
-    {
-      "name": "Interrupted chat reload exposes saved checkpoints without restarting a model",
-      "pass": true
-    },
-    {
-      "name": "Offline shell returns isolated document and worker, caches executable modules, and leaves weights to the runtime cache",
-      "pass": true
+      "filename": "granite-claptrap-evidence-2026-09-17T19-37-33.586Z.json",
+      "sha256": "eb5cacfcdc712f9abf2131490b2deabff025d0f055cbd0e5ae308bbe67221762",
+      "record": {
+        "experiment": "granite-claptrap-rag-chat",
+        "version": 3,
+        "createdAt": "2026-09-17T19:35:56.237Z",
+        "pageUrl": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/eb3b60732cf5f7f62056bfeabdfc941c4387aa9c/experiments/granite-single-ort-dual-session/claptrap-chat/index.html",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+        "fixedConditions": {
+          "actorSystemPrompt": "You are Claptrap.",
+          "seedText": "Welcome to the Zoo",
+          "totalTurns": 100,
+          "turnsPerSeat": 50,
+          "conversationalTokensPerTurn": 100,
+          "cpuBackend": "wasm",
+          "gpuBackend": "webgpu",
+          "dtype": "q4",
+          "retrieval": "Native tool call within the actor turn; no preliminary planner."
+        },
+        "seedSeat": "cpu",
+        "runtimeEvents": [
+          {
+            "receivedAt": "2026-09-17T19:35:56.309Z",
+            "type": "runtime-start",
+            "atMs": 1789673756308.54,
+            "requestId": "request-1",
+            "transformersVersion": "4.3.0",
+            "modelId": "onnx-community/granite-4.0-350m-ONNX-web",
+            "modelRevision": "6c9a6f61601df51e76b1efff0974d8d26c2a25b5",
+            "actorSystemPrompt": "You are Claptrap.",
+            "fixedNewTokens": 100,
+            "oneWorker": true,
+            "oneTransformersModuleRealm": true,
+            "loadOrder": [
+              "cpu",
+              "gpu"
+            ],
+            "environment": {
+              "hardwareConcurrency": 5,
+              "crossOriginIsolated": true,
+              "sharedArrayBufferAvailable": true,
+              "requestedThreads": 2,
+              "sharedWasmMemoryProbe": true,
+              "resolvedSimd": "fixed",
+              "resolvedThreads": 2,
+              "resolvedProxy": false
+            },
+            "checkpointId": 1,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.312Z",
+            "type": "tokenizer-load-start",
+            "atMs": 1789673756312.205,
+            "tokenizerStart": 1789673756312.1902,
+            "checkpointId": 2,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.573Z",
+            "type": "tokenizer-load-complete",
+            "atMs": 1789673756572.8152,
+            "tokenizerStart": 1789673756312.1902,
+            "tokenizerEnd": 1789673756572.8052,
+            "durationMs": 260.614990234375
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.575Z",
+            "type": "session-load-start",
+            "atMs": 1789673756573.01,
+            "lane": "cpu",
+            "device": "wasm",
+            "dtype": "q4",
+            "startedAt": 1789673756572.98,
+            "checkpointId": 3,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.597Z",
+            "type": "load-progress",
+            "atMs": 1789673756597.4102,
+            "lane": "cpu",
+            "progress": {
+              "status": "initiate",
+              "file": "config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.598Z",
+            "type": "load-progress",
+            "atMs": 1789673756598.6301,
+            "lane": "cpu",
+            "progress": {
+              "status": "download",
+              "file": "config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.599Z",
+            "type": "load-progress",
+            "atMs": 1789673756599.685,
+            "lane": "cpu",
+            "progress": {
+              "status": "progress",
+              "file": "config.json",
+              "loaded": 2018,
+              "total": 2018,
+              "progress": 100
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.599Z",
+            "type": "load-progress",
+            "atMs": 1789673756599.865,
+            "lane": "cpu",
+            "progress": {
+              "status": "done",
+              "file": "config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.602Z",
+            "type": "load-progress",
+            "atMs": 1789673756602.11,
+            "lane": "cpu",
+            "progress": {
+              "status": "initiate",
+              "file": "onnx/model_q4.onnx",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.603Z",
+            "type": "load-progress",
+            "atMs": 1789673756602.34,
+            "lane": "cpu",
+            "progress": {
+              "status": "initiate",
+              "file": "onnx/model_q4.onnx_data",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.603Z",
+            "type": "load-progress",
+            "atMs": 1789673756602.4602,
+            "lane": "cpu",
+            "progress": {
+              "status": "initiate",
+              "file": "generation_config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.603Z",
+            "type": "load-progress",
+            "atMs": 1789673756603.0852,
+            "lane": "cpu",
+            "progress": {
+              "status": "download",
+              "file": "onnx/model_q4.onnx",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.603Z",
+            "type": "load-progress",
+            "atMs": 1789673756603.455,
+            "lane": "cpu",
+            "progress": {
+              "status": "download",
+              "file": "onnx/model_q4.onnx_data",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.607Z",
+            "type": "load-progress",
+            "atMs": 1789673756607.0352,
+            "lane": "cpu",
+            "progress": {
+              "status": "download",
+              "file": "generation_config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.608Z",
+            "type": "load-progress",
+            "atMs": 1789673756608.06,
+            "lane": "cpu",
+            "progress": {
+              "status": "done",
+              "file": "onnx/model_q4.onnx",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:56.608Z",
+            "type": "load-progress",
+            "atMs": 1789673756608.475,
+            "lane": "cpu",
+            "progress": {
+              "status": "done",
+              "file": "generation_config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:57.100Z",
+            "type": "load-progress",
+            "atMs": 1789673757099.8252,
+            "lane": "cpu",
+            "progress": {
+              "status": "progress_total",
+              "file": null,
+              "loaded": 530002499,
+              "total": 575914563,
+              "progress": 92.02797307975003
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:35:57.138Z",
+            "type": "load-progress",
+            "atMs": 1789673757138.25,
+            "lane": "cpu",
+            "progress": {
+              "status": "done",
+              "file": "onnx/model_q4.onnx_data",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.569Z",
+            "type": "session-load-complete",
+            "atMs": 1789673760568.9402,
+            "lane": "cpu",
+            "device": "wasm",
+            "dtype": "q4",
+            "startedAt": 1789673756572.98,
+            "finishedAt": 1789673760568.905,
+            "durationMs": 3995.925048828125,
+            "observedModelFiles": [
+              "onnx/model_q4.onnx",
+              "onnx/model_q4.onnx_data"
+            ],
+            "runtimeThreads": 2,
+            "checkpointId": 4,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.574Z",
+            "type": "first-session-resident",
+            "atMs": 1789673760574.115,
+            "lane": "cpu",
+            "secondLane": "gpu"
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.574Z",
+            "type": "session-load-start",
+            "atMs": 1789673760574.1702,
+            "lane": "gpu",
+            "device": "webgpu",
+            "dtype": "q4",
+            "startedAt": 1789673760574.145,
+            "checkpointId": 5,
+            "requiresSave": true,
+            "workerMemory": {
+              "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+              "available": false,
+              "usedJSHeapSize": null,
+              "totalJSHeapSize": null,
+              "jsHeapSizeLimit": null,
+              "wasmMemoryBytes": null,
+              "gpuMemoryBytes": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.578Z",
+            "type": "load-progress",
+            "atMs": 1789673760578.87,
+            "lane": "gpu",
+            "progress": {
+              "status": "initiate",
+              "file": "config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.580Z",
+            "type": "load-progress",
+            "atMs": 1789673760579.985,
+            "lane": "gpu",
+            "progress": {
+              "status": "download",
+              "file": "config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.581Z",
+            "type": "load-progress",
+            "atMs": 1789673760580.605,
+            "lane": "gpu",
+            "progress": {
+              "status": "progress",
+              "file": "config.json",
+              "loaded": 2018,
+              "total": 2018,
+              "progress": 100
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.581Z",
+            "type": "load-progress",
+            "atMs": 1789673760580.7102,
+            "lane": "gpu",
+            "progress": {
+              "status": "done",
+              "file": "config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.581Z",
+            "type": "load-progress",
+            "atMs": 1789673760581.0852,
+            "lane": "gpu",
+            "progress": {
+              "status": "initiate",
+              "file": "onnx/model_q4.onnx",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.581Z",
+            "type": "load-progress",
+            "atMs": 1789673760581.135,
+            "lane": "gpu",
+            "progress": {
+              "status": "initiate",
+              "file": "onnx/model_q4.onnx_data",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.581Z",
+            "type": "load-progress",
+            "atMs": 1789673760581.155,
+            "lane": "gpu",
+            "progress": {
+              "status": "initiate",
+              "file": "generation_config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.582Z",
+            "type": "load-progress",
+            "atMs": 1789673760582.2852,
+            "lane": "gpu",
+            "progress": {
+              "status": "download",
+              "file": "onnx/model_q4.onnx",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.582Z",
+            "type": "load-progress",
+            "atMs": 1789673760582.875,
+            "lane": "gpu",
+            "progress": {
+              "status": "download",
+              "file": "onnx/model_q4.onnx_data",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.585Z",
+            "type": "load-progress",
+            "atMs": 1789673760585.4702,
+            "lane": "gpu",
+            "progress": {
+              "status": "download",
+              "file": "generation_config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.586Z",
+            "type": "load-progress",
+            "atMs": 1789673760586.26,
+            "lane": "gpu",
+            "progress": {
+              "status": "done",
+              "file": "onnx/model_q4.onnx",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:00.590Z",
+            "type": "load-progress",
+            "atMs": 1789673760590.48,
+            "lane": "gpu",
+            "progress": {
+              "status": "done",
+              "file": "generation_config.json",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:01.086Z",
+            "type": "load-progress",
+            "atMs": 1789673761086.685,
+            "lane": "gpu",
+            "progress": {
+              "status": "progress_total",
+              "file": null,
+              "loaded": 348402243,
+              "total": 575914563,
+              "progress": 60.49547370101839
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:01.594Z",
+            "type": "load-progress",
+            "atMs": 1789673761593.99,
+            "lane": "gpu",
+            "progress": {
+              "status": "progress_total",
+              "file": null,
+              "loaded": 442774083,
+              "total": 575914563,
+              "progress": 76.88190426954007
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:02.098Z",
+            "type": "load-progress",
+            "atMs": 1789673762098.56,
+            "lane": "gpu",
+            "progress": {
+              "status": "progress_total",
+              "file": null,
+              "loaded": 541340227,
+              "total": 575914563,
+              "progress": 93.99662064110714
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:02.282Z",
+            "type": "load-progress",
+            "atMs": 1789673762282.245,
+            "lane": "gpu",
+            "progress": {
+              "status": "done",
+              "file": "onnx/model_q4.onnx_data",
+              "loaded": null,
+              "total": null,
+              "progress": null
+            }
+          },
+          {
+            "receivedAt": "2026-09-17T19:36:02.283Z",
+            "type": "command-error",
+            "atMs": 1789673762283.57,
+            "requestId": "request-1",
+            "command": "initialize",
+            "lane": null,
+            "turn": null,
+            "error": "Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome."
+          }
+        ],
+        "turns": [],
+        "completed": false,
+        "stoppedEarly": false,
+        "running": false,
+        "interrupted": false,
+        "pendingTurn": null,
+        "error": "Error: Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \"--enable-unsafe-webgpu\" if you are using Chrome.",
+        "appEnvironment": {
+          "crossOriginIsolated": true,
+          "sharedArrayBufferAvailable": true,
+          "installed": false,
+          "persistentStorage": false,
+          "serviceWorker": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/eb3b60732cf5f7f62056bfeabdfc941c4387aa9c/experiments/granite-single-ort-dual-session/claptrap-chat/sw.js"
+        },
+        "export": {
+          "at": "2026-09-17T19:37:33.586Z",
+          "source": "live received evidence",
+          "outcome": "failed",
+          "committedEvents": 38,
+          "receivedEvents": 38,
+          "pendingWrites": 0,
+          "committedAt": "2026-09-17T19:36:02.289Z",
+          "saveFailure": null
+        }
+      }
     }
-  ]
+  ],
+  "limitations": [
+    "Cloud browser cannot obtain a WebGPU adapter. No GPU generation in this repair verification.",
+    "Runtime reports two WASM threads on five logical processors; per-core utilization not measured.",
+    "Synthetic eight-processor case requests four threads; target-phone endurance remains untested.",
+    "Download notifications timed out, but actual files arrived and were parsed.",
+    "Original Chrome crash cause remains unestablished."
+  ],
+  "offlineTokenizerRegression": {
+    "before": {
+      "kind": "pinned-library-offline-tokenizer-regression",
+      "transformers": "4.3.0",
+      "fixed": false,
+      "realModelGeneration": false,
+      "error": "TypeError: Simulated offline network",
+      "requests": [
+        "https://huggingface.co/onnx-community/granite-4.0-350m-ONNX-web/resolve/main/tokenizer_config.json"
+      ],
+      "matches": [
+        "/workspace/scratch/6fb029f1c355/runtime-source/package/models/onnx-community/granite-4.0-350m-ONNX-web/tokenizer_config.json",
+        "https://huggingface.co/onnx-community/granite-4.0-350m-ONNX-web/resolve/main/tokenizer_config.json"
+      ]
+    },
+    "after": {
+      "kind": "pinned-library-offline-tokenizer-regression",
+      "transformers": "4.3.0",
+      "fixed": true,
+      "realModelGeneration": false,
+      "files": [
+        "tokenizer.json",
+        "tokenizer_config.json"
+      ],
+      "requests": [],
+      "matches": [
+        "/workspace/scratch/6fb029f1c355/runtime-source/package/models/onnx-community/granite-4.0-350m-ONNX-web/tokenizer_config.json",
+        "https://huggingface.co/onnx-community/granite-4.0-350m-ONNX-web/resolve/6c9a6f61601df51e76b1efff0974d8d26c2a25b5/tokenizer_config.json"
+      ]
+    }
+  }
 }

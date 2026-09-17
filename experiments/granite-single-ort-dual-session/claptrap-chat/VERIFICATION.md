@@ -389,7 +389,7 @@ under `runtimeAndChatAudit` in the existing evidence file. The successful
 collector repair applies to `stability.js`; it did not repair the actual
 chat controller's failed-save behavior. The new audit changed no runtime code.
 
-## Approved installed-app repair — browser verification in progress
+## Approved installed-app repair — executed verification
 
 The user's explicit instruction to do the repair is recorded in WORK.md.
 The new manifest/service worker cache a small shell independently of model
@@ -408,9 +408,56 @@ if both storage mechanisms fail, only the live export retains the newest error.
 Full received diagnostics remain exportable, including write status. The DOM
 shows only the latest 100 event summaries. Actor content is not rewritten.
 
-Twenty-seven synthetic checks currently pass, including both 50/50 seed cases,
+Thirty synthetic checks pass, including both 50/50 seed cases,
 shared-memory admission, failed saves before and after CSV, reload, duplicate
 controllers, and isolated cached shell responses. These are plumbing checks.
-Live browser installation, CPU execution with the threaded runtime, cache reuse,
-and target-phone dual-session endurance have not yet been established for this
-build. Prior short single-thread replays do not establish them.
+The published candidate eb3b607 established service worker control, page and
+worker isolation, shared memory, and an offered Chrome install prompt. A second
+actual page was blocked before worker creation/file access. A real CPU replay
+completed 100 tokens in 50,619.22 ms with two requested/runtime-reported WASM
+threads on five logical processors. It matched the recorded 351-token input.
+All 36 events committed; downloaded evidence contained zero pending writes.
+Reload restored the exact 36-event sequence and output. This is not a controlled
+speed comparison or measurement of per-core utilization.
+
+The actual conversation controller also loaded CPU with two reported threads,
+then failed at WebGPU adapter acquisition in the cloud browser. The error and
+runtime events survived reload. No GPU generation or full dual-session chat was
+executed in this environment. A final controller correction marks both lanes
+nonresident after terminating a failed worker. Synthetic checks cover that
+release, interrupted clear, and an unfinished final-save export.
+
+The shell was reloaded from its service-worker cache. Physical offline launch
+and standalone installation were not exercised in this browser. The existing
+pinned Transformers.js caches still own model and WASM resources; the service
+worker caches the shell and executable modules without duplicating model
+weights. Its installation does not wait for the model. Future shell changes
+must bump the service worker cache version, and active sessions do not receive
+forced skipWaiting updates. Commit-pinned development URLs remain separate
+release scopes; this work does not provision a production origin.
+
+The final phone test remains the actual index.html conversation, with both
+sessions resident and alternating generation: 50 CPU + 50 GPU, seed excluded.
+Close older Claptrap pages before opening it, allow the initial setup reload,
+then Start. On an eight-processor phone, the configured CPU thread count is four.
+Keep the app visible for the endurance run. Export both files after completion
+or an error; live evidence exports explicitly identify unfinished/pending saves.
+The separate stability.html remains a short replay and does not substitute for
+that full run. Neither the original Chrome crash cause nor full endurance is
+claimed resolved by the short cloud run.
+
+The exact downloaded exports, hashes, and synthetic outcomes are in
+[evidence/installed-repair-20260917.json](./evidence/installed-repair-20260917.json).
+Browser download notifications timed out, but the files arrived and were parsed.
+The export review found no personal identifiers: routine browser metadata,
+public experiment URLs, UUIDs for test records, and model-generated fixture text.
+
+A further offline defect was reproduced against the actual 4.3.0 package source:
+get_tokenizer_files drops the requested revision during its metadata check.
+With only the pinned tokenizer cached and a rejected network, it requests main
+and fails. Setting the existing env.remotePathTemplate to this realm's already
+pinned revision makes the same discovery succeed from cache with zero fetches.
+The worker now applies that setting; model bytes/revision are unchanged.
+repair-checks.mjs reproduces before/after in separate processes against the
+pinned package. Its exact outputs are saved with the evidence. This is an
+executed cache/discovery regression, not a physical airplane-mode device run.

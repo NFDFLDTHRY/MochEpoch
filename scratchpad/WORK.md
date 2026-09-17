@@ -62,3 +62,26 @@ errors rather than silently falling back to one thread. The cloud browser's
 WebGPU adapter has previously been unavailable, so full dual-session endurance
 must remain unproven unless actual execution establishes it. Publish a usable
 phone link, distinguishing repaired code from a completed 100-response run.
+
+## Implementation and executed results
+
+The repair is implemented. Thirty synthetic checks pass. The published candidate
+established page/worker isolation, shared memory, install eligibility, and live
+exclusive ownership. Real CPU inference completed 100 tokens with two reported
+WASM threads on the cloud browser's five processors. All 36 events saved and
+matched on reload. The actual chat saved its CPU-load/WebGPU-adapter failure.
+Final controller corrections cover released-model labels, interrupted clearing,
+and exports while the last JSON close is pending. They are being verified on
+the published final code before the handoff.
+
+The full phone conversation, standalone launch in airplane mode, and original
+Chrome crash cause remain unverified. No diagnostic replay is being presented
+as a full dual-session run. All details and reviewed public evidence are in the
+experiment VERIFICATION.md and evidence/installed-repair-20260917.json.
+
+An executed check against the pinned library also reproduced an offline startup
+failure: tokenizer metadata discovery drops revision and requests main despite
+cached pinned resources. The worker's existing remote path template now pins
+that lookup too. The before/after check succeeds without network in the fixed
+case. This stays within the approved offline startup repair and adds no runtime,
+model, package, or service. repair-checks.mjs retains the reproduction.

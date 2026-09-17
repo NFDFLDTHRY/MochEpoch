@@ -148,7 +148,7 @@ await check('Malformed native output remains evidence and produces no completed 
 const mainSource = (await readFile(new URL('./main.js', import.meta.url), 'utf8'))
   .replace(/^import [^\n]+\n/gm, '').replaceAll('import.meta.url', '"https://example.test/main.js"');
 
-async function controllerFixture({ files = new Map(), markers = new Map(), failAppendTurn = null, seed = 'cpu', beforeClose = async () => {}, claim = async () => {} } = {}) {
+async function controllerFixture({ files = new Map(), markers = new Map(), failAppendTurn = null, seed = 'cpu', beforeClose = async () => {}, claim = async () => {}, failGpu = false } = {}) {
   const elements = new Map(), requests = [], commits = [], errors = [];
   class Element {
     constructor() { this.textContent = ''; this.handlers = {}; this.disabled = false; this.children = []; this.value = seed; }
@@ -196,6 +196,11 @@ async function controllerFixture({ files = new Map(), markers = new Map(), failA
       queueMicrotask(() => {
         try {
           if (message.command === 'initialize') {
+            if (failGpu) {
+              for (const entry of [{type:'session-load-complete',lane:'cpu',runtimeThreads:4},{type:'session-load-start',lane:'gpu'},
+                {type:'command-error',requestId:message.requestId,error:'No GPU adapter'}]) this.handlers.message({data:entry});
+              return;
+            }
             this.handlers.message({data:{type:'runtime-ready',requestId:message.requestId,cpuResident:true,gpuResident:true,tokenizerResident:true}});
           } else if (message.command === 'generate-turn') {
             const rows = readCsv(files.get('granite-claptrap-conversation.csv'));
@@ -476,6 +481,7 @@ await check('Worker requires isolation before either model loads and requests fo
   const normal = await workerFixture([]);
   const environment = normal.events.find(e => e.type === 'runtime-start').environment;
   assert.equal(environment.requestedThreads, 4);
+  assert.equal(environment.resourcePathTemplate, "{model}/resolve/6c9a6f61601df51e76b1efff0974d8d26c2a25b5/");
   assert.equal(environment.sharedWasmMemoryProbe, true);
   assert.equal(normal.events.find(e => e.type === 'runtime-ready').runtimeThreads, 4);
   const unsafe = await workerFixture([], undefined, { skipInitialize: true, isolated: false });
@@ -574,6 +580,50 @@ await check('Offline shell returns isolated document and worker, caches executab
   }
   assert.equal(await (await get(module)).text(),'fixture');
   assert.equal(await get('https://huggingface.co/model/weights.onnx'),null);
+});
+
+await check('Actual chat does not export completion while the final evidence close is stalled', async () => {
+  let release, held = false;
+  const gate = new Promise(resolve => { release = resolve; });
+  const f = await controllerFixture({ beforeClose: async (name, text) => {
+    if (name.endsWith('.json') && JSON.parse(text).completed) { held = true; await gate; }
+  }});
+  let exported;
+  f.context.capture = text => { exported = JSON.parse(text); };
+  vm.runInContext('downloadText = capture;', f.context);
+  const running = f.get('#start').click();
+  for (let i=0; i<150 && !held; i++) await new Promise(setImmediate);
+  assert.equal(held, true);
+  assert.equal(readCsv(f.files.get('granite-claptrap-conversation.csv')).length, 100);
+  f.get('#download-evidence').click();
+  assert.equal(exported.completed, false);
+  assert.equal(exported.export.outcome, 'running');
+  assert.ok(exported.export.pendingWrites > 0);
+  release(); await running;
+  f.get('#download-evidence').click();
+  assert.equal(exported.completed, true);
+  assert.equal(exported.export.pendingWrites, 0);
+});
+
+await check('Reload refuses stale completion when a clear was interrupted between the two files', async () => {
+  const files = new Map(finishedFiles);
+  files.set('granite-claptrap-conversation.csv', CSV_HEADER + '\r\n');
+  const f = await controllerFixture({files});
+  assert.equal(vm.runInContext('evidence.completed',f.context), false);
+  assert.match(f.get('#status').textContent, /counts differ/);
+  assert.equal(f.get('#start').disabled, true);
+  assert.equal(f.requests.length, 0);
+});
+
+await check('GPU startup failure releases both lanes and survives actual-controller reload', async () => {
+  const f = await controllerFixture({failGpu:true});
+  await f.get('#start').click();
+  assert.equal(f.get('#cpu-status').textContent, 'CPU: not resident');
+  assert.equal(f.get('#gpu-status').textContent, 'GPU: failed to load');
+  assert.equal(f.requests.some(r=>r.command==='generate-turn'), false);
+  const restored = await controllerFixture({files:f.files});
+  assert.match(restored.get('#status').textContent, /No GPU adapter/);
+  assert.equal(restored.get('#start').disabled, true);
 });
 
 console.log(JSON.stringify({kind:'synthetic-plumbing-and-installed-repair-checks',realGraniteGeneration:false,results},null,2));

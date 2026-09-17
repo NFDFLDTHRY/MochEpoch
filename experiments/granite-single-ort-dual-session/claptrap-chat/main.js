@@ -58,8 +58,9 @@ async function writeText(handle, text) {
 }
 
 function failRuntime(error) {
-  runtimeFailed = true;
+  runtimeFailed = true; runtimeReady = false;
   worker?.terminate();
+  for (const lane of ["cpu", "gpu"]) document.querySelector(`#${lane}-status`).textContent = `${lane.toUpperCase()}: not resident`;
   for (const waiter of pending.values()) waiter.reject(error);
   pending.clear();
   showLoadingFailure();
@@ -125,6 +126,7 @@ async function readRows() {
 async function receive(entry) {
   try {
     await recordEvent(entry);
+    if (runtimeFailed) return;
     if (entry.requiresSave) worker.postMessage({ command: "checkpoint-ack", checkpointId: entry.checkpointId });
     if (entry.type === "search-request") {
       status.textContent = `Turn ${entry.turn}/100: ${entry.lane.toUpperCase()} requested a CSV search.`;
@@ -233,7 +235,7 @@ async function restore() {
     const markerText = localStorage.getItem(FAILURE_KEY);
     if (markerText) {
       const marker = JSON.parse(markerText);
-      if (marker.runCreatedAt === evidence.createdAt) {
+      if (marker.runCreatedAt >= evidence.createdAt) {
         evidence.error = marker.error;
         evidence.completed = false;
         evidence.recoveredSaveFailure = marker;
@@ -249,6 +251,14 @@ async function restore() {
         row.response === prepared.actor.outputText) {
       evidence.turns.push(prepared); evidence.pendingTurn = null;
       evidence.recoveredCommittedTurn = row.turn;
+    }
+    if (evidence.turns.length !== rows.length) {
+      evidence.completed = false;
+      evidence.error ||= "CSV and diagnostic counts differ. Export both files before clearing; no rows were changed during recovery.";
+    }
+    if (evidence.completed) {
+      try { verifyCompleted(rows, evidence.turns, evidence.seedSeat); }
+      catch (error) { evidence.completed = false; evidence.error = errorText(error); }
     }
     if (evidence.running) { evidence.running = false; evidence.interrupted = true; }
     committedEvents = evidence.runtimeEvents.length;

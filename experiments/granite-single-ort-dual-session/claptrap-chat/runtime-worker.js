@@ -94,6 +94,9 @@ function fixedSimdSupported() {
 }
 
 function configureSingleOrtEnvironment() {
+  // 4.3.0 tokenizer discovery omits revision when checking metadata. Pin the
+  // realm's path too, so discovery uses the same cached resource when offline.
+  env.remotePathTemplate = `{model}/resolve/${MODEL_REVISION}/`;
   const wasm = env.backends?.onnx?.wasm;
   if (!wasm) throw new Error("Transformers.js did not expose ONNX WASM environment.");
   if (!fixedSimdSupported()) throw new Error("Fixed-width WASM SIMD probe failed.");
@@ -111,6 +114,7 @@ function configureSingleOrtEnvironment() {
     crossOriginIsolated: Boolean(self.crossOriginIsolated),
     sharedArrayBufferAvailable: typeof SharedArrayBuffer !== "undefined",
     requestedThreads,
+    resourcePathTemplate: env.remotePathTemplate,
     sharedWasmMemoryProbe: true,
     resolvedSimd: wasm.simd ?? null,
     resolvedThreads: wasm.numThreads ?? null,
