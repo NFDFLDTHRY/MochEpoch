@@ -3,7 +3,7 @@ const WORKER_URL = new URL("./worker.js", import.meta.url);
 const evidence = {
   experiment: "granite-cpu-gpu-worker-concurrency",
   phase: 1,
-  probeRevision: 2,
+  probeRevision: 3,
   createdAt: new Date().toISOString(),
   metadata: {
     pageUrl: location.href,
@@ -62,24 +62,19 @@ function formatBytes(value) {
   return `${value.toFixed(0)} B`;
 }
 
-function progressText(message) {
-  const progress = message.progress ?? {};
-  const label = progress.file ?? progress.name ?? message.owner ?? "unknown";
-  const loaded = formatBytes(progress.loaded);
-  const total = formatBytes(progress.total);
-  let percent = null;
-
-  if (Number.isFinite(progress.loaded) && Number.isFinite(progress.total) && progress.total > 0) {
-    percent = `${((progress.loaded / progress.total) * 100).toFixed(1)}%`;
-  } else if (Number.isFinite(progress.progress)) {
-    percent = `${progress.progress.toFixed(1)}`;
+function humanStage(stage) {
+  switch (stage) {
+    case "init-command-dispatched": return "Initialization command sent";
+    case "load-start": return "Worker load started";
+    case "tokenizer-load-start": return "Loading tokenizer";
+    case "tokenizer-load-complete": return "Tokenizer ready";
+    case "model-load-start": return "Loading Granite model/runtime";
+    case "model-load-complete": return "Granite model/runtime loaded";
+    case "prompt-prepare-start": return "Preparing test prompt";
+    case "prompt-prepare-complete": return "Prompt ready";
+    case "ready": return "READY";
+    default: return stage ?? "unknown";
   }
-
-  const parts = [message.owner ?? "load", progress.status ?? "event", label];
-  if (loaded && total) parts.push(`${loaded}/${total}`);
-  else if (loaded) parts.push(loaded);
-  if (percent) parts.push(percent);
-  return parts.join(" · ");
 }
 
 class Lane {
@@ -89,6 +84,8 @@ class Lane {
     this.stageElement = document.querySelector(`#${config.workerId}-stage`);
     this.elapsedElement = document.querySelector(`#${config.workerId}-elapsed`);
     this.progressElement = document.querySelector(`#${config.workerId}-progress`);
+    this.activityElement = document.querySelector(`#${config.workerId}-activity`);
+    this.progressBar = document.querySelector(`#${config.workerId}-bar`);
     this.initButton = document.querySelector(`#init-${config.workerId}`);
     this.worker = new Worker(WORKER_URL, { type: "module", name: config.workerId });
     this.ready = false;
@@ -96,6 +93,10 @@ class Lane {
     this.stage = "idle";
     this.initRequestedAtMs = null;
     this.workerLoadStartMs = null;
+    this.lastSignalReceivedAtMs = null;
+    this.lastDownloadPercent = null;
+    this.lastDownloadedBytes = null;
+    this.lastDownloadTotalBytes = null;
     this.initWaiter = null;
     this.runWaiters = new Map();
 
@@ -105,7 +106,8 @@ class Lane {
       record(this.config.workerId, { type: "worker-script-error", error });
       this.loading = false;
       this.ready = false;
-      this.setStatus("Worker script failed. See evidence.", false);
+      this.setStatus("ERROR: worker script failed.", false);
+      this.setStage("worker-script-error");
       appendLog(`${this.config.workerId.toUpperCase()}: ${error}`);
       this.failAll(new Error(error));
       updatePhaseButton();
@@ -114,12 +116,16 @@ class Lane {
 
   setStatus(text, ok = null) {
     this.statusElement.textContent = text;
-    this.statusElement.className = ok === true ? "ok" : ok === false ? "bad" : "";
+    this.statusElement.className = ok === true ? "ok" : ok === false ? "bad" : "working";
   }
 
   setStage(stage) {
     this.stage = stage ?? "unknown";
-    this.stageElement.textContent = `Stage: ${this.stage}`;
+    this.stageElement.textContent = `Stage: ${humanStage(this.stage)}`;
+  }
+
+  markSignal() {
+    this.lastSignalReceivedAtMs = nowMs();
   }
 
   updateElapsed() {
@@ -129,7 +135,58 @@ class Lane {
     this.elapsedElement.textContent = `Elapsed: ${formatSeconds(end - this.initRequestedAtMs)}`;
   }
 
+  updateActivity() {
+    if (this.lastSignalReceivedAtMs === null) {
+      this.activityElement.textContent = "Worker signal: none yet.";
+      return;
+    }
+
+    const ageMs = Math.max(0, nowMs() - this.lastSignalReceivedAtMs);
+    if (this.ready) {
+      this.activityElement.textContent = `Worker signal: READY · ${formatSeconds(ageMs)} since last message.`;
+    } else if (this.loading && ageMs <= 7000) {
+      this.activityElement.textContent = `Worker signal: ACTIVE · ${formatSeconds(ageMs)} ago.`;
+    } else if (this.loading) {
+      this.activityElement.textContent = `Worker signal: ${formatSeconds(ageMs)} ago · runtime may be busy; no error reported.`;
+    } else {
+      this.activityElement.textContent = `Worker signal: ${formatSeconds(ageMs)} ago.`;
+    }
+  }
+
+  updateDownload(progress) {
+    if (!Number.isFinite(progress?.loaded) || !Number.isFinite(progress?.total) || progress.total <= 0) return false;
+
+    const percent = Math.max(0, Math.min(100, (progress.loaded / progress.total) * 100));
+    this.lastDownloadPercent = percent;
+    this.lastDownloadedBytes = progress.loaded;
+    this.lastDownloadTotalBytes = progress.total;
+    this.progressBar.value = percent;
+
+    const loaded = formatBytes(progress.loaded);
+    const total = formatBytes(progress.total);
+    if (percent >= 99.95 && this.stage === "model-load-start") {
+      this.progressElement.textContent = `Model download: ${loaded} / ${total} · 100% · download complete; runtime/session construction may still be working.`;
+    } else {
+      this.progressElement.textContent = `Model download: ${loaded} / ${total} · ${percent.toFixed(1)}%.`;
+    }
+    return true;
+  }
+
+  snapshot() {
+    return {
+      ready: this.ready,
+      loading: this.loading,
+      stage: this.stage,
+      initRequestedAtMs: this.initRequestedAtMs,
+      lastSignalReceivedAtMs: this.lastSignalReceivedAtMs,
+      lastDownloadPercent: this.lastDownloadPercent,
+      lastDownloadedBytes: this.lastDownloadedBytes,
+      lastDownloadTotalBytes: this.lastDownloadTotalBytes,
+    };
+  }
+
   onMessage(message) {
+    this.markSignal();
     record(this.config.workerId, message);
 
     switch (message.type) {
@@ -137,21 +194,53 @@ class Lane {
         this.loading = true;
         this.workerLoadStartMs = message.loadStartMs ?? message.atMs ?? null;
         this.setStage(message.stage ?? "load-start");
-        this.setStatus(`Loading ${message.device}/${message.dtype}…`);
+        this.setStatus(`WORKING: loading ${message.device}/${message.dtype}.`);
         appendLog(`${this.config.workerId.toUpperCase()}: load started (${message.device}/${message.dtype}).`);
         break;
 
-      case "checkpoint":
-        this.setStage(message.checkpoint ?? message.stage);
-        appendLog(`${this.config.workerId.toUpperCase()}: ${message.checkpoint ?? message.stage}.`);
+      case "checkpoint": {
+        const checkpoint = message.checkpoint ?? message.stage;
+        this.setStage(checkpoint);
+        if (checkpoint === "tokenizer-load-start") {
+          this.progressBar.removeAttribute("value");
+          this.progressElement.textContent = "Tokenizer: loading…";
+          this.setStatus("WORKING: loading tokenizer.");
+        } else if (checkpoint === "tokenizer-load-complete") {
+          this.progressElement.textContent = "Tokenizer: complete. Waiting for model download progress…";
+          this.setStatus("WORKING: tokenizer ready; starting Granite model load.");
+        } else if (checkpoint === "model-load-start") {
+          this.progressBar.removeAttribute("value");
+          this.progressElement.textContent = "Model: locating files and starting download…";
+          this.setStatus("WORKING: loading Granite model/runtime.");
+        } else if (checkpoint === "model-load-complete") {
+          this.progressBar.value = 100;
+          this.progressElement.textContent = "Model/runtime load complete. Preparing test prompt…";
+          this.setStatus("WORKING: Granite loaded; preparing prompt.");
+        } else if (checkpoint === "prompt-prepare-start") {
+          this.setStatus("WORKING: preparing deterministic test prompt.");
+        } else if (checkpoint === "prompt-prepare-complete") {
+          this.setStatus("WORKING: prompt prepared; finalizing lane.");
+        }
+        appendLog(`${this.config.workerId.toUpperCase()}: ${humanStage(checkpoint)}.`);
         break;
+      }
 
       case "load-progress": {
         this.setStage(message.stage);
-        const text = progressText(message);
-        this.progressElement.textContent = `Progress: ${text}`;
-        if (message.progress?.status !== "progress") {
-          appendLog(`${this.config.workerId.toUpperCase()}: ${text}.`);
+        const progress = message.progress ?? {};
+        const aggregateUpdated = progress.status === "progress_total" && this.updateDownload(progress);
+
+        if (!aggregateUpdated && message.owner === "tokenizer" && progress.status === "progress" && Number.isFinite(progress.progress)) {
+          this.progressElement.textContent = `Tokenizer file: ${progress.file ?? "unknown"} · ${progress.progress.toFixed(1)}%.`;
+        }
+
+        if (!aggregateUpdated && progress.status === "progress" && progress.file?.includes("onnx_data")) {
+          this.updateDownload(progress);
+        }
+
+        if (progress.status === "initiate" || progress.status === "download" || progress.status === "done") {
+          const file = progress.file ?? progress.name ?? "resource";
+          appendLog(`${this.config.workerId.toUpperCase()}: ${message.owner} ${progress.status} ${file}.`);
         }
         break;
       }
@@ -165,9 +254,11 @@ class Lane {
         this.ready = true;
         this.readyAtMs = nowMs();
         this.setStage("ready");
-        this.setStatus(`Ready. Load ${formatMs(message.loadDurationMs)}.`, true);
+        this.progressBar.value = 100;
+        this.progressElement.textContent = "READY: model and test prompt loaded.";
+        this.setStatus(`READY. Load ${formatMs(message.loadDurationMs)}.`, true);
         this.elapsedElement.textContent = `Elapsed: ${formatSeconds(message.loadDurationMs)}`;
-        appendLog(`${this.config.workerId.toUpperCase()}: ready after ${formatMs(message.loadDurationMs)}.`);
+        appendLog(`${this.config.workerId.toUpperCase()}: READY after ${formatMs(message.loadDurationMs)}.`);
         this.initWaiter?.resolve(message);
         this.initWaiter = null;
         updatePhaseButton();
@@ -178,7 +269,7 @@ class Lane {
         this.ready = false;
         this.finishedAtMs = nowMs();
         this.setStage(`error after ${message.failedStage ?? "unknown"}`);
-        this.setStatus("Load failed. See log/evidence.", false);
+        this.setStatus("ERROR: load failed. See log/evidence.", false);
         appendLog(`${this.config.workerId.toUpperCase()}: load failed during ${message.failedStage ?? "unknown"}: ${message.error}`);
         this.initWaiter?.reject(new Error(message.error));
         this.initWaiter = null;
@@ -230,8 +321,10 @@ class Lane {
     this.loading = true;
     this.initRequestedAtMs = nowMs();
     this.initButton.disabled = true;
+    this.progressBar.removeAttribute("value");
+    this.progressElement.textContent = "Initialization requested; waiting for worker…";
     this.setStage("init-command-dispatched");
-    this.setStatus("Initialization command sent…");
+    this.setStatus("WORKING: initialization command sent.");
     record("main", {
       type: "command-dispatch",
       command: "init",
@@ -317,7 +410,7 @@ function updatePhaseButton() {
 
 function beginInitialization(lane) {
   lane.init().catch((error) => {
-    appendLog(`${lane.config.workerId.toUpperCase()} initialization ended without ready: ${serializeError(error)}`);
+    appendLog(`${lane.config.workerId.toUpperCase()} initialization ended without READY: ${serializeError(error)}`);
   });
 }
 
@@ -331,9 +424,11 @@ document.querySelector("#page-url").textContent = location.href;
 setInterval(() => {
   cpuLane.updateElapsed();
   gpuLane.updateElapsed();
+  cpuLane.updateActivity();
+  gpuLane.updateActivity();
 }, 500);
 
-appendLog("Probe revision 2 loaded. Initialize CPU and GPU independently. No artificial load timeout is applied.");
+appendLog("Probe revision 3 loaded. Load telemetry is throttled; live bars show observed download progress. No artificial load timeout is applied.");
 
 phase1Button.addEventListener("click", async () => {
   phaseRunning = true;
@@ -380,13 +475,17 @@ phase1Button.addEventListener("click", async () => {
 downloadButton.addEventListener("click", () => {
   const snapshot = {
     ...evidence,
+    laneSnapshots: {
+      cpu: cpuLane.snapshot(),
+      gpu: gpuLane.snapshot(),
+    },
     exportedAt: new Date().toISOString(),
   };
   const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `granite-cpu-gpu-worker-concurrency-r2-${new Date().toISOString().replaceAll(":", "-")}.json`;
+  anchor.download = `granite-cpu-gpu-worker-concurrency-r3-${new Date().toISOString().replaceAll(":", "-")}.json`;
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
