@@ -4,81 +4,89 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <title>Granite CPU/GPU Worker Concurrency Probe</title>
+  <title>Granite CPU/GPU Controlled Benchmark</title>
   <style>
     :root { font-family: system-ui, sans-serif; }
-    body { margin: 0; padding: 1rem; max-width: 64rem; margin-inline: auto; line-height: 1.4; }
+    body { margin: 0; padding: 1rem; max-width: 68rem; margin-inline: auto; line-height: 1.4; }
     h1 { font-size: 1.35rem; }
     .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .75rem; margin-block: 1rem; }
     button { min-height: 3.25rem; font: inherit; font-weight: 700; }
     button:disabled { opacity: .5; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .75rem; }
-    article, pre { border: 1px solid currentColor; border-radius: .5rem; padding: .75rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: .75rem; }
+    article, pre, .notice { border: 1px solid currentColor; border-radius: .5rem; padding: .75rem; }
     article p { margin: .35rem 0; }
-    .ok { font-weight: 700; }
-    .bad { font-weight: 700; }
-    .working { font-weight: 700; }
+    .notice { border-width: 2px; font-weight: 700; }
+    .ok, .bad, .working { font-weight: 700; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
     progress { width: 100%; height: 1.6rem; margin-block: .4rem; }
     pre { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 12rem; }
-    .notice { border: 2px solid currentColor; border-radius: .5rem; padding: .75rem; font-weight: 700; }
   </style>
 </head>
 <body>
-  <h1>Granite CPU/GPU Worker Concurrency Probe</h1>
-  <p>Revision 3 throttles load telemetry and gives each lane a live progress surface. CPU and GPU can be initialized independently. This probe does not read or mutate MochEpoch game state.</p>
+  <h1>Granite CPU/GPU Controlled Benchmark</h1>
+  <p>Revision 4. Both lanes request the exact same pinned Granite q4 artifact. Every generation is forced to exactly 100 new tokens.</p>
 
-  <p class="notice">There is no artificial load timeout. While a lane says WORKING or shows recent worker signals, leave it open. A 100% download can still be followed by model/session construction before READY.</p>
+  <p class="notice" id="benchmark-status">Initialize both lanes. During a benchmark step the page intentionally stays quiet until that 100-token generation completes.</p>
 
   <section class="grid" aria-label="environment">
     <article>
       <h2>Environment</h2>
       <p id="gpu-availability"></p>
       <p id="hardware-concurrency"></p>
+      <p id="cross-origin-isolated"></p>
+      <p id="shared-array-buffer"></p>
       <p><small id="page-url" class="mono"></small></p>
     </article>
     <article>
       <h2>CPU lane</h2>
-      <p>Device: wasm</p>
+      <p>Device: WASM</p>
       <p>Dtype: q4</p>
+      <p>SIMD request: fixed-width SIMD</p>
+      <p id="cpu-thread-config">WASM threads: pending</p>
       <p id="cpu-status">Not initialized.</p>
       <p id="cpu-stage">Stage: idle</p>
       <progress id="cpu-bar" max="100" value="0"></progress>
       <p id="cpu-progress">Download: not started.</p>
-      <p id="cpu-elapsed">Elapsed: 0.0 s</p>
+      <p id="cpu-elapsed">Load elapsed: 0.0 s</p>
       <p id="cpu-activity">Worker signal: none yet.</p>
     </article>
     <article>
       <h2>GPU lane</h2>
-      <p>Device: webgpu</p>
-      <p>Dtype: q4f16</p>
+      <p>Device: WebGPU</p>
+      <p>Dtype: q4</p>
+      <p>Same q4 graph and weights as CPU.</p>
       <p id="gpu-status">Not initialized.</p>
       <p id="gpu-stage">Stage: idle</p>
       <progress id="gpu-bar" max="100" value="0"></progress>
       <p id="gpu-progress">Download: not started.</p>
-      <p id="gpu-elapsed">Elapsed: 0.0 s</p>
+      <p id="gpu-elapsed">Load elapsed: 0.0 s</p>
       <p id="gpu-activity">Worker signal: none yet.</p>
     </article>
   </section>
 
-  <section class="controls" aria-label="initialization controls">
+  <section class="controls" aria-label="controls">
     <button id="init-cpu">Initialize CPU</button>
     <button id="init-gpu">Initialize GPU</button>
-    <button id="phase1" disabled>Run Phase 1</button>
+    <button id="phase1" disabled>Run controlled benchmark</button>
     <button id="download">Download evidence JSON</button>
   </section>
 
-  <p>Phase 1 becomes available only after both lanes report READY. You may initialize either lane first or start both without waiting for the other.</p>
+  <p>The benchmark runs one 100-token profiling pass on each lane, one clean 100-token solo pass on each lane, then one simultaneous 100-token CPU plus GPU pass. Profiling timestamps stay inside the worker and are returned only after generation ends.</p>
 
   <article id="summary" hidden>
-    <h2>Phase 1 summary</h2>
+    <h2>Revision 4 summary</h2>
+    <p id="cpu-profile"></p>
+    <p id="gpu-profile"></p>
     <p id="cpu-baseline"></p>
     <p id="gpu-baseline"></p>
+    <p id="speed-ratio"></p>
     <p id="sequential-reference"></p>
     <p id="concurrent-makespan"></p>
     <p id="overlap-time"></p>
     <p id="time-saved"></p>
     <p id="overlap-ratio"></p>
+    <p id="cpu-windows"></p>
+    <p id="gpu-windows"></p>
   </article>
 
   <h2>Event log</h2>
