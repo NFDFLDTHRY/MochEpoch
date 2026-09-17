@@ -568,8 +568,42 @@ Thirty-two synthetic checks pass, including second-output-only speech, unchanged
 incoming message/tool results, empty/invalid retrieval, malformed output, no third
 call, fresh context, 100-turn 50/50 alternation from both seed seats, 200-call
 accounting, and existing persistence/isolation/ownership/reload protections.
-These are synthetic plumbing results. Browser inference verification is pending.
+These are synthetic plumbing results. The real CPU verification below is separate.
 The new CPU two-call diagnostic uses the same worker turn function, two turns
 starting at the seed, and an initially empty OPFS CSV of its own. Existing crash
 replays still explicitly use the original optional-retrieval turn and recorded
 phone inputs. Neither diagnostic substitutes for 100-turn dual-session endurance.
+
+### Real two-call CPU execution
+
+Code b0a5007ed0f9f5c8a763e75e6c6b1e9094abdb65 completed two CPU turns through the
+actual new turn function in an isolated cloud browser with two reported WASM
+threads. Four generations completed. Each response contained exactly 100 new
+tokens from call 2. Its decoded raw output and token IDs exactly match the saved
+response and CSV; call 1 contributed zero conversational tokens. All 66 events
+committed, with no error or pending write. Reload restored both original replies
+and all 66 events. The download notification timed out, but the exported file
+arrived and was parsed and hashed.
+
+Turn 1 generated query `welcome`, which failed the at-least-three-word rule. The
+actual deterministic error was passed to its response call. Turn 2 generated
+`current date and time`, a valid query which returned the complete first CSV row.
+The exact retrieved row and original incoming message reached the second call.
+Both response prompts have exactly `You are Claptrap.` as their serialized system
+text and exclude the retrieval-selection task/native tool-schema instructions.
+The native tool request and actual result remain in the response input.
+
+Both second-call replies contain the same repeated request for a current timestamp,
+despite that timestamp being present in the input. This is preserved model output.
+The test proves the query/search/second-response recording boundary, not sensible
+Granite dialogue or reliable query-length compliance. No output filter, coaching,
+query repair or retry was added to hide this result.
+
+The new full conversation page was also opened. It displays the two-call contract,
+isolation and saved shell, and restores the previous cloud GPU adapter failure.
+No new GPU generation or dual-residency endurance is claimed. The new phone run
+still needs 100 replies, 50 CPU plus 50 GPU, from 200 generation calls.
+
+[Open the two-call conversation](https://raw.githack.com/NFDFLDTHRY/MochEpoch/b0a5007ed0f9f5c8a763e75e6c6b1e9094abdb65/experiments/granite-single-ort-dual-session/claptrap-chat/index.html).
+Exact public-reviewed evidence, original export, source hashes and per-turn checks
+are in [two-call-turn-20260917.json](./evidence/two-call-turn-20260917.json).

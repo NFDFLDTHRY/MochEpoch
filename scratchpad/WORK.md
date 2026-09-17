@@ -1,7 +1,9 @@
 # Claptrap retrieval call followed by response call
 
 proposal_id: 20260917-claptrap-two-call-turn
-status: IN_PROGRESS
+status: COMPLETE
+code_commit: b0a5007ed0f9f5c8a763e75e6c6b1e9094abdb65
+remaining_gate: new full 100-reply phone run; query compliance and dialogue behavior remain experimental
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 base_commit: 11be0cd3bc3c0aeca4f02d9754c4133f1274870b
@@ -80,3 +82,25 @@ through the diagnostic UI and save the export. Publish the actual 100-turn page
 on the existing branch. Full dual-session execution still requires the phone if
 this cloud browser cannot obtain a WebGPU adapter. Two calls establish a clean
 recording boundary, not a guarantee that Granite's second answer is sensible.
+
+## Executed result and handoff
+
+Implemented and published the required retrieval call followed by the response
+call. Only the latter is speech/CSV/next-seat input; both remain machine evidence.
+All 32 synthetic checks pass. Real CPU execution completed two turns from four
+calls, 100 tokens each, all 66 events saved, and both replies restored after reload.
+The exact response prompts preserve the system and original incoming message.
+
+Actual queries: `welcome` was rejected for having only one word; `current date
+and time` passed and retrieved the first saved CSV row. Both deterministic results
+were supplied unchanged to the corresponding response call. The two replies were
+identical repeated requests for a timestamp already present in the input. This
+behavior is preserved. No claim is made that the two-call boundary makes Granite
+sensible or makes every query valid.
+
+The full chat entry point is verified and linked in VERIFICATION.md. New real
+GPU execution and full 100-reply phone endurance remain outstanding. The CPU-only
+test is labeled accordingly; it did not reproduce dual-session memory conditions.
+Exact export, source hashes, checks and limitations are committed under the new
+evidence/two-call-turn-20260917.json. No personal identifiers were found in the
+publication review. Earlier original exports and the locked blueprint are intact.
