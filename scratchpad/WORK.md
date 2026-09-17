@@ -3,7 +3,7 @@
 proposal_id: 20260917-claptrap-installed-repair
 status: COMPLETE
 code_commit: bcf1060bde6091649efce6c1d61d270f102d23da
-remaining_gate: full target-phone dual-session endurance and physical offline installed launch not yet verified
+remaining_gate: full 100-response endurance, physical offline installed launch, and precise reported presentation mismatch remain unverified
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 base_commit: 7995a2c0c6305a7fc73496007f1ae406073db94e
@@ -100,3 +100,18 @@ and generation alternates. No prompt or actor framing was repaired.
 Main and the locked architecture were left untouched. Reviewed evidence and
 all repair code are published on the existing experiment branch. There is no
 new approval request, paid host, service, CI job, or runtime dependency.
+
+## Installed-phone follow-up evidence
+
+The 20:10 UTC exports from final code confirm a clean five-response installed
+phone run with persistent storage, isolation/shared memory, four CPU threads
+reported, and both sessions resident. Three GPU and two CPU replies each reached
+100 tokens; all 124 events saved; zero pending writes/errors; stopped after turn 5.
+Raw generated text, returned reply, actor evidence, CSV and next-turn input agree
+for every response. The screenshot shows turn 2 still generating while only the
+completed turn 1 is rendered. Generic assistant/tool wording is Granite's output.
+No native retrieval ran. Exact original exports, hashes and per-turn checks are
+in installed-repair-20260917.json. The user reports a minor display/recording
+issue whose exact missing/extra passage is not yet identified; no implementation
+change was guessed from that description. The installed five-response boundary
+is now executed evidence. Full endurance and offline launch remain open.

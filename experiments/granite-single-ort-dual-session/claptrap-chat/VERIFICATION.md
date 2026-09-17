@@ -470,3 +470,43 @@ worker, the UI correctly read "CPU: not resident" and "GPU: failed to load".
 Its complete export and source hashes are included in the evidence file.
 The final phone entry point is:
 https://raw.githack.com/NFDFLDTHRY/MochEpoch/bcf1060bde6091649efce6c1d61d270f102d23da/experiments/granite-single-ort-dual-session/claptrap-chat/index.html
+
+
+## Installed phone run at 20:04–20:10 UTC
+
+The user's final-build export confirms installed display mode, persistent
+storage, page/worker isolation, shared memory, eight logical processors, four
+requested/runtime-reported WASM threads, and both q4 sessions resident together.
+Five actual responses completed in order GPU / CPU / GPU / CPU / GPU, each
+100 generated speech tokens. All 124 received events committed. The run used
+the stop-after-turn path after turn 5, with no recorded error or pending write.
+The user described execution as flawless apart from minor presentation/recording
+issues. This is a successful short actual-chat run, not a completed 100-turn run.
+
+| Turn | Backend | Recorded generation duration | Speech tokens |
+| --- | --- | ---: | ---: |
+| 1 | WebGPU | 25.65 s | 100 |
+| 2 | WASM | 109.15 s | 100 |
+| 3 | WebGPU | 17.34 s | 100 |
+| 4 | WASM | 152.26 s | 100 |
+| 5 | WebGPU | 18.30 s | 100 |
+
+For all five responses, raw generation text, returned output, actor evidence
+and CSV text are exactly equal. Raw generated token IDs equal saved speech IDs.
+Each following user-message input contains exactly the prior committed reply.
+No native retrieval call occurred. Turns 4 and 5 contain identical text.
+The helper/tool-description text in the first response is model output.
+
+The supplied screenshot catches CPU turn 2 at 60 raw tokens and shows the
+completed GPU turn 1. The controller currently renders a reply only after its
+100-token turn commits. Mid-sentence endings result from the specified token
+boundary; the export contains no hidden continuation. The seed is in the UI
+configuration and JSON input, and is excluded from response CSV/counting.
+These are established display/recording behaviors. The user's exact additional
+mismatch is unresolved; no unverified decoder or prompt correction was applied.
+
+Exact original JSON/CSV text and SHA-256 hashes are retained in the existing
+installed-repair evidence file under phoneInstalledRun. Source bytes can be
+recovered by UTF-8 encoding originalText. Publication review found only the
+experiment's public URLs, routine browser metadata and model-generated text.
+No source attachment or implementation file was modified in this evidence update.
