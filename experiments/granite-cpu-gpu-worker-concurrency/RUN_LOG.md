@@ -199,3 +199,132 @@ Change only the observer:
 - then repeat CPU-first/GPU-second initialization and allow enough time for the resulting low-noise probe to show real current state.
 
 The runtime itself should not be changed based on Run 002 because the dominant failure observed was in the probe's reporting path, not in Granite initialization.
+
+## Run 003 — revision 3 successful dual-backend initialization and partial Phase 1
+
+Date: 2026-09-17
+
+Probe commit: `f0d1ff23d570a407fb50f912218167d061d3bc09`
+
+User-exported evidence file:
+
+`granite-cpu-gpu-worker-concurrency-r3-2026-09-17T05-56-05.749Z.json`
+
+### Operator sequence
+
+The operator initialized CPU first and allowed it to reach ready. GPU was then initialized and allowed to reach ready. Once both lanes were ready, Phase 1 was started. Evidence was exported while the final concurrent CPU inference was still outstanding.
+
+### Observer repair established
+
+Revision 3 fixed the revision 2 telemetry flood. The exported evidence contains 99 events rather than thousands, and worker-to-main event timing remained close enough for the UI to track the real worker state. CPU and GPU progress, milestones, readiness, and inference events were all observed.
+
+### CPU initialization
+
+- Backend: `wasm`.
+- Dtype: `q4`.
+- Tokenizer load completed in approximately `535.4 ms`.
+- Expected q4 model files resolved: `model_q4.onnx` and `model_q4.onnx_data`.
+- External-data file size reported approximately `575,639,552` bytes.
+- Model-load stage completed in approximately `9,481.4 ms`.
+- Prompt preparation completed in approximately `41.9 ms`.
+- Total worker load duration to ready: approximately `10,059.7 ms`.
+- Input prompt length: 33 tokens.
+- CPU lane reached `ready` with no load error.
+
+The progress callback calls these transfers downloads, but this run does not establish whether every byte came from the network or browser/cache storage. Do not interpret the very high apparent transfer rate as a measured network bandwidth result.
+
+### GPU initialization
+
+- Backend: `webgpu`.
+- Dtype: `q4f16`.
+- Worker itself reported WebGPU visible.
+- Tokenizer load completed in approximately `509.4 ms`.
+- Expected q4f16 model files resolved: `model_q4f16.onnx` and `model_q4f16.onnx_data`.
+- External-data file size reported approximately `350,210,048` bytes.
+- Model-load stage completed in approximately `5,434.1 ms`.
+- Prompt preparation completed in approximately `34.2 ms`.
+- Total worker load duration to ready: approximately `5,979.3 ms`.
+- Input prompt length: 33 tokens.
+- GPU lane reached `ready` with no load error.
+
+### Generation established
+
+Both backends successfully executed Granite generation and produced the expected exact text `READY`.
+
+CPU warmup:
+
+- duration approximately `9,749.8 ms`;
+- generated 2 tokens;
+- output `READY`.
+
+GPU warmup:
+
+- duration approximately `5,600.2 ms`;
+- generated 2 tokens;
+- output `READY`.
+
+CPU warmed solo baseline:
+
+- duration approximately `8,395.5 ms`;
+- generated 2 tokens;
+- output `READY`.
+
+GPU warmed solo baseline:
+
+- duration approximately `912.5 ms`;
+- generated 2 tokens;
+- output `READY`.
+
+For this exact tiny deterministic generation after warmup, the observed GPU baseline was approximately 9.2 times faster than the CPU baseline. This ratio is descriptive of this run only and is not generalized to other prompt lengths, output lengths, thermal states, or workloads.
+
+### Concurrent launch observation
+
+The main page dispatched the measured CPU and GPU concurrent run commands approximately `0.3 ms` apart.
+
+The workers reported entering their measured generation calls approximately `4.8 ms` apart:
+
+- GPU concurrent start: `1789624562493.7 ms`.
+- CPU concurrent start: `1789624562498.5 ms`.
+
+The GPU concurrent generation completed in approximately `814.4 ms`, producing `READY`, while the CPU generation call was still outstanding.
+
+Therefore the GPU inference call was not serialized behind the outstanding CPU call. Separate workers successfully allowed both measured calls to be outstanding over the same wall-clock interval, which is evidence that the single-realm Transformers.js inference chain did not serialize these two worker lanes against each other.
+
+This evidence does not by itself directly measure simultaneous physical CPU and GPU hardware occupancy. The CPU concurrent completion is needed to compute final makespan, compare its duration against the CPU solo baseline, and strengthen the claim about effective heterogeneous hardware overlap.
+
+### Partial export limitation
+
+Evidence was exported approximately `3,229.5 ms` after the CPU concurrent inference started. The CPU solo baseline for the same call had taken approximately `8,395.5 ms`. The CPU concurrent completion had therefore not yet been recorded when the export occurred.
+
+Consequences:
+
+- `summary` remained `null`.
+- No final concurrent batch makespan was calculated.
+- No final worker-interval overlap duration was calculated.
+- No concurrent CPU duration was captured.
+
+The GPU concurrent completion was captured approximately `2.42 s` before export.
+
+### Established
+
+- CPU/WASM/q4 Granite loads to ready on the target phone.
+- GPU/WebGPU/q4f16 Granite loads to ready on the target phone.
+- Both backends perform real Granite generation and return the expected text.
+- Separate dedicated workers can hold independent working Granite CPU and GPU sessions in the same page.
+- The warmed GPU baseline is much faster than the warmed CPU baseline for this tiny test.
+- A GPU generation can complete while a CPU generation from another worker is still outstanding.
+- The Transformers.js per-realm serialization mechanism is not acting as a cross-worker CPU/GPU serialization barrier in this run.
+
+### Not yet established
+
+- Completed CPU concurrent duration.
+- Final concurrent makespan.
+- Final quantitative speedup versus sequential baselines.
+- Direct physical CPU and GPU occupancy overlap.
+- Behavior with two CPU workers, two GPU workers, or three workers.
+
+### Next evidence needed
+
+No runtime change is required before repeating Phase 1. Let the final CPU concurrent call complete and wait for the Phase 1 summary before exporting final evidence.
+
+If the current page remains open after the partial export, a second evidence export after Phase 1 completes is sufficient; reloading the page is not required. Otherwise repeat the same run. A future UI revision should make Phase 1 completion visually explicit so a mid-run snapshot is not mistaken for the final result.
