@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import { webcrypto, createHash } from 'node:crypto';
 import { CSV_HEADER, csvLine, readCsv, searchRows, inspectTokens, verifyCompleted } from './turn-boundary.js';
 
 const results = [];
@@ -43,8 +44,8 @@ const workerSource = (await readFile(new URL('./runtime-worker.js', import.meta.
   .replace(/import\s*\{[\s\S]*?\}\s*from\s*"https:[^"]+";/, '')
   .replace(/import \{ inspectTokens \} from "\.\/turn-boundary.js";/, '');
 
-async function workerFixture(scripts, searchResult = { query: 'alpha beta gamma', valid: true, error: null, words: ['alpha','beta','gamma'], rows: [row(1, 'alpha beta gamma')] }) {
-  const events = [], prompts = [], options = [], disposals = [];
+async function workerFixture(scripts, searchResult = { query: 'alpha beta gamma', valid: true, error: null, words: ['alpha','beta','gamma'], rows: [row(1, 'alpha beta gamma')] }, diagnostics = null) {
+  const events = [], prompts = [], options = [], disposals = [], loads = [];
   let listener, pendingScript = 0;
   const tokenizer = (prompt) => ({ input_ids: {
     dims: [1, 3], tolist: () => [[1n, 2n, 3n]], dispose: () => disposals.push('input'),
@@ -63,10 +64,13 @@ async function workerFixture(scripts, searchResult = { query: 'alpha beta gamma'
       const script = scripts[pendingScript++];
       assert.ok(script, 'Unexpected extra model call');
       const ids = [1, 2, 3];
+      opts.streamer?.put([ids.map(BigInt)]);
       for (const token of script.slice(0, opts.max_new_tokens)) {
         ids.push(token);
+        opts.streamer?.put([[BigInt(token)]]);
         if (opts.stopping_criteria._call([ids])[0]) break;
       }
+      opts.streamer?.end();
       return { tolist: () => [ids.map(BigInt)], dispose: () => disposals.push('output') };
     },
   };
@@ -75,10 +79,15 @@ async function workerFixture(scripts, searchResult = { query: 'alpha beta gamma'
     StoppingCriteria: class {}, inspectTokens,
     env: { backends: { onnx: { wasm: {} } } },
     AutoTokenizer: { from_pretrained: async () => tokenizer },
-    AutoModelForCausalLM: { from_pretrained: async () => model },
+    AutoModelForCausalLM: { from_pretrained: async (_, opts) => { loads.push(opts.device); return model; } },
     self: { crossOriginIsolated: false, addEventListener: (_, fn) => { listener = fn; },
       postMessage(entry) {
         events.push(structuredClone(entry));
+        if (entry.requiresSave) {
+          const ack = (error = null) => queueMicrotask(() => listener({data:{command:'checkpoint-ack',checkpointId:entry.checkpointId,error}}));
+          if (diagnostics?.checkpoint) diagnostics.checkpoint(entry, ack);
+          else ack();
+        }
         if (entry.type === 'search-request') queueMicrotask(() => listener({ data: {
           command: 'search-result', requestId: entry.requestId, call: entry.call, result: searchResult,
         } }));
@@ -96,8 +105,10 @@ async function workerFixture(scripts, searchResult = { query: 'alpha beta gamma'
     }
     throw new Error('Worker fixture did not finish');
   }
-  assert.equal((await send({command:'initialize',requestId:'init'}, 'runtime-ready')).type, 'runtime-ready');
-  return { events, prompts, options, disposals, send };
+  if (!diagnostics?.skipInitialize) {
+    assert.equal((await send({command:'initialize',requestId:'init',...(diagnostics ? {diagnostic:true,lanes:['cpu']} : {})}, 'runtime-ready')).type, 'runtime-ready');
+  }
+  return { events, prompts, options, disposals, loads, send };
 }
 
 await check('No-search turns use one generation; each new turn receives only new input', async () => {
@@ -257,4 +268,150 @@ await check('A failed CSV append preserves prior rows and prevents the next acto
   assert.match(evidence.error,/Injected CSV save failure/);
 });
 
-console.log(JSON.stringify({kind:'synthetic-plumbing-checks',realGraniteGeneration:false,results},null,2));
+const diagnosticInput = () => {
+  const messages = [{role:'system',content:'You are Claptrap.'},{role:'user',content:'Current timestamp: now\nMessage from the other speaker:\nfixed input'}];
+  return {command:'generate-turn',requestId:'replay',lane:'cpu',turn:2,timestamp:'now',incomingText:'fixed input',expectedFirstInput:{messages,renderedPrompt:JSON.stringify(messages),inputTokenCount:3}};
+};
+
+await check('Diagnostic model loading waits for the start checkpoint acknowledgement', async () => {
+  let release;
+  const f = await workerFixture([], undefined, {skipInitialize:true,checkpoint(entry,ack){ if(entry.type==='session-load-start') release=ack; else ack(); }});
+  const done = f.send({command:'initialize',requestId:'init',diagnostic:true,lanes:['cpu']},'runtime-ready');
+  for(let i=0;i<5;i++) await new Promise(setImmediate);
+  assert.equal(typeof release,'function');
+  assert.deepEqual(f.loads,[]);
+  release(); await done;
+  assert.deepEqual(f.loads,['wasm']);
+});
+await check('Diagnostic generation waits for durable evidence, then reports first token, progress, and cleanup', async () => {
+  let release;
+  const f = await workerFixture([Array(100).fill(65)],undefined,{checkpoint(entry,ack){if(entry.type==='generation-start')release=ack;else ack();}});
+  const done=f.send(diagnosticInput(),'turn-result');
+  for(let i=0;i<5;i++) await new Promise(setImmediate);
+  assert.equal(typeof release,'function'); assert.equal(f.options.length,0);
+  release(); const result=await done;
+  assert.equal(result.type,'turn-result'); assert.equal(f.options.length,1);
+  assert.deepEqual(f.events.filter(e=>e.type==='generation-progress').map(e=>e.rawGeneratedTokens),[1,10,20,30,40,50,60,70,80,90,100]);
+  const types=f.events.map(e=>e.type);
+  assert.ok(types.indexOf('generation-returned') < types.indexOf('tensor-cleanup-complete'));
+  assert.ok(types.indexOf('tensor-cleanup-complete') < types.indexOf('turn-result'));
+  assert.deepEqual(f.disposals,['output','input']);
+  assert.equal(f.events.find(e=>e.type==='generation-start').recordedFirstInputMatched,true);
+});
+await check('A rejected diagnostic checkpoint prevents model inference', async () => {
+  const f=await workerFixture([],undefined,{checkpoint(entry,ack){ack(entry.type==='generation-start'?'Injected disk failure':null);}});
+  const result=await f.send(diagnosticInput(),'turn-result');
+  assert.equal(result.type,'command-error'); assert.match(result.error,/Injected disk failure/);
+  assert.equal(f.options.length,0);
+});
+await check('A changed replay prompt is preserved diagnostically and never reaches inference', async () => {
+  const f=await workerFixture([],undefined,{});
+  const input=diagnosticInput(); input.expectedFirstInput.inputTokenCount=4;
+  const result=await f.send(input,'turn-result');
+  assert.equal(result.type,'command-error'); assert.equal(f.options.length,0);
+  assert.ok(f.events.some(e=>e.type==='replay-input-mismatch'));
+});
+
+const phoneJson=await readFile(new URL('./evidence/phone-precrash-20260917.json',import.meta.url),'utf8');
+const phoneCsv=await readFile(new URL('./evidence/phone-precrash-20260917.csv',import.meta.url),'utf8');
+const diagnosticSource=(await readFile(new URL('./stability.js',import.meta.url),'utf8'))
+  .replace(/^import [^\n]+\n/,'').replace(/^export /gm,'').replaceAll('import.meta.url','"https://example.test/stability.js"')
+  .replace('void restore();','const diagnosticReady = restore();');
+
+async function diagnosticControllerFixture({files=new Map(),failGenerationSave=false}={}) {
+  const elements=new Map(),requests=[],generations=[],errors=[],retrievals=[];
+  let fileNumber=0;
+  class Element {
+    constructor(){this.textContent='';this.disabled=true;this.children=[];this.handlers={};}
+    addEventListener(type,fn){this.handlers[type]=fn;}
+    append(...items){this.children.push(...items);}
+    click(){return this.handlers.click?.();} remove(){}
+  }
+  const get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
+  const fileHandle=name=>({kind:'file',async getFile(){return{name,size:Buffer.byteLength(files.get(name)??''),text:async()=>files.get(name)??''};},async createWritable(){let text='';return{async write(value){text=value;},async close(){const parsed=JSON.parse(text);if(failGenerationSave && parsed.events.at(-1)?.type==='generation-start')throw new Error('Injected diagnostic disk failure');files.set(name,text);},async abort(){}};}});
+  const directory={async getFileHandle(name){return fileHandle(name);},async *entries(){for(const name of files.keys())if(name.startsWith('cpu-only-')||name.startsWith('both-idle-')||name.startsWith('gpu-then-cpu-'))yield[name,fileHandle(name)];}};
+  class DiagnosticWorker {
+    handlers={}; callbacks=new Map(); checkpointId=0; terminated=false;
+    addEventListener(type,fn){this.handlers[type]=fn;}
+    terminate(){this.terminated=true;}
+    emit(entry){if(!this.terminated)this.handlers.message({data:entry});}
+    async checkpoint(type,extra={}){const checkpointId=++this.checkpointId;await new Promise((resolve,reject)=>{this.callbacks.set(checkpointId,{resolve,reject});this.emit({type,checkpointId,requiresSave:true,...extra});});}
+    postMessage(message){
+      requests.push(structuredClone(message));
+      if(message.command==='checkpoint-ack'){
+        const waiter=this.callbacks.get(message.checkpointId);
+        if(message.error)waiter.reject(new Error(message.error));
+        else {
+          try{assert.ok([...files.values()].some(text=>{try{return JSON.parse(text).events?.some(e=>e.checkpointId===message.checkpointId);}catch{return false;}}),'ack sent before file commit');waiter.resolve();}
+          catch(error){errors.push(error);waiter.reject(error);}
+        }
+        this.callbacks.delete(message.checkpointId);return;
+      }
+      if(message.command==='search-result'){retrievals.push(message.result);this.searchResolve(message.result);return;}
+      (async()=>{
+        if(message.command==='initialize'){
+          await this.checkpoint('runtime-start',{requestId:message.requestId});
+          this.emit({type:'runtime-ready',requestId:message.requestId});
+        } else if(message.command==='generate-turn'){
+          await this.checkpoint('generation-start',{requestId:message.requestId,lane:message.lane,turn:message.turn,inputTokenCount:message.expectedFirstInput.inputTokenCount});
+          generations.push(structuredClone(message));
+          await new Promise(resolve=>{this.searchResolve=resolve;this.emit({type:'search-request',requestId:message.requestId,lane:message.lane,turn:message.turn,call:1,name:'search_conversation',query:'You are a'});});
+          await this.checkpoint('tensor-cleanup-complete',{requestId:message.requestId,lane:message.lane});
+          this.emit({type:'turn-result',requestId:message.requestId,lane:message.lane,generatedTokenCount:100,outputText:'Synthetic newly generated GPU speech must not become CPU replay input',retrievals:[]});
+        }
+      })().catch(error=>this.emit({type:'command-error',requestId:message.requestId,error:error.message}));
+    }
+  }
+  const context=vm.createContext({console,URL,Blob,Date,JSON,TextEncoder,setTimeout,clearTimeout,readCsv,searchRows,Worker:DiagnosticWorker,crypto:{subtle:webcrypto.subtle,randomUUID:()=>`test-${++fileNumber}`},location:{href:'https://example.test/stability.html'},navigator:{userAgent:'Synthetic controller test',storage:{getDirectory:async()=>({getDirectoryHandle:async(name)=>{assert.equal(name,'granite-claptrap-stability');return directory;}})}},fetch:async(url)=>({ok:true,text:async()=>String(url).endsWith('.json')?phoneJson:phoneCsv}),document:{querySelector:get,createElement:()=>new Element(),body:new Element()}});
+  vm.runInContext(diagnosticSource,context);
+  await vm.runInContext('diagnosticReady',context);
+  return{context,get,files,requests,generations,errors,retrievals};
+}
+
+let savedDiagnosticFiles;
+await check('All three trials replay identical captured CPU input; GPU warmup speech stays outside it',async()=>{
+  const original=JSON.parse(phoneJson);
+  const captured=original.runtimeEvents.find(e=>e.type==='generation-start'&&e.lane==='cpu');
+  const cpuInputs=[];
+  for(const trial of ['cpu-only','both-idle','gpu-then-cpu']){
+    const files=new Map([['granite-claptrap-conversation.csv',phoneCsv],['granite-claptrap-evidence.json',phoneJson]]);
+    const f=await diagnosticControllerFixture({files});
+    assert.equal(f.requests.length,0,'restore must not load a model');
+    await f.get(`#${trial}`).click();
+    assert.deepEqual(f.errors,[]);
+    assert.deepEqual(f.requests.find(r=>r.command==='initialize').lanes,trial==='cpu-only'?['cpu']:['cpu','gpu']);
+    assert.equal(f.generations.length,trial==='gpu-then-cpu'?2:1);
+    const input=f.generations.find(r=>r.lane==='cpu');
+    assert.equal(input.expectedFirstInput.renderedPrompt,captured.renderedPrompt);
+    assert.equal(input.expectedFirstInput.inputTokenCount,351);
+    assert.equal(input.incomingText,readCsv(phoneCsv)[0].response);
+    cpuInputs.push(JSON.stringify({...input,requestId:null}));
+    assert.equal(files.get('granite-claptrap-conversation.csv'),phoneCsv);
+    assert.equal(files.get('granite-claptrap-evidence.json'),phoneJson);
+    assert.deepEqual(f.retrievals.at(-1).rows,readCsv(phoneCsv));
+    if(trial==='gpu-then-cpu')assert.equal(f.retrievals[0].rows.length,0);
+    const result=JSON.parse([...files.entries()].find(([name])=>name.startsWith(trial+'-'))[1]);
+    assert.equal(result.status,'complete');
+    assert.equal(result.sourceHashes.csv,createHash('sha256').update(phoneCsv).digest('hex'));
+    savedDiagnosticFiles=files;
+  }
+  assert.equal(new Set(cpuInputs).size,1);
+});
+await check('Diagnostic reload exposes saved trials without a model call or a conversation write',async()=>{
+  const before=[...savedDiagnosticFiles];
+  const f=await diagnosticControllerFixture({files:savedDiagnosticFiles});
+  assert.equal(f.requests.length,0);assert.equal(f.get('#saved').children.length,1);
+  assert.equal(f.get('#download').disabled,false);
+  assert.deepEqual([...f.files],before);
+});
+await check('Diagnostic disk failure sends no successful acknowledgement and stops before generation',async()=>{
+  const f=await diagnosticControllerFixture({failGenerationSave:true});
+  await f.get('#cpu-only').click();
+  assert.equal(f.generations.length,0);
+  const ack=f.requests.filter(r=>r.command==='checkpoint-ack').at(-1);
+  assert.match(ack.error,/Injected diagnostic disk failure/);
+  assert.match(f.get('#status').textContent,/FAILED/);
+  const durable=JSON.parse([...f.files.values()][0]);
+  assert.equal(durable.events.some(e=>e.type==='generation-start'),false);
+});
+console.log(JSON.stringify({kind:'synthetic-plumbing-and-stability-checks',realGraniteGeneration:false,results},null,2));

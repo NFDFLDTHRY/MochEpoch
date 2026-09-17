@@ -1,7 +1,7 @@
 # Claptrap crash isolation proposal
 
 proposal_id: 20260917-claptrap-crash-isolation
-status: BLOCKED
+status: IN_PROGRESS
 approval: User approved this exact repository-recorded plan in the active Work conversation on 2026-09-17.
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
@@ -115,25 +115,18 @@ runtime version, or the two-resident-session baseline as a speculative fix.
 Do not add automatic retry, behavior correction, a new service, CI, or hosting.
 Choose the smallest actual stabilization change from the resulting evidence.
 
-## Implementation and publishing blocker
+## Approval received
 
-The approved diagnostic implementation is complete locally at commit
-867e7be7ec87edad920e6fab6d2f6ed005c72e5f. Eighteen synthetic checks pass,
-including fixed-input replay, checkpoint ordering, failed writes, and
-separation from the chat's saved files. Syntax and whitespace checks passed.
-No real inference from the new diagnostic page has yet run. The cloud browser
-still has no WebGPU adapter, and its controls expose no GPU launch flags.
+The user confirmed that the repository-recorded plan is approved. Implementation
+is complete within the files and scope above; eighteen synthetic checks pass.
 
-Automatic approval review rejected pushing the implementation because it
-includes the two uploaded phone exports in the public repository. The plan
-explicitly lists those files and the user approved that plan. After verifying
-repository ownership and examining the exports, Work retried once; review
-still required explicit permission for that payload and public destination.
-It has not been bypassed. This published update contains only WORK.md; the
-implementation and exports remain local.
+Automatic approval review previously blocked publication of the two uploaded
+exports. On 2026-09-17 the user explicitly approved adding the evidence to this
+public repository if no personal identifiers are present. Inspection of every
+unique string found model-generated text, the public experiment URL, timestamps,
+and generic browser/runtime metadata. There are no names, contact details,
+locations, credentials, or unique device identifiers. The supplied bytes are
+preserved. This resolves the recorded publication blocker.
 
-The smallest next operation is to obtain explicit permission to publish the
-uploaded CSV and JSON to this public repository, then publish the existing
-implementation and execute the CPU-only browser trial. Target-phone trials
-and the actual 100-response conversation remain outstanding. No stabilization
-success or crash cause is claimed.
+The CPU-only browser trial and target-phone trials remain unexecuted. No crash
+cause or stabilization success is claimed. Publication and CPU testing are next.

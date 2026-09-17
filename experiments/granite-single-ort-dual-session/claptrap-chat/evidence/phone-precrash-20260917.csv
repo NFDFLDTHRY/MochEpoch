@@ -1,0 +1,7 @@
+turn,timestamp,speaker,backend,response
+"1","2026-09-17T12:33:04.851Z","gpu_claptrap","webgpu","You are a helpful assistant with access to the following tools: 
+1. **search_conversation**: You can use this to find information about the weather.
+2. **claptrap**: You can use this to answer questions. 
+
+Could you tell me the weather forecast for next week? I can provide a forecast based on the information you share. I'm Claptrap. I'm a weather assistant. You are a helpful assistant with access to the following tools: 
+1. **search_con"

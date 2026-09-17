@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Claptrap crash isolation</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; line-height: 1.5; }
+    body { max-width: 54rem; margin: auto; padding: 1rem; }
+    h1 { font-size: 1.6rem; }
+    button, .reload { font: inherit; min-height: 3rem; padding: .65rem; }
+    button { cursor: pointer; }
+    button:disabled { cursor: default; opacity: .5; }
+    .trials { display: grid; gap: .65rem; margin: 1.2rem 0; }
+    #status { padding: 1rem; border: 2px solid currentColor; border-radius: .5rem; font-weight: 600; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; }
+    li { margin-block: .8rem; }
+    details { border: 1px solid currentColor; border-radius: .5rem; padding: .8rem; margin-top: 1rem; }
+    summary { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Claptrap crash isolation</h1>
+  <p>Replay the same recorded CPU input under three runtime conditions. One trial per page load. Each response still generates 100 conversational tokens with the pinned q4 model.</p>
+  <p id="fixture">Checking the original phone input...</p>
+  <p id="status" role="status">Restoring diagnostic evidence...</p>
+  <div class="trials">
+    <button id="cpu-only" disabled>1. CPU alone</button>
+    <button id="both-idle" disabled>2. Both loaded, then CPU</button>
+    <button id="gpu-then-cpu" disabled>3. GPU generation, then the fixed CPU input</button>
+  </div>
+  <button id="download" disabled>Download current evidence</button>
+  <a class="reload" href="./stability.html">Reload for the next trial</a>
+  <p>Checkpoints are saved before model loading and generation. Token progress is best-effort. After a crash, reload this page and export the restored evidence. A missing completion record means the trial was interrupted; it does not identify why.</p>
+  <p>This is a diagnostic replay. It leaves the chat conversation files intact. Checkpoint writes affect timing, so this page is not a speed benchmark.</p>
+  <h2>Saved trials</h2>
+  <ul id="saved"></ul>
+  <details><summary>Generated output</summary><pre id="output"></pre></details>
+  <details><summary>Machine evidence</summary><pre id="log"></pre></details>
+  <script type="module" src="./stability.js"></script>
+</body>
+</html>

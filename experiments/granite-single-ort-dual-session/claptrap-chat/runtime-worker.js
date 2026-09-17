@@ -36,6 +36,9 @@ let initialized = false;
 let busy = false;
 let toolOpenToken, toolCloseToken;
 let waitingForSearch = null;
+let diagnostic = false;
+let checkpointSequence = 0;
+let waitingForCheckpoint = null;
 
 function nowMs() {
   return performance.timeOrigin + performance.now();
@@ -43,6 +46,41 @@ function nowMs() {
 
 function post(type, detail = {}) {
   self.postMessage({ type, atMs: nowMs(), ...detail });
+}
+
+function workerMemory() {
+  const memory = performance.memory;
+  return {
+    source: "worker performance.memory; JS heap only, not total RAM or GPU memory",
+    available: Boolean(memory),
+    usedJSHeapSize: Number.isFinite(memory?.usedJSHeapSize) ? memory.usedJSHeapSize : null,
+    totalJSHeapSize: Number.isFinite(memory?.totalJSHeapSize) ? memory.totalJSHeapSize : null,
+    jsHeapSizeLimit: Number.isFinite(memory?.jsHeapSizeLimit) ? memory.jsHeapSizeLimit : null,
+    wasmMemoryBytes: null, gpuMemoryBytes: null,
+  };
+}
+
+async function checkpoint(type, detail = {}) {
+  if (!diagnostic) { post(type, detail); return; }
+  const checkpointId = ++checkpointSequence;
+  await new Promise((resolve, reject) => {
+    waitingForCheckpoint = { checkpointId, resolve, reject };
+    post(type, { ...detail, checkpointId, requiresSave: true, workerMemory: workerMemory() });
+  });
+}
+
+function observeExistingGpuDevice() {
+  if (!diagnostic) return;
+  try {
+    const device = env.backends?.onnx?.webgpu?.device;
+    const available = typeof device?.lost?.then === "function";
+    post("gpu-loss-observer", { available, requestedNewDevice: false });
+    if (available) device.lost.then((info) => post("gpu-device-lost", {
+      reason: info.reason, message: info.message,
+    }));
+  } catch (error) {
+    post("gpu-loss-observer", { available: false, requestedNewDevice: false, error: String(error) });
+  }
 }
 
 function fixedSimdSupported() {
@@ -102,7 +140,7 @@ async function loadLane(lane) {
   const device = lane === "cpu" ? "wasm" : "webgpu";
   const reporter = progressReporter(lane);
   const startedAt = nowMs();
-  post("session-load-start", { lane, device, dtype: "q4", startedAt });
+  await checkpoint("session-load-start", { lane, device, dtype: "q4", startedAt });
 
   models[lane] = await AutoModelForCausalLM.from_pretrained(MODEL_ID, {
     revision: MODEL_REVISION,
@@ -112,7 +150,8 @@ async function loadLane(lane) {
   });
 
   const finishedAt = nowMs();
-  post("session-load-complete", {
+  if (lane === "gpu") observeExistingGpuDevice();
+  await checkpoint("session-load-complete", {
     lane,
     device,
     dtype: "q4",
@@ -146,7 +185,7 @@ async function disposeInputs(inputs, outputs) {
   }
 }
 
-async function generatePiece(lane, messages, speechLimit, requestId, turn, call) {
+async function generatePiece(lane, messages, speechLimit, requestId, turn, call, expectedFirstInput) {
   let inputs = null, outputs = null;
   const startedAt = nowMs();
   try {
@@ -155,6 +194,13 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call)
     });
     inputs = tokenizer(prompt);
     const inputTokenCount = inputs.input_ids.dims.at(-1);
+    if (diagnostic && call === 1 && (!expectedFirstInput ||
+        expectedFirstInput.renderedPrompt !== prompt ||
+        expectedFirstInput.inputTokenCount !== inputTokenCount ||
+        JSON.stringify(expectedFirstInput.messages) !== JSON.stringify(messages))) {
+      post("replay-input-mismatch", { requestId, lane, turn, inputTokenCount, messages, renderedPrompt: prompt });
+      throw new Error("Diagnostic input differs from the recorded prompt/messages/token count. Inference not started.");
+    }
     // The stop criterion counts speech only. A native tool block has its own
     // finite output allowance and is never counted as conversational tokens.
     const rawLimit = speechLimit + TOOL_TOKEN_BUDGET;
@@ -162,12 +208,24 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call)
     if (!Number.isInteger(contextLimit) || inputTokenCount + rawLimit > contextLimit) {
       throw new Error(`Prompt (${inputTokenCount}) plus output bound (${rawLimit}) exceeds model context (${contextLimit}). No truncation performed.`);
     }
-    post("generation-start", {
+    await checkpoint("generation-start", {
       requestId, lane, turn, call, startedAt, inputTokenCount,
       messages, renderedPrompt: prompt, speechTokensRemaining: speechLimit,
       rawTokenLimit: rawLimit, doSample: false,
       pastKeyValuesSupplied: false, returnDictInGenerate: false,
+      ...(diagnostic ? { recordedFirstInputMatched: call === 1 } : {}),
     });
+    let promptSeen = false, rawGeneratedTokens = 0;
+    const streamer = diagnostic ? {
+      put(batch) {
+        if (!promptSeen) { promptSeen = true; return; } // generate() first streams the prompt.
+        rawGeneratedTokens += batch[0].length;
+        if (rawGeneratedTokens === 1 || rawGeneratedTokens % 10 === 0) {
+          post("generation-progress", { requestId, lane, turn, call, rawGeneratedTokens, elapsedMs: nowMs() - startedAt });
+        }
+      },
+      end() {},
+    } : null;
     outputs = await models[lane].generate({
       ...inputs,
       min_new_tokens: rawLimit,
@@ -175,7 +233,9 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call)
       do_sample: false,
       return_dict_in_generate: false,
       stopping_criteria: new TurnBoundary(inputTokenCount, speechLimit),
+      ...(streamer ? { streamer } : {}),
     });
+    if (diagnostic) await checkpoint("generation-returned", { requestId, lane, turn, call, rawGeneratedTokens });
     const generatedIds = outputs.tolist()[0].slice(inputTokenCount).map(Number);
     const rawText = tokenizer.decode(generatedIds, { skip_special_tokens: false });
     const result = {
@@ -189,6 +249,11 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call)
     // when neither past_key_values nor return_dict_in_generate is requested.
     // We supply neither cache nor prior tensors to the next generation.
     await disposeInputs(inputs, outputs);
+    inputs = null; outputs = null;
+    if (diagnostic) await checkpoint("tensor-cleanup-complete", {
+      requestId, lane, turn, call,
+      note: "Existing input/output disposal completed. Actual RAM/GPU reclamation is not measured.",
+    });
   }
 }
 
@@ -203,7 +268,7 @@ async function generateTurn(message) {
   const startedAt = nowMs();
   while (speechIds.length < FIXED_NEW_TOKENS) {
     const remaining = FIXED_NEW_TOKENS - speechIds.length;
-    const result = await generatePiece(lane, messages, remaining, requestId, turn, calls.length + 1);
+    const result = await generatePiece(lane, messages, remaining, requestId, turn, calls.length + 1, message.expectedFirstInput);
     calls.push(result);
     const boundary = inspectTokens(result.generatedIds, remaining, toolOpenToken, toolCloseToken);
     if (boundary.error) throw new Error(boundary.error);
@@ -252,13 +317,18 @@ async function generateTurn(message) {
   // command can see only the fresh input it receives from the controller.
 }
 
-async function initialize(requestId) {
+async function initialize(requestId, options) {
   if (initialized || models.cpu || models.gpu) {
     throw new Error("Runtime already initialized or initializing. Reload for a fresh runtime.");
   }
 
+  diagnostic = options.diagnostic === true;
+  const loadOrder = diagnostic ? options.lanes : ["cpu", "gpu"];
+  if (![JSON.stringify(["cpu"]), JSON.stringify(["cpu", "gpu"])].includes(JSON.stringify(loadOrder))) {
+    throw new Error("Diagnostic lanes must be CPU only or CPU then GPU.");
+  }
   const environment = configureSingleOrtEnvironment();
-  post("runtime-start", {
+  await checkpoint("runtime-start", {
     requestId,
     transformersVersion: TRANSFORMERS_VERSION,
     modelId: MODEL_ID,
@@ -267,12 +337,13 @@ async function initialize(requestId) {
     fixedNewTokens: FIXED_NEW_TOKENS,
     oneWorker: true,
     oneTransformersModuleRealm: true,
-    loadOrder: ["cpu", "gpu"],
+    loadOrder,
+    ...(diagnostic ? { diagnostic: true } : {}),
     environment,
   });
 
   const tokenizerStart = nowMs();
-  post("tokenizer-load-start", { tokenizerStart });
+  await checkpoint("tokenizer-load-start", { tokenizerStart });
   tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID, { revision: MODEL_REVISION });
   const open = tokenizer.encode("<tool_call>", { add_special_tokens: false });
   const close = tokenizer.encode("</tool_call>", { add_special_tokens: false });
@@ -285,8 +356,10 @@ async function initialize(requestId) {
   post("tokenizer-load-complete", { tokenizerStart, tokenizerEnd, durationMs: tokenizerEnd - tokenizerStart });
 
   await loadLane("cpu");
-  post("first-session-resident", { lane: "cpu", secondLane: "gpu" });
-  await loadLane("gpu");
+  if (loadOrder.includes("gpu")) {
+    post("first-session-resident", { lane: "cpu", secondLane: "gpu" });
+    await loadLane("gpu");
+  }
 
   initialized = true;
   post("runtime-ready", {
@@ -301,6 +374,15 @@ async function initialize(requestId) {
 
 self.addEventListener("message", (event) => {
   const message = event.data ?? {};
+  if (message.command === "checkpoint-ack") {
+    if (waitingForCheckpoint?.checkpointId === message.checkpointId) {
+      const pending = waitingForCheckpoint;
+      waitingForCheckpoint = null;
+      if (message.error) pending.reject(new Error(`Checkpoint save failed: ${message.error}`));
+      else pending.resolve();
+    }
+    return;
+  }
   if (message.command === "search-result") {
     if (waitingForSearch?.requestId === message.requestId && waitingForSearch.call === message.call) {
       const pending = waitingForSearch;
@@ -314,7 +396,7 @@ self.addEventListener("message", (event) => {
     if (busy) throw new Error("A model command is already running.");
     busy = true;
     try {
-      if (message.command === "initialize") return await initialize(message.requestId);
+      if (message.command === "initialize") return await initialize(message.requestId, message);
       if (message.command === "generate-turn") return await generateTurn(message);
       throw new Error(`Unknown worker command: ${message.command}`);
     } finally {
