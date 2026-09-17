@@ -30,10 +30,11 @@ let evidence = freshEvidence();
 
 function freshEvidence() {
   return {
-    experiment: EXPERIMENT, version: 4, createdAt: new Date().toISOString(),
+    experiment: EXPERIMENT, version: 5, createdAt: new Date().toISOString(),
     pageUrl: location.href, userAgent: navigator.userAgent,
     fixedConditions: {
-      actorSystemPrompt: "You are Claptrap.", seedText: SEED_TEXT,
+      actorSystemPrompt: "You are Claptrap. Respond to the incoming message.", seedText: SEED_TEXT,
+      retrievalSystemPrompt: "Select three words from the supplied message. Call search_conversation with those words separated by spaces. Do not compose a conversational reply.",
       totalTurns: 100, turnsPerSeat: 50, conversationalTokensPerTurn: 100,
       cpuBackend: "wasm", gpuBackend: "webgpu", dtype: "q4",
       turnProtocol: "retrieval-then-response-v1",

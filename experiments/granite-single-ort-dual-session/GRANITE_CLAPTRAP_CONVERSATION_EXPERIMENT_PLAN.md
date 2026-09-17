@@ -10,15 +10,20 @@ It does not establish a mandatory two-stage architecture for MochEpoch generally
 
 Each completed turn now consists of one retrieval generation, one deterministic
 CSV search, and one response generation on the same resident seat. The retrieval
-call retains Granite's native tool template and receives a query-selection task.
+call retains Granite's native tool template. Following the user's later prompt
+refinement, its system is exactly `Select three words from the supplied message.
+Call search_conversation with those words separated by spaces. Do not compose a
+conversational reply.` Its user message is the original incoming text alone;
+timestamp metadata is not supplied as text from which to select search words.
 The harness may prefill the native call for the sole required search function;
 the model supplies the query itself, and the exact prefill is recorded separately
 from generated tokens. Its existing finite tool allowance is 96 generated tokens.
 There is no `NO_SEARCH` path or empty-CSV exception. A parseable invalid query
 returns the existing deterministic search error without adding words.
 
-The response call receives the exact actor system `You are Claptrap.`, the original
-timestamp and incoming message, the native tool request, and the actual CSV result.
+The response call receives the user-approved actor system `You are Claptrap.
+Respond to the incoming message.`, the original timestamp and incoming message,
+the native tool request, and the actual CSV result.
 It does not receive the retrieval-task instruction or first-call narration, and
 it does not advertise a further tool call. Exactly 100 newly generated tokens from
 this second call are the response. Only that response is displayed as speech,
@@ -31,8 +36,10 @@ rewriting, output sanitization, personality coaching, or third call is added.
 A complete run is 100 replies from 200 generations, 50 replies per seat. The seed
 is excluded. Both q4 sessions remain resident; generation remains sequential.
 
-The optional tool-use wording in the original sections below describes the prior
-baseline and is superseded by this explicit amendment for current execution.
+The optional tool-use wording and shorter system prompt in the original sections
+below describe the prior baseline and are superseded by this explicit amendment
+for current execution. The retrieval function still rejects fewer than three
+words and does not enforce a new exact-three-word parser rule or rewrite queries.
 
 ## Purpose
 

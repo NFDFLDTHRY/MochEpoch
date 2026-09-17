@@ -8,7 +8,9 @@ import {
 const MODEL_ID = "onnx-community/granite-4.0-350m-ONNX-web";
 const MODEL_REVISION = "6c9a6f61601df51e76b1efff0974d8d26c2a25b5";
 const TRANSFORMERS_VERSION = "4.3.0";
-const ACTOR_SYSTEM_PROMPT = "You are Claptrap.";
+const LEGACY_SYSTEM_PROMPT = "You are Claptrap.";
+const RETRIEVAL_SYSTEM_PROMPT = "Select three words from the supplied message. Call search_conversation with those words separated by spaces. Do not compose a conversational reply.";
+const ACTOR_SYSTEM_PROMPT = "You are Claptrap. Respond to the incoming message.";
 const FIXED_NEW_TOKENS = 100;
 const TOOL_TOKEN_BUDGET = 96; // Existing fixture tool-output bound, separate from speech.
 const TURN_PROTOCOL = "retrieval-then-response-v1";
@@ -258,7 +260,7 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call,
     const generatedIds = outputs.tolist()[0].slice(inputTokenCount).map(Number);
     const rawText = tokenizer.decode(generatedIds, { skip_special_tokens: false });
     const result = {
-      call, phase, assistantPrefix, inputTokenCount, generatedIds, rawText, startedAt,
+      call, phase, assistantPrefix, inputTokenCount, generatedIds, rawText, rawTokenLimit: rawLimit, startedAt,
       finishedAt: nowMs(), durationMs: nowMs() - startedAt,
     };
     post("generation-output", { requestId, lane, turn, ...result });
@@ -281,7 +283,7 @@ async function generateReplayTurn(message) {
   const { requestId, lane, turn, timestamp, incomingText } = message;
   if (!initialized || !models[lane]) throw new Error("Runtime is not ready.");
   const messages = [
-    { role: "system", content: ACTOR_SYSTEM_PROMPT },
+    { role: "system", content: LEGACY_SYSTEM_PROMPT },
     { role: "user", content: `Current timestamp: ${timestamp}\nMessage from the other speaker:\n${incomingText}` },
   ];
   const speechIds = [], calls = [], retrievals = [];
@@ -327,7 +329,7 @@ async function generateReplayTurn(message) {
   const outputText = tokenizer.decode(speechIds, { skip_special_tokens: true });
   if (!outputText.trim()) throw new Error("Generated response is empty after decoding. Raw output saved.");
   post("turn-result", {
-    requestId, lane, turn, timestamp, systemPrompt: ACTOR_SYSTEM_PROMPT,
+    requestId, lane, turn, timestamp, systemPrompt: LEGACY_SYSTEM_PROMPT,
     outputText, generatedTokenCount: speechIds.length, generatedSpeechIds: speechIds,
     inputTokenCount: calls.at(-1).inputTokenCount,
     generationCallCount: calls.length, calls, retrievals,
@@ -351,12 +353,14 @@ async function generateTurn(message) {
   const startedAt = nowMs();
   const system = { role: "system", content: ACTOR_SYSTEM_PROMPT };
   const incoming = { role: "user", content: `Current timestamp: ${timestamp}\nMessage from the other speaker:\n${incomingText}` };
-  const queryMessages = [system, { role: "user", content:
-    `Select a search query containing at least three words relevant to the incoming message. Call search_conversation once with that query.\n\n${incoming.content}` }];
+  const queryMessages = [
+    { role: "system", content: RETRIEVAL_SYSTEM_PROMPT },
+    { role: "user", content: incomingText },
+  ];
   const queryCall = await generatePiece(lane, queryMessages, 0, requestId, turn, 1, null, "retrieval");
   const serializedCall = queryCall.assistantPrefix + queryCall.rawText;
   if (queryCall.generatedIds.at(-1) !== toolCloseToken || !serializedCall.endsWith("</tool_call>")) {
-    throw new Error("Retrieval call ended without its native closing marker. Raw output saved; no conversation row produced.");
+    throw new Error(`Retrieval call ended without its native closing marker (${queryCall.generatedIds.length}/${queryCall.rawTokenLimit} generated tokens; last token ${queryCall.generatedIds.at(-1) ?? "none"}). Raw output saved; no conversation row produced.`);
   }
   const rawTool = serializedCall.slice("<tool_call>".length, -"</tool_call>".length).trim();
   let nativeCall;
@@ -384,6 +388,7 @@ async function generateTurn(message) {
   if (!outputText.trim()) throw new Error("Response call produced empty speech. Raw output saved.");
   post("turn-result", {
     requestId, lane, turn, timestamp, systemPrompt: ACTOR_SYSTEM_PROMPT,
+    retrievalSystemPrompt: RETRIEVAL_SYSTEM_PROMPT,
     turnProtocol: TURN_PROTOCOL, responseCall: 2, generationCallCount: 2,
     outputText, generatedTokenCount: response.generatedIds.length, generatedSpeechIds: response.generatedIds,
     inputTokenCount: response.inputTokenCount, calls: [queryCall, response], retrievals: [retrieval],
@@ -408,7 +413,8 @@ async function initialize(requestId, options) {
     transformersVersion: TRANSFORMERS_VERSION,
     modelId: MODEL_ID,
     modelRevision: MODEL_REVISION,
-    actorSystemPrompt: ACTOR_SYSTEM_PROMPT,
+    actorSystemPrompt: legacyReplay ? LEGACY_SYSTEM_PROMPT : ACTOR_SYSTEM_PROMPT,
+    ...(legacyReplay ? {} : { retrievalSystemPrompt: RETRIEVAL_SYSTEM_PROMPT }),
     turnProtocol: legacyReplay ? "legacy-optional-retrieval-replay" : TURN_PROTOCOL,
     fixedNewTokens: FIXED_NEW_TOKENS,
     oneWorker: true,

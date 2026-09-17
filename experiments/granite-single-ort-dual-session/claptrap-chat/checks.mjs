@@ -129,8 +129,11 @@ await check('Every turn retrieves then responds; only second output is speech an
   assert.equal(JSON.stringify(f.prompts[2]).includes('Welcome to the Zoo'), false);
   assert.equal(JSON.stringify(f.prompts[2]).includes('alpha beta gamma'), false);
   assert.equal(f.prompts[0].config.tools[0].function.name, 'search_conversation');
+  assert.equal(f.prompts[0].messages[0].content, 'Select three words from the supplied message. Call search_conversation with those words separated by spaces. Do not compose a conversational reply.');
+  assert.equal(f.prompts[0].messages[1].content, 'Welcome to the Zoo');
+  assert.equal(f.prompts[2].messages[1].content, 'only latest text');
   const response = f.prompts[1];
-  assert.equal(response.messages[0].content, 'You are Claptrap.');
+  assert.equal(response.messages[0].content, 'You are Claptrap. Respond to the incoming message.');
   assert.equal(response.messages[1].content, 'Current timestamp: now\nMessage from the other speaker:\nWelcome to the Zoo');
   assert.equal(Object.hasOwn(response.config, 'tools'), false);
   assert.equal(response.messages[2].content, '');
@@ -154,9 +157,19 @@ await check('First-pass narration or truncation cannot become speech or trigger 
   const f = await workerFixture([textIds('I am a helpful assistant with tools.')]);
   const result = await f.send({command:'generate-turn',requestId:'bad',lane:'cpu',turn:1,timestamp:'now',incomingText:'seed'}, 'turn-result');
   assert.equal(result.type, 'command-error');
+  assert.match(result.error, /36\/96 generated tokens; last token 46/);
   assert.equal(f.options.length, 1);
   assert.equal(f.events.some(e => e.type === 'turn-result'), false);
   assert.equal(f.events.some(e => e.type === 'generation-output' && e.phase === 'retrieval'), true);
+});
+await check('Retrieval output limit is reported without manufacturing a closing marker or a reply', async () => {
+  const f = await workerFixture([Array(120).fill(65)]);
+  const result = await f.send({command:'generate-turn',requestId:'limit',lane:'cpu',turn:1,timestamp:'now',incomingText:'seed'}, 'turn-result');
+  assert.equal(result.type, 'command-error');
+  assert.match(result.error, /96\/96 generated tokens; last token 65/);
+  assert.equal(f.events.find(e => e.type === 'generation-output').rawText, 'A'.repeat(96));
+  assert.equal(f.events.some(e => e.type === 'search-request' || e.type === 'turn-result'), false);
+  assert.equal(f.options.length, 1);
 });
 await check('A second-pass tool call fails visibly instead of being counted as a reply or making a third call', async () => {
   const f = await workerFixture([queryIds('alpha beta gamma'), [open, ...textIds('{}'), close]]);
@@ -238,7 +251,7 @@ async function controllerFixture({ files = new Map(), markers = new Map(), failA
             assert.equal(Object.hasOwn(message,'retrievedRows'), false);
             this.handlers.message({data:{
               type:'turn-result',requestId:message.requestId,lane:message.lane,turn:message.turn,
-              systemPrompt:'You are Claptrap.',generatedTokenCount:100,
+              systemPrompt:'You are Claptrap. Respond to the incoming message.',generatedTokenCount:100,
               generatedSpeechIds:Array(100).fill(65),inputTokenCount:20,durationMs:1,
               outputText:`Synthetic ${message.turn}, "speech"\n🧐`,
               turnProtocol:'retrieval-then-response-v1',responseCall:2,generationCallCount:2,
