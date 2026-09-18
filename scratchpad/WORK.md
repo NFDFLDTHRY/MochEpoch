@@ -1,10 +1,11 @@
 # Claptrap: separate retrieval and response system prompts
 
 proposal_id: 20260917-claptrap-separate-system-prompts
-status: PROPOSED
+status: IN_PROGRESS
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 base_commit: 9d9562d62da62fe9455f42ff5b8530b52a9ebccc
+code_commit: 513117267504e2702bddf0d26eb86d5fa1d5da90
 
 ## Authorization and observed failure
 
@@ -63,3 +64,20 @@ entry point. The full alternating CPU/GPU run needs the phone if this browser
 still lacks a WebGPU adapter. Prompt compliance and phone endurance are not
 guaranteed by a CPU-only probe; the screenshot alone cannot establish why that
 particular retrieval omitted its closing marker.
+
+## Executed prompt correction within this repair
+
+The first real run of 5131172 completed both turns, but the retrieval query copied
+the native template's generic assistant preface (24 words), and its response
+echoed that text. The next query had 30 words. Both native calls closed, so this
+is different from the phone's missing-marker failure. The rendered prompt proves
+that supplying the dedicated system still appends a competing generic assistant
+role through the native tools template.
+
+Continue this same approved prompt repair by omitting only those two generic
+assistant-role sentences from the retrieval call's template. Retain all native
+role markers, tools/schema, JSON instructions, call prefix and result formatting.
+Use the pinned template with an explicit per-call override, record the adjustment,
+and preserve the untouched template for legacy replay. This adds no inference,
+query repair, behavior filtering, schema change, model, service or dependency.
+Retain both real exports and distinguish what each run established.
