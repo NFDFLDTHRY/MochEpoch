@@ -92,3 +92,14 @@ response generation rather than a continuation of the retrieval conversation.
 The native tool schema and calling format remain in call 1. This supersedes the
 proposal's earlier inclusion of the native request in call 2, which the executed
 case showed continued to carry first-pass language into the response context.
+
+The second real trial reproduced the phone error on CPU turn 2: retrieval emitted
+96/96 tokens of repetitive prose without the native closing marker. This is now
+an executed harness failure, not an inferred GPU failure. As part of the requested
+repair, retain that malformed output as a failed retrieval attempt with no search
+executed and zero retrieved rows, then run the independent response call. Do not
+repair the query, retry generation, fabricate matches, or terminate both resident
+models merely because call 1 returned unusable syntax. Actual runtime/storage
+errors still stop. This explicitly supersedes the prior malformed-retrieval abort
+policy; the first call writes no conversational row, and only valid second-call
+speech is committed. Label a failed attempt accurately in the retrieval UI.
