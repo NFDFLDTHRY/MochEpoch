@@ -19,7 +19,11 @@ const pauseButton = document.querySelector("#pause");
 const stopButton = document.querySelector("#stop");
 const clearButton = document.querySelector("#clear");
 const progress = document.querySelector("#turn-progress");
+const retryStorageButton = document.querySelector("#retry-storage");
 let conversationHandle, evidenceHandle;
+let storageReady = false, restoring = false, evidenceLoaded = false;
+const storageIssues = [];
+const storageState = { conversation: "unchecked", evidence: "unchecked", setupError: null };
 let runtimeReady = false, runtimeFailed = false, running = false;
 let loadingLane = null;
 let paused = false, stopRequested = false, requestSequence = 0;
@@ -30,7 +34,7 @@ let evidence = freshEvidence();
 
 function freshEvidence() {
   return {
-    experiment: EXPERIMENT, version: 5, createdAt: new Date().toISOString(),
+    experiment: EXPERIMENT, version: 6, createdAt: new Date().toISOString(),
     pageUrl: location.href, userAgent: navigator.userAgent,
     fixedConditions: {
       actorSystemPrompt: "You are Claptrap. Respond to the incoming message.", seedText: SEED_TEXT,
@@ -49,6 +53,44 @@ function freshEvidence() {
 }
 
 function errorText(error) { return `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`; }
+
+// File snapshots and handles are disposable. Never infer empty history from a
+// failed read, and never create a replacement while resolving an existing file.
+async function readStoredFile(name, { allowMissing = false } = {}) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    let operation = "getDirectory";
+    try {
+      const root = await navigator.storage.getDirectory();
+      operation = "getFileHandle";
+      const handle = await root.getFileHandle(name, { create: false });
+      operation = "getFile";
+      const file = await handle.getFile();
+      operation = "File.text";
+      const text = await file.text();
+      if (attempt > 1) storageIssues.push({ at: new Date().toISOString(), file: name, attempt, outcome: "read-recovered" });
+      return { handle, file, text };
+    } catch (error) {
+      const retry = attempt === 1 && ["InvalidStateError", "NotFoundError"].includes(error.name);
+      const missing = !retry && allowMissing && operation === "getFileHandle" && error.name === "NotFoundError";
+      storageIssues.push({ at: new Date().toISOString(), file: name, operation, attempt,
+        name: error.name, message: error.message, stack: error.stack ?? null,
+        outcome: retry ? "retry-with-fresh-handle" : missing ? "missing" : "failed" });
+      if (retry) continue;
+      if (missing) return null;
+      const failure = new Error(`${name} at ${operation}: ${errorText(error)}`);
+      failure.name = error.name;
+      throw failure;
+    }
+  }
+}
+
+function storageUnavailable() {
+  storageReady = false;
+  storageState.conversation = "unavailable";
+  progress.textContent = "Saved conversation count unavailable; CSV has not been verified.";
+  memoryStatus.textContent = "Conversation CSV could not be read. Download evidence or retry saved storage.";
+  clearButton.disabled = true;
+}
 
 function showLoadingFailure() {
   if (!loadingLane) return;
@@ -72,9 +114,14 @@ function failRuntime(error) {
   startButton.disabled = true;
 }
 
+function storageDiagnostics() {
+  return [...new Set([...(evidence.storageReadDiagnostics ?? []), ...storageIssues].map(entry => JSON.stringify(entry)))].map(text => JSON.parse(text));
+}
+
 function persistEvidence() {
   if (saveFailure) return Promise.reject(new Error(saveFailure.error));
-  const text = JSON.stringify(evidence), eventCount = evidence.runtimeEvents.length;
+  if (storageState.evidence !== "readable") return Promise.reject(new Error("Saved evidence has not been read; refusing to overwrite it."));
+  const text = JSON.stringify({ ...evidence, storageReadDiagnostics: storageDiagnostics() }), eventCount = evidence.runtimeEvents.length;
   pendingWrites++;
   evidenceWrites = evidenceWrites.then(async () => {
     if (saveFailure) throw new Error(saveFailure.error);
@@ -125,7 +172,13 @@ function rpc(command, payload, expectedType) {
 }
 
 async function readRows() {
-  return readCsv(await (await conversationHandle.getFile()).text());
+  try {
+    const stored = await readStoredFile(CONVERSATION_FILE);
+    const rows = readCsv(stored.text);
+    conversationHandle = stored.handle;
+    storageState.conversation = "readable";
+    return rows;
+  } catch (error) { storageUnavailable(); throw error; }
 }
 
 async function receive(entry) {
@@ -214,42 +267,74 @@ function showCounts(rows) {
   progress.textContent = `${rows.length}/100 saved · CPU ${cpu}/50 · GPU ${gpu}/50 · seed excluded`;
 }
 
-async function restore() {
+async function restore({ initializeEmpty = false } = {}) {
+  if (running || restoring) return;
+  restoring = true; storageReady = false;
+  storageState.setupError = null;
+  storageState.conversation = storageState.evidence = "unchecked";
+  startButton.disabled = clearButton.disabled = retryStorageButton.disabled = true;
+  progress.textContent = "Checking saved conversation; count not yet verified.";
+  memoryStatus.textContent = "Reading existing conversation and evidence files…";
+  room.textContent = "";
   try {
-    appEnvironment = await prepareApp();
-    await claimRuntime();
-    ownsRuntime = true;
+    appEnvironment ||= await prepareApp();
+    if (!ownsRuntime) { await claimRuntime(); ownsRuntime = true; }
     if (!navigator.storage?.getDirectory) throw new Error("OPFS is unavailable on this origin.");
-    const root = await navigator.storage.getDirectory();
-    conversationHandle = await root.getFileHandle(CONVERSATION_FILE, { create: true });
-    evidenceHandle = await root.getFileHandle(EVIDENCE_FILE, { create: true });
-    let text = await (await conversationHandle.getFile()).text();
-    if (!text) {
-      text = CSV_HEADER + "\r\n";
-      await writeText(conversationHandle, text);
-    }
-    const rows = readCsv(text);
-    const savedEvidence = await (await evidenceHandle.getFile()).text();
-    // Import the previous build's diagnostics for viewing/export only.
-    const legacy = !savedEvidence ? localStorage.getItem(LEGACY_EVIDENCE_KEY) : null;
-    if (savedEvidence || legacy) {
-      const restored = JSON.parse(savedEvidence || legacy);
-      if (restored.experiment !== EXPERIMENT) throw new Error("Saved evidence belongs to another experiment.");
-      evidence = restored;
-      if (legacy) await persistEvidence();
-    }
+    let storedEvidence, storedConversation, rows, restoreError;
     const markerText = localStorage.getItem(FAILURE_KEY);
+    const legacy = localStorage.getItem(LEGACY_EVIDENCE_KEY);
+
+    // Load diagnostics independently before attempting the authoritative CSV.
+    try {
+      storedEvidence = await readStoredFile(EVIDENCE_FILE, { allowMissing: true });
+      evidenceHandle = storedEvidence?.handle;
+      const saved = storedEvidence?.text || legacy;
+      if (saved) {
+        const restored = JSON.parse(saved);
+        if (restored.experiment !== EXPERIMENT || !Array.isArray(restored.turns) || !Array.isArray(restored.runtimeEvents)) throw new Error("Saved evidence does not match this experiment.");
+        evidence = restored; evidenceLoaded = true;
+        committedEvents = evidence.runtimeEvents.length;
+      }
+      storageState.evidence = storedEvidence ? "readable" : "missing";
+    } catch (error) { storageState.evidence = "unavailable"; restoreError = error; }
+    try {
+      storedConversation = await readStoredFile(CONVERSATION_FILE, { allowMissing: true });
+      conversationHandle = storedConversation?.handle;
+      if (storedConversation?.text) {
+        rows = readCsv(storedConversation.text);
+        storageState.conversation = "readable";
+        for (const row of rows) renderMessage(row, evidence.turns?.[row.turn - 1]?.retrievals ?? null);
+        showCounts(rows);
+      } else storageState.conversation = storedConversation ? "empty" : "missing";
+    } catch (error) { storageState.conversation = "unavailable"; restoreError ||= error; }
+    machineLog.textContent = (evidence.runtimeEvents ?? []).filter(entry => entry.type !== "load-progress")
+      .slice(-100).map(logLine).join("\n");
+    if (restoreError) throw restoreError;
+
+    const bothMissing = !storedEvidence && !storedConversation;
+    const bothEmpty = storedEvidence?.text === "" && storedConversation?.text === "";
+    if (initializeEmpty && (bothMissing || bothEmpty) && !legacy && !markerText && !evidenceLoaded) {
+      const root = await navigator.storage.getDirectory();
+      conversationHandle = await root.getFileHandle(CONVERSATION_FILE, { create: true });
+      evidenceHandle = await root.getFileHandle(EVIDENCE_FILE, { create: true });
+      await writeText(conversationHandle, CSV_HEADER + "\r\n");
+      storageState.conversation = storageState.evidence = "readable";
+      rows = []; evidence = freshEvidence(); evidenceLoaded = true;
+      await persistEvidence();
+      showCounts(rows);
+    } else {
+      if (!rows) throw new Error("Conversation CSV is missing or empty. It has not been recreated from evidence.");
+      if (!storedEvidence?.text && !legacy) throw new Error("Saved evidence is missing or empty. The conversation CSV remains unchanged.");
+      if (!evidenceHandle) throw new Error("Evidence file is missing. Recovered legacy diagnostics are available to export.");
+    }
+
     if (markerText) {
       const marker = JSON.parse(markerText);
       if (marker.runCreatedAt >= evidence.createdAt) {
-        evidence.error = marker.error;
-        evidence.completed = false;
+        evidence.error = marker.error; evidence.completed = false;
         evidence.recoveredSaveFailure = marker;
       }
     }
-    // If CSV committed but the following JSON close failed, the previous JSON
-    // contains the exact prepared result. Reconcile diagnostics against CSV;
-    // never synthesize or append a conversation row during recovery.
     const prepared = evidence.pendingTurn;
     const row = prepared && rows[prepared.turn - 1];
     if (row && evidence.turns.length === prepared.turn - 1 &&
@@ -267,30 +352,40 @@ async function restore() {
       catch (error) { evidence.completed = false; evidence.error = errorText(error); }
     }
     if (evidence.running) { evidence.running = false; evidence.interrupted = true; }
-    committedEvents = evidence.runtimeEvents.length;
-    machineLog.textContent = (evidence.runtimeEvents ?? [])
-      .filter((entry) => entry.type !== "load-progress")
-      .slice(-100).map(logLine).join("\n");
-    for (const row of rows) renderMessage(row, evidence.turns?.[row.turn - 1]?.retrievals ?? null);
-    showCounts(rows);
+    storageReady = true;
     memoryStatus.textContent = rows.length
-      ? `Restored ${rows.length} CSV turn(s). Saved speech is not loaded into model context. Export or clear before a new run.`
+      ? `Restored ${rows.length} CSV turn(s). Saved speech is not loaded into model context. Export before starting a new run.`
       : "CSV and machine evidence storage ready.";
     if (evidence.error) status.textContent = `Saved run error: ${evidence.error}`;
     else if (evidence.completed) status.textContent = "Saved run complete. Conversation and evidence are available to download.";
-    else if (evidence.interrupted) status.textContent = "The previous run was interrupted. Saved turns and diagnostics are available to export. Clear before starting again.";
-    else status.textContent = rows.length ? "Saved conversation restored. Export or clear before a new run." : "Ready. Choose the seed speaker and press Start.";
+    else if (evidence.interrupted) status.textContent = "The previous run was interrupted. Saved turns and diagnostics are available to export.";
+    else status.textContent = rows.length ? "Saved conversation restored. Export before starting a new run." : "Ready. Choose the seed speaker and press Start.";
     startButton.disabled = rows.length > 0 || runtimeFailed || Boolean(evidence.error) || evidence.interrupted;
     clearButton.disabled = false;
   } catch (error) {
-    status.textContent = `Setup error: ${errorText(error)}. Existing files have not been reset.`;
-    startButton.disabled = true;
+    storageState.setupError = errorText(error);
+    if (storageState.conversation !== "readable") {
+      progress.textContent = "Saved conversation count unavailable; CSV has not been verified.";
+    }
+    memoryStatus.textContent = evidenceLoaded
+      ? `Saved evidence recovered (${evidence.turns.length} recorded replies). ${storageState.conversation === "readable" ? "CSV read succeeded." : "CSV count is unverified."} Download evidence or retry saved storage.`
+      : "Saved storage could not be fully restored. Export recovery diagnostics or retry saved storage.";
+    status.textContent = `Storage recovery error: ${storageState.setupError}. No existing history was reset.`;
+    startButton.disabled = clearButton.disabled = true;
+  } finally {
+    restoring = false;
+    retryStorageButton.disabled = false;
+    document.querySelector("#download-evidence").textContent = evidenceLoaded ? "Download evidence JSON" : "Download recovery diagnostics";
   }
 }
 
 async function appendRow(row) {
-  const file = await conversationHandle.getFile();
-  const before = readCsv(await file.text());
+  let stored;
+  try { stored = await readStoredFile(CONVERSATION_FILE); }
+  catch (error) { storageUnavailable(); throw error; }
+  conversationHandle = stored.handle;
+  const file = stored.file;
+  const before = readCsv(stored.text);
   if (row.turn !== before.length + 1) throw new Error("CSV changed before the completed turn could be appended.");
   const writable = await conversationHandle.createWritable({ keepExistingData: true });
   try {
@@ -359,10 +454,10 @@ async function runConversation(firstLane) {
 }
 
 async function startRun() {
-  if (running || runtimeFailed || !ownsRuntime || saveFailure) return;
+  if (running || restoring || !storageReady || runtimeFailed || !ownsRuntime || saveFailure) return;
   running = true; paused = false; stopRequested = false;
   startButton.disabled = true; seedSeat.disabled = true; clearButton.disabled = true;
-  stopButton.disabled = false;
+  stopButton.disabled = false; retryStorageButton.disabled = true;
   try {
     if ((await readRows()).length) throw new Error("Saved CSV already contains conversation. Export or clear it before a new run.");
     const initialization = runtimeReady ? evidence.runtimeEvents.filter((event) =>
@@ -378,16 +473,17 @@ async function startRun() {
     await runConversation(seedSeat.value);
   } catch (error) {
     evidence.error = errorText(error); evidence.running = false; evidence.completed = false;
-    status.textContent = `ERROR: ${evidence.error}. Saved CSV remains available. Reload before retrying a failed runtime.`;
+    status.textContent = `ERROR: ${evidence.error}. Export available evidence. CSV availability must be checked before retrying.`;
     if (!saveFailure) await persistEvidence().catch(() => {});
   } finally {
     running = false; paused = false;
     pauseButton.disabled = true; pauseButton.textContent = "Pause";
-    stopButton.disabled = true; clearButton.disabled = false;
+    stopButton.disabled = true; clearButton.disabled = !storageReady; retryStorageButton.disabled = false;
   }
 }
 
 startButton.addEventListener("click", startRun);
+retryStorageButton.addEventListener("click", () => restore());
 pauseButton.addEventListener("click", () => {
   if (!running) return;
   paused = !paused;
@@ -400,7 +496,7 @@ stopButton.addEventListener("click", () => {
   status.textContent = "Stop requested. The current turn will finish and save.";
 });
 clearButton.addEventListener("click", async () => {
-  if (running || !ownsRuntime || !conversationHandle || !evidenceHandle) return;
+  if (running || restoring || !storageReady || !ownsRuntime || !conversationHandle || !evidenceHandle) return;
   try {
     await evidenceWrites.catch(() => {});
     evidenceWrites = Promise.resolve(); saveFailure = null; pendingWrites = 0; committedEvents = 0; committedAt = null;
@@ -429,13 +525,16 @@ function stamp() { return new Date().toISOString().replaceAll(":", "-"); }
 
 document.querySelector("#download-csv").addEventListener("click", async () => {
   try {
-    downloadText(await (await conversationHandle.getFile()).text(), "text/csv", `granite-claptrap-conversation-${stamp()}.csv`);
+    downloadText((await readStoredFile(CONVERSATION_FILE)).text, "text/csv", `granite-claptrap-conversation-${stamp()}.csv`);
   } catch (error) { status.textContent = `CSV export failed: ${errorText(error)}`; }
 });
 document.querySelector("#download-evidence").addEventListener("click", () => {
-  const report = { ...evidence, completed: evidence.completed && !running && pendingWrites === 0 && !saveFailure, export: { at: new Date().toISOString(), source: "live received evidence",
-    outcome: evidence.error ? "failed" : running || pendingWrites > 0 ? "running" : evidence.completed ? "complete" : evidence.interrupted ? "interrupted" : "stopped",
+  const report = { ...evidence, storageRecovery: { ...storageState, evidenceLoaded, pageUrl: location.href },
+    storageReadDiagnostics: storageDiagnostics(),
+    completed: evidence.completed && storageReady && !running && pendingWrites === 0 && !saveFailure,
+    export: { at: new Date().toISOString(), source: evidenceLoaded ? "live received evidence" : "recovery diagnostics; saved evidence unavailable",
+    outcome: storageState.setupError ? "storage-recovery-failed" : evidence.error ? "failed" : running || pendingWrites > 0 ? "running" : evidence.completed ? "complete" : evidence.interrupted ? "interrupted" : "stopped",
     committedEvents, receivedEvents: evidence.runtimeEvents.length, pendingWrites, committedAt, saveFailure } };
   downloadText(JSON.stringify(report, null, 2), "application/json", `granite-claptrap-evidence-${stamp()}.json`);
 });
-restore();
+restore({ initializeEmpty: true });

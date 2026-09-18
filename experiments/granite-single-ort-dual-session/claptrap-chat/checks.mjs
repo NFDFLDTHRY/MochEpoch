@@ -211,10 +211,14 @@ await check('Malformed JSON remains evidence while the response uses only the ac
 const mainSource = (await readFile(new URL('./main.js', import.meta.url), 'utf8'))
   .replace(/^import [^\n]+\n/gm, '').replaceAll('import.meta.url', '"https://example.test/main.js"');
 
-async function controllerFixture({ files = new Map(), markers = new Map(), failAppendTurn = null, seed = 'cpu', beforeClose = async () => {}, claim = async () => {}, failGpu = false } = {}) {
-  const elements = new Map(), requests = [], commits = [], errors = [];
+async function controllerFixture({ files = new Map(), markers = new Map(), failAppendTurn = null, seed = 'cpu', beforeClose = async () => {}, claim = async () => {}, failGpu = false, readFault = async () => {} } = {}) {
+  const elements = new Map(), requests = [], commits = [], errors = [], storageOps = [];
+  let handleSequence = 0;
+  const missing = () => Object.assign(new Error('Requested entry was not found'), {name:'NotFoundError'});
   class Element {
     constructor() { this.textContent = ''; this.handlers = {}; this.disabled = false; this.children = []; this.value = seed; }
+    get textContent() { return this.text || ''; }
+    set textContent(value) { this.text = value; this.children = []; }
     addEventListener(name, fn) { this.handlers[name] = fn; }
     append(...children) { this.children.push(...children); }
     scrollIntoView() {} remove() {} click() { return this.handlers.click?.(); }
@@ -223,10 +227,17 @@ async function controllerFixture({ files = new Map(), markers = new Map(), failA
     if (!elements.has(name)) elements.set(name, new Element());
     return elements.get(name);
   };
-  const handle = (name) => ({
+  const handle = (name, handleId) => ({
     async getFile() {
-      const bytes = Buffer.from(files.get(name) ?? '');
-      return { size: bytes.length, text: async () => bytes.toString() };
+      storageOps.push({name, operation:'getFile', handleId});
+      await readFault({name, operation:'getFile', handleId});
+      if (!files.has(name)) throw missing();
+      const bytes = Buffer.from(files.get(name));
+      return { size: bytes.length, text: async () => {
+        storageOps.push({name, operation:'File.text', handleId});
+        await readFault({name, operation:'File.text', handleId});
+        return bytes.toString();
+      } };
     },
     async createWritable({keepExistingData = false} = {}) {
       let bytes = Buffer.from(keepExistingData ? files.get(name) ?? '' : ''), offset = 0;
@@ -291,12 +302,20 @@ async function controllerFixture({ files = new Map(), markers = new Map(), failA
     CSV_HEADER, csvLine, readCsv, searchRows, verifyCompleted, Worker:FakeWorker,
     prepareApp:async()=>({crossOriginIsolated:true,sharedArrayBufferAvailable:true}),claimRuntime:claim,
     location:{href:'https://example.test/'},localStorage:{getItem:key=>markers.get(key)??null,setItem:(key,value)=>markers.set(key,value),removeItem:key=>markers.delete(key)},
-    navigator:{userAgent:'Synthetic local test, not a device run',storage:{persist:async()=>true,getDirectory:async()=>({getFileHandle:async(name)=>handle(name)})}},
+    navigator:{userAgent:'Synthetic local test, not a device run',storage:{persist:async()=>true,getDirectory:async()=>{
+      await readFault({operation:'getDirectory'});
+      return {getFileHandle:async(name,{create=false}={})=>{
+        const handleId = ++handleSequence; storageOps.push({name,operation:'getFileHandle',create,handleId});
+        await readFault({name,operation:'getFileHandle',create,handleId});
+        if (!files.has(name)) { if (!create) throw missing(); files.set(name,''); }
+        return handle(name,handleId);
+      }};
+    }}},
     document:{querySelector:get,createElement:()=>new Element(),body:new Element()},
   });
   vm.runInContext(mainSource,context);
   for (let i=0;i<10;i++) await new Promise((resolve)=>setImmediate(resolve));
-  return {files,markers,requests,commits,errors,elements,get,context};
+  return {files,markers,requests,commits,errors,elements,get,context,storageOps};
 }
 
 let finishedFiles;
@@ -693,6 +712,125 @@ await check('GPU startup failure releases both lanes and survives actual-control
   const restored = await controllerFixture({files:f.files});
   assert.match(restored.get('#status').textContent, /No GPU adapter/);
   assert.equal(restored.get('#start').disabled, true);
+});
+
+const conversationFile = 'granite-claptrap-conversation.csv';
+const evidenceFile = 'granite-claptrap-evidence.json';
+const readError = (name) => Object.assign(new Error(`Injected ${name}`), {name});
+const exportController = (f) => {
+  let report;
+  f.context.capture = text => { report = JSON.parse(text); };
+  vm.runInContext('downloadText = capture;', f.context);
+  f.get('#download-evidence').click(); return report;
+};
+for (const operation of ['getFileHandle', 'getFile', 'File.text']) {
+  await check(`Transient InvalidStateError at ${operation} uses fresh handles and preserves saved history`, async () => {
+    const files = new Map(finishedFiles), before = [...files]; let failures = 0;
+    const f = await controllerFixture({files, readFault:async event => {
+      if (event.name === conversationFile && event.operation === operation && failures++ === 0) throw readError('InvalidStateError');
+    }});
+    assert.deepEqual([...files], before);
+    assert.equal(f.requests.length, 0);
+    assert.match(f.get('#turn-progress').textContent, /100\/100 saved/);
+    const reads = f.storageOps.filter(e=>e.name===conversationFile && e.operation==='getFileHandle');
+    assert.equal(reads.length, 2); assert.notEqual(reads[0].handleId, reads[1].handleId);
+    const report = exportController(f);
+    assert.ok(report.storageReadDiagnostics.some(e=>e.operation===operation && e.name==='InvalidStateError'));
+    assert.ok(report.storageReadDiagnostics.some(e=>e.outcome==='read-recovered'));
+  });
+}
+await check('Transient NotFoundError during search read retries once without a new model call', async () => {
+  let enabled = false, failures = 0;
+  const f = await controllerFixture({files:new Map(finishedFiles), readFault:async e=>{
+    if (enabled && e.name===conversationFile && e.operation==='getFile' && failures++===0) throw readError('NotFoundError');
+  }});
+  enabled = true;
+  await vm.runInContext('createRuntime(); receive({type:"search-request",requestId:"test",turn:101,call:1,lane:"cpu",name:"search_conversation",query:"Synthetic speech absent"});', f.context);
+  assert.equal(f.requests.filter(r=>r.command==='search-result').length, 1);
+  assert.equal(f.requests.some(r=>r.command==='generate-turn'), false);
+  assert.equal(exportController(f).error, null);
+});
+await check('Persistent CSV File.text failure preserves files and exports restored evidence with unknown counts', async () => {
+  const files = new Map(finishedFiles), before = [...files];
+  const f = await controllerFixture({files, readFault:async e=>{
+    if (e.name===conversationFile && e.operation==='File.text') throw readError('InvalidStateError');
+  }});
+  assert.deepEqual([...files], before);
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.get('#clear').disabled, true);
+  assert.match(f.get('#turn-progress').textContent, /unavailable/);
+  const report = exportController(f);
+  assert.equal(report.turns.length, 100);
+  assert.equal(report.completed, false);
+  assert.equal(report.export.outcome, 'storage-recovery-failed');
+  assert.equal(report.storageReadDiagnostics.filter(e=>e.operation==='File.text').length, 2);
+  assert.match(report.storageRecovery.setupError, /File.text/);
+});
+await check('Missing CSV is not recreated from diagnostic turns', async () => {
+  const files = new Map(finishedFiles); files.delete(conversationFile); const before=[...files];
+  const f = await controllerFixture({files});
+  assert.deepEqual([...files], before);
+  assert.equal(f.storageOps.some(e=>e.create), false);
+  assert.equal(exportController(f).turns.length, 100);
+  assert.match(f.get('#turn-progress').textContent, /unavailable/);
+  assert.equal(f.get('#start').disabled, true);
+});
+await check('Unreadable evidence does not hide or overwrite a readable CSV', async () => {
+  const files=new Map(finishedFiles), before=[...files];
+  const f=await controllerFixture({files,readFault:async e=>{
+    if(e.name===evidenceFile && e.operation==='File.text')throw readError('InvalidStateError');
+  }});
+  assert.equal(f.get('#room').children.length,100);
+  assert.match(f.get('#turn-progress').textContent,/100\/100 saved/);
+  assert.equal(f.get('#clear').disabled,true);
+  const report=exportController(f);
+  assert.equal(report.storageRecovery.evidenceLoaded,false);
+  assert.match(report.export.source,/saved evidence unavailable/);
+  let exported; f.context.capture=text=>{exported=text;};
+  vm.runInContext('downloadText = capture;', f.context);
+  await f.get('#download-csv').click();
+  assert.equal(exported,files.get(conversationFile));
+  assert.deepEqual([...files],before);
+});
+await check('Read-only retry restores recovered storage without duplicate rows, writes or model load',async()=>{
+  const files=new Map(finishedFiles),before=[...files];let failing=true,claims=0;
+  const f=await controllerFixture({files,claim:async()=>{claims++;},readFault:async e=>{
+    if(failing && e.name===conversationFile && e.operation==='getFile')throw readError('InvalidStateError');
+  }});
+  failing=false;
+  await f.get('#retry-storage').click(); await f.get('#retry-storage').click();
+  assert.equal(f.get('#room').children.length,100);
+  assert.equal(claims,1);assert.equal(f.requests.length,0);
+  assert.deepEqual([...files],before);
+  assert.equal(f.storageOps.some(e=>e.create),false);
+});
+await check('Read-only retry never initializes missing files even after a previously empty setup',async()=>{
+  const f=await controllerFixture();f.files.clear();
+  await f.get('#retry-storage').click();
+  assert.equal(f.files.size,0);assert.equal(f.requests.length,0);
+  assert.match(f.get('#turn-progress').textContent,/unavailable/);
+});
+await check('Nontransient read failure stops without retry or writes',async()=>{
+  const files=new Map(finishedFiles),before=[...files];let calls=0;
+  const f=await controllerFixture({files,readFault:async e=>{
+    if(e.name===conversationFile && e.operation==='getFile'){calls++;throw readError('NotAllowedError');}
+  }});
+  assert.equal(calls,1);assert.deepEqual([...files],before);
+  assert.equal(f.requests.length,0);
+});
+await check('Persistent search read failure saves its operation and halts before a response',async()=>{
+  const files=new Map(finishedFiles);let failing=false;
+  const f=await controllerFixture({files,readFault:async e=>{
+    if(failing && e.name===conversationFile && e.operation==='getFile')throw readError('NotFoundError');
+  }});
+  const csv=files.get(conversationFile);failing=true;
+  await vm.runInContext('createRuntime(); receive({type:"search-request",requestId:"test",turn:101,call:1,lane:"cpu",name:"search_conversation",query:"three search words"});',f.context);
+  assert.equal(files.get(conversationFile),csv);
+  assert.equal(f.requests.some(r=>r.command==='search-result'||r.command==='generate-turn'),false);
+  const saved=JSON.parse(files.get(evidenceFile));
+  assert.match(saved.error,/getFile: NotFoundError/);
+  assert.equal(saved.storageReadDiagnostics.filter(e=>e.name==='NotFoundError' && e.operation==='getFile').length,2);
+  assert.equal(f.get('#clear').disabled,true);
 });
 
 console.log(JSON.stringify({kind:'synthetic-plumbing-and-installed-repair-checks',realGraniteGeneration:false,results},null,2));

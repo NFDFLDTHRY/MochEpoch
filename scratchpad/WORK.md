@@ -1,7 +1,7 @@
 # Claptrap: preserve files and recover storage reads
 
 proposal_id: 20260918-claptrap-storage-read-recovery
-status: PROPOSED
+status: IN_PROGRESS
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 base_commit: dccdf380d31968cffb4a4053826808dc854f0e17
@@ -73,3 +73,10 @@ cannot be claimed until the repaired build accesses that phone's existing files.
 No new service, dependency, hosting arrangement or architecture is introduced.
 Current main is be56f62590be8897f479f33b84877fb3a7f98f13; its blueprint blob matches
 locked 5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945. Neither locked file changes.
+
+## Progress
+
+Plan published at 259ec89c0a00dfd2751f725a3836d3bea229e84b before runtime edits.
+Storage recovery and truthful display changes implemented. All 45 synthetic
+checks pass, including the 11 added storage cases and existing 50/50 checks.
+Browser reload/export verification is in progress; phone recovery is not claimed.
