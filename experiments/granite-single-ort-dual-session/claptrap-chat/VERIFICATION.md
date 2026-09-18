@@ -691,3 +691,50 @@ GPU residency or phone endurance.
 All three exact public-safe exports, their hashes, source hashes, the reproduced
 failure and 34 check results are in
 [separate-prompts-20260917.json](./evidence/separate-prompts-20260917.json).
+
+
+## Phone startup interruption — 2026-09-18
+
+The supplied export identifies code 08acbb8, installed-app mode, persistent
+storage, cross-origin isolation and shared memory. The worker reports eight
+logical processors, four requested/resolved WASM threads, fixed SIMD and the
+same model revision/runtime as the earlier successful five-turn phone run.
+
+Observed startup boundary (event receipt times, UTC):
+
+| Time | Recorded event | What it establishes |
+| --- | --- | --- |
+| 00:29:09.418 | CPU session-load-complete | CPU q4 loaded in 47.846 seconds; four WASM threads. |
+| 00:29:09.432 | first-session-resident | CPU resident before the GPU step. |
+| 00:29:09.433 | GPU session-load-start, checkpoint 5 | Last recovered event, saved immediately before the GPU model factory call. |
+
+There is no GPU progress/completion, runtime-ready, generation-start, generated
+output or saved conversational turn. Neither CPU nor GPU generation is recorded.
+The retrieval/response code was not reached. The export contains 61 recovered
+events and is marked interrupted, with error null and no reported save failure.
+Restoration sets interrupted when it finds an unfinished run; this does not
+distinguish a renderer crash, OS termination, navigation or an operator reload.
+
+The GPU start checkpoint is acknowledged before the worker calls
+AutoModelForCausalLM.from_pretrained. Because acknowledgement receipt/factory
+entry is not separately recorded, this export cannot establish whether that call
+was entered. Memory readings are unavailable, and no exception or device-loss
+report was recovered. Do not classify the cause as OOM, driver failure, missing
+headers or a prompt error from this file. The GPU loss observer is attached only
+after successful GPU load, so its absence does not rule out a device problem.
+
+The runtime-environment configuration and loadLane functions are byte-identical
+between this build and bcf1060, whose earlier phone export showed both sessions
+resident with four WASM threads and five generated replies. That is a comparison
+of these functions and recorded runs, not proof of the present interruption's cause.
+
+Original upload: granite-claptrap-evidence-2026-09-18T00-29-52.310Z.json.
+Exact bytes are preserved in
+[phone-startup-interrupted-20260918.json](./evidence/phone-startup-interrupted-20260918.json).
+SHA-256: b33eeeafa1e0dfee6d5b61204269f179e51b3554b9d273e33eee5bb27e53cb40.
+Publication review found public experiment URLs, routine browser/device capability
+metadata and timestamps; no personal identifiers. This is new phone startup
+evidence, not completion of the 100-turn experiment. No runtime code was changed
+as part of reviewing this export. The next investigation concerns the boundary
+around the GPU-start checkpoint, its acknowledgement and GPU-session readiness while
+the CPU session remains resident.

@@ -1,0 +1,892 @@
+{
+  "experiment": "granite-claptrap-rag-chat",
+  "version": 5,
+  "createdAt": "2026-09-18T00:28:19.924Z",
+  "pageUrl": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/08acbb86b444c477563ae92f07b24b257e36055a/experiments/granite-single-ort-dual-session/claptrap-chat/index.html",
+  "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36",
+  "fixedConditions": {
+    "actorSystemPrompt": "You are Claptrap. Respond to the incoming message.",
+    "seedText": "Welcome to the Zoo",
+    "retrievalSystemPrompt": "Select three words from the supplied message. Call search_conversation with those words separated by spaces. Do not compose a conversational reply.",
+    "retrievalTemplateAdjustment": "Native tool schema and serialization retained; generic assistant preface omitted.",
+    "responseContext": "Retrieved CSV rows, timestamp and incoming message only. Queries and failed retrievals remain diagnostics.",
+    "malformedRetrieval": "Record failed attempt; execute no search; respond with zero retrieved rows.",
+    "totalTurns": 100,
+    "turnsPerSeat": 50,
+    "conversationalTokensPerTurn": 100,
+    "cpuBackend": "wasm",
+    "gpuBackend": "webgpu",
+    "dtype": "q4",
+    "turnProtocol": "retrieval-then-response-v1",
+    "retrieval": "Call 1 generates the search query; call 2 alone is the 100-token reply. Two calls per completed turn."
+  },
+  "seedSeat": "cpu",
+  "runtimeEvents": [
+    {
+      "receivedAt": "2026-09-18T00:28:20.211Z",
+      "type": "runtime-start",
+      "atMs": 1789691300210.02,
+      "requestId": "request-1",
+      "transformersVersion": "4.3.0",
+      "modelId": "onnx-community/granite-4.0-350m-ONNX-web",
+      "modelRevision": "6c9a6f61601df51e76b1efff0974d8d26c2a25b5",
+      "actorSystemPrompt": "You are Claptrap. Respond to the incoming message.",
+      "retrievalSystemPrompt": "Select three words from the supplied message. Call search_conversation with those words separated by spaces. Do not compose a conversational reply.",
+      "turnProtocol": "retrieval-then-response-v1",
+      "fixedNewTokens": 100,
+      "oneWorker": true,
+      "oneTransformersModuleRealm": true,
+      "loadOrder": [
+        "cpu",
+        "gpu"
+      ],
+      "environment": {
+        "hardwareConcurrency": 8,
+        "crossOriginIsolated": true,
+        "sharedArrayBufferAvailable": true,
+        "requestedThreads": 4,
+        "resourcePathTemplate": "{model}/resolve/6c9a6f61601df51e76b1efff0974d8d26c2a25b5/",
+        "sharedWasmMemoryProbe": true,
+        "resolvedSimd": "fixed",
+        "resolvedThreads": 4,
+        "resolvedProxy": false
+      },
+      "checkpointId": 1,
+      "requiresSave": true,
+      "workerMemory": {
+        "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+        "available": false,
+        "usedJSHeapSize": null,
+        "totalJSHeapSize": null,
+        "jsHeapSizeLimit": null,
+        "wasmMemoryBytes": null,
+        "gpuMemoryBytes": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:20.222Z",
+      "type": "tokenizer-load-start",
+      "atMs": 1789691300222.635,
+      "tokenizerStart": 1789691300222.525,
+      "checkpointId": 2,
+      "requiresSave": true,
+      "workerMemory": {
+        "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+        "available": false,
+        "usedJSHeapSize": null,
+        "totalJSHeapSize": null,
+        "jsHeapSizeLimit": null,
+        "wasmMemoryBytes": null,
+        "gpuMemoryBytes": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:21.571Z",
+      "type": "tokenizer-load-complete",
+      "atMs": 1789691301571.055,
+      "tokenizerStart": 1789691300222.525,
+      "tokenizerEnd": 1789691301571.01,
+      "durationMs": 1348.485107421875
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:21.575Z",
+      "type": "session-load-start",
+      "atMs": 1789691301571.44,
+      "lane": "cpu",
+      "device": "wasm",
+      "dtype": "q4",
+      "startedAt": 1789691301571.3699,
+      "checkpointId": 3,
+      "requiresSave": true,
+      "workerMemory": {
+        "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+        "available": false,
+        "usedJSHeapSize": null,
+        "totalJSHeapSize": null,
+        "jsHeapSizeLimit": null,
+        "wasmMemoryBytes": null,
+        "gpuMemoryBytes": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:21.639Z",
+      "type": "load-progress",
+      "atMs": 1789691301639.3599,
+      "lane": "cpu",
+      "progress": {
+        "status": "initiate",
+        "file": "config.json",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:21.835Z",
+      "type": "load-progress",
+      "atMs": 1789691301834.9849,
+      "lane": "cpu",
+      "progress": {
+        "status": "download",
+        "file": "config.json",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:22.053Z",
+      "type": "load-progress",
+      "atMs": 1789691302053.0999,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress",
+        "file": "config.json",
+        "loaded": 2018,
+        "total": 2018,
+        "progress": 100
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:22.069Z",
+      "type": "load-progress",
+      "atMs": 1789691302068.65,
+      "lane": "cpu",
+      "progress": {
+        "status": "done",
+        "file": "config.json",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:22.551Z",
+      "type": "load-progress",
+      "atMs": 1789691302551.18,
+      "lane": "cpu",
+      "progress": {
+        "status": "initiate",
+        "file": "onnx/model_q4.onnx",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:22.552Z",
+      "type": "load-progress",
+      "atMs": 1789691302552.125,
+      "lane": "cpu",
+      "progress": {
+        "status": "initiate",
+        "file": "onnx/model_q4.onnx_data",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:22.552Z",
+      "type": "load-progress",
+      "atMs": 1789691302552.645,
+      "lane": "cpu",
+      "progress": {
+        "status": "initiate",
+        "file": "generation_config.json",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:22.758Z",
+      "type": "load-progress",
+      "atMs": 1789691302756.625,
+      "lane": "cpu",
+      "progress": {
+        "status": "download",
+        "file": "generation_config.json",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:22.761Z",
+      "type": "load-progress",
+      "atMs": 1789691302760.89,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 2165,
+        "total": 575914563,
+        "progress": 0.0003759238156302708
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:22.774Z",
+      "type": "load-progress",
+      "atMs": 1789691302774.0999,
+      "lane": "cpu",
+      "progress": {
+        "status": "done",
+        "file": "generation_config.json",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:22.822Z",
+      "type": "load-progress",
+      "atMs": 1789691302822.315,
+      "lane": "cpu",
+      "progress": {
+        "status": "download",
+        "file": "onnx/model_q4.onnx",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:22.925Z",
+      "type": "load-progress",
+      "atMs": 1789691302924.45,
+      "lane": "cpu",
+      "progress": {
+        "status": "download",
+        "file": "onnx/model_q4.onnx_data",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:23.262Z",
+      "type": "load-progress",
+      "atMs": 1789691303262.115,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 258226,
+        "total": 575914563,
+        "progress": 0.044837553448010305
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:23.288Z",
+      "type": "load-progress",
+      "atMs": 1789691303288.075,
+      "lane": "cpu",
+      "progress": {
+        "status": "done",
+        "file": "onnx/model_q4.onnx",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:24.474Z",
+      "type": "load-progress",
+      "atMs": 1789691304473.39,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 340547,
+        "total": 575914563,
+        "progress": 0.05913151392214404
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:24.985Z",
+      "type": "load-progress",
+      "atMs": 1789691304985.065,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 8566740,
+        "total": 575914563,
+        "progress": 1.4875018883660354
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:25.486Z",
+      "type": "load-progress",
+      "atMs": 1789691305485.95,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 23933507,
+        "total": 575914563,
+        "progress": 4.155739156052562
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:26.089Z",
+      "type": "load-progress",
+      "atMs": 1789691306088.5,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 30174447,
+        "total": 575914563,
+        "progress": 5.239396420680545
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:26.589Z",
+      "type": "load-progress",
+      "atMs": 1789691306589.065,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 40838978,
+        "total": 575914563,
+        "progress": 7.091152164526876
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:27.092Z",
+      "type": "load-progress",
+      "atMs": 1789691307091.8198,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 48509507,
+        "total": 575914563,
+        "progress": 8.423038783271746
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:27.594Z",
+      "type": "load-progress",
+      "atMs": 1789691307594.25,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 66525899,
+        "total": 575914563,
+        "progress": 11.5513486329395
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:28.095Z",
+      "type": "load-progress",
+      "atMs": 1789691308095.345,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 87559556,
+        "total": 575914563,
+        "progress": 15.203566922130426
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:28.603Z",
+      "type": "load-progress",
+      "atMs": 1789691308602.145,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 97375498,
+        "total": 575914563,
+        "progress": 16.90797633120453
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:29.206Z",
+      "type": "load-progress",
+      "atMs": 1789691309206.645,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 110357810,
+        "total": 575914563,
+        "progress": 19.16218430475772
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:29.736Z",
+      "type": "load-progress",
+      "atMs": 1789691309735.5999,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 120439350,
+        "total": 575914563,
+        "progress": 20.912711318258502
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:30.302Z",
+      "type": "load-progress",
+      "atMs": 1789691310301.765,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 135192616,
+        "total": 575914563,
+        "progress": 23.474422194807392
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:30.807Z",
+      "type": "load-progress",
+      "atMs": 1789691310806.55,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 140784195,
+        "total": 575914563,
+        "progress": 24.445326450270716
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:31.307Z",
+      "type": "load-progress",
+      "atMs": 1789691311306.75,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 159348426,
+        "total": 575914563,
+        "progress": 27.66876134715836
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:31.807Z",
+      "type": "load-progress",
+      "atMs": 1789691311806.78,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 178264881,
+        "total": 575914563,
+        "progress": 30.953355315656427
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:32.307Z",
+      "type": "load-progress",
+      "atMs": 1789691312307.105,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 192692504,
+        "total": 575914563,
+        "progress": 33.45852256213914
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:32.807Z",
+      "type": "load-progress",
+      "atMs": 1789691312807.4348,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 202096849,
+        "total": 575914563,
+        "progress": 35.091463557937494
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:33.394Z",
+      "type": "load-progress",
+      "atMs": 1789691313393.145,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 210132438,
+        "total": 575914563,
+        "progress": 36.48673805110915
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:33.907Z",
+      "type": "load-progress",
+      "atMs": 1789691313907.6199,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 222396670,
+        "total": 575914563,
+        "progress": 38.61626086367953
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:34.453Z",
+      "type": "load-progress",
+      "atMs": 1789691314452.8098,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 235175742,
+        "total": 575914563,
+        "progress": 40.83517888051739
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:34.956Z",
+      "type": "load-progress",
+      "atMs": 1789691314955.835,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 247738947,
+        "total": 575914563,
+        "progress": 43.01661442792861
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:35.496Z",
+      "type": "load-progress",
+      "atMs": 1789691315493.645,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 258828500,
+        "total": 575914563,
+        "progress": 44.94216965998132
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:35.995Z",
+      "type": "load-progress",
+      "atMs": 1789691315995.01,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 267214907,
+        "total": 575914563,
+        "progress": 46.39835909132932
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:36.875Z",
+      "type": "load-progress",
+      "atMs": 1789691316873.775,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 272904771,
+        "total": 575914563,
+        "progress": 47.38632924620105
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:37.374Z",
+      "type": "load-progress",
+      "atMs": 1789691317373.9849,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 295600962,
+        "total": 575914563,
+        "progress": 51.327224729338894
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:37.877Z",
+      "type": "load-progress",
+      "atMs": 1789691317876.905,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 312181471,
+        "total": 575914563,
+        "progress": 54.206212354453
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:38.415Z",
+      "type": "load-progress",
+      "atMs": 1789691318415.035,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 331475942,
+        "total": 575914563,
+        "progress": 57.55644383661818
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:38.939Z",
+      "type": "load-progress",
+      "atMs": 1789691318939.105,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 346802214,
+        "total": 575914563,
+        "progress": 60.217649679402186
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:39.439Z",
+      "type": "load-progress",
+      "atMs": 1789691319439.355,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 361664059,
+        "total": 575914563,
+        "progress": 62.79821387326161
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:40.164Z",
+      "type": "load-progress",
+      "atMs": 1789691320163.035,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 373865540,
+        "total": 575914563,
+        "progress": 64.91684079883217
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:40.665Z",
+      "type": "load-progress",
+      "atMs": 1789691320665.69,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 389220352,
+        "total": 575914563,
+        "progress": 67.58300223778157
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:41.308Z",
+      "type": "load-progress",
+      "atMs": 1789691321307.77,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 404682693,
+        "total": 575914563,
+        "progress": 70.26783467533187
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:41.808Z",
+      "type": "load-progress",
+      "atMs": 1789691321807.9448,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 418465227,
+        "total": 575914563,
+        "progress": 72.66099068934292
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:42.308Z",
+      "type": "load-progress",
+      "atMs": 1789691322308.14,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 447621923,
+        "total": 575914563,
+        "progress": 77.72366801566712
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:42.839Z",
+      "type": "load-progress",
+      "atMs": 1789691322839.355,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 472227622,
+        "total": 575914563,
+        "progress": 81.99612448417977
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:43.355Z",
+      "type": "load-progress",
+      "atMs": 1789691323354.88,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 499397187,
+        "total": 575914563,
+        "progress": 86.71376261065306
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:43.879Z",
+      "type": "load-progress",
+      "atMs": 1789691323878.165,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 524933753,
+        "total": 575914563,
+        "progress": 91.14785190802685
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:44.386Z",
+      "type": "load-progress",
+      "atMs": 1789691324385.99,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 548606023,
+        "total": 575914563,
+        "progress": 95.25823069002685
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:28:44.889Z",
+      "type": "load-progress",
+      "atMs": 1789691324888.855,
+      "lane": "cpu",
+      "progress": {
+        "status": "progress_total",
+        "file": null,
+        "loaded": 574628065,
+        "total": 575914563,
+        "progress": 99.77661651872485
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:29:01.134Z",
+      "type": "load-progress",
+      "atMs": 1789691341126.48,
+      "lane": "cpu",
+      "progress": {
+        "status": "done",
+        "file": "onnx/model_q4.onnx_data",
+        "loaded": null,
+        "total": null,
+        "progress": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:29:09.418Z",
+      "type": "session-load-complete",
+      "atMs": 1789691349417.805,
+      "lane": "cpu",
+      "device": "wasm",
+      "dtype": "q4",
+      "startedAt": 1789691301571.3699,
+      "finishedAt": 1789691349417.55,
+      "durationMs": 47846.18017578125,
+      "observedModelFiles": [
+        "onnx/model_q4.onnx",
+        "onnx/model_q4.onnx_data"
+      ],
+      "runtimeThreads": 4,
+      "checkpointId": 4,
+      "requiresSave": true,
+      "workerMemory": {
+        "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+        "available": false,
+        "usedJSHeapSize": null,
+        "totalJSHeapSize": null,
+        "jsHeapSizeLimit": null,
+        "wasmMemoryBytes": null,
+        "gpuMemoryBytes": null
+      }
+    },
+    {
+      "receivedAt": "2026-09-18T00:29:09.432Z",
+      "type": "first-session-resident",
+      "atMs": 1789691349432.14,
+      "lane": "cpu",
+      "secondLane": "gpu"
+    },
+    {
+      "receivedAt": "2026-09-18T00:29:09.433Z",
+      "type": "session-load-start",
+      "atMs": 1789691349432.26,
+      "lane": "gpu",
+      "device": "webgpu",
+      "dtype": "q4",
+      "startedAt": 1789691349432.2048,
+      "checkpointId": 5,
+      "requiresSave": true,
+      "workerMemory": {
+        "source": "worker performance.memory; JS heap only, not total RAM or GPU memory",
+        "available": false,
+        "usedJSHeapSize": null,
+        "totalJSHeapSize": null,
+        "jsHeapSizeLimit": null,
+        "wasmMemoryBytes": null,
+        "gpuMemoryBytes": null
+      }
+    }
+  ],
+  "turns": [],
+  "completed": false,
+  "stoppedEarly": false,
+  "running": false,
+  "interrupted": true,
+  "pendingTurn": null,
+  "error": null,
+  "appEnvironment": {
+    "crossOriginIsolated": true,
+    "sharedArrayBufferAvailable": true,
+    "installed": true,
+    "persistentStorage": true,
+    "serviceWorker": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/08acbb86b444c477563ae92f07b24b257e36055a/experiments/granite-single-ort-dual-session/claptrap-chat/sw.js"
+  },
+  "export": {
+    "at": "2026-09-18T00:29:52.310Z",
+    "source": "live received evidence",
+    "outcome": "interrupted",
+    "committedEvents": 61,
+    "receivedEvents": 61,
+    "pendingWrites": 0,
+    "committedAt": null,
+    "saveFailure": null
+  }
+}

@@ -2,7 +2,7 @@
 
 proposal_id: 20260917-claptrap-separate-system-prompts
 status: COMPLETE
-remaining_gate: full 100-reply CPU/GPU phone run
+remaining_gate: phone startup interrupted at the GPU-start checkpoint; full 100-reply run still outstanding
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 code_commit: 08acbb86b444c477563ae92f07b24b257e36055a
@@ -70,3 +70,20 @@ next operation is the final 08acbb8 phone run using the verified entry-point lin
 in VERIFICATION.md. Preserve the prior phone exports before clearing them. The
 raw export of the original reported marker failure was not supplied, so the
 CPU reproduction does not prove that phone call's exact stopping condition.
+
+## Latest phone evidence — 2026-09-18
+
+The new 00:29:52 export identifies 08acbb8 and confirms installed mode, isolation,
+shared memory, persistent storage and four WASM threads. CPU loaded successfully.
+The last of 61 recovered events is GPU session-load-start, checkpoint 5. No GPU
+completion/runtime-ready or generation followed in the recovered log; zero turns
+were saved. Restoration marked the unfinished run interrupted, with no exception
+or memory measurement. The pre-factory checkpoint does not prove that GPU model
+creation was actually entered after its acknowledgement.
+
+The exact public-safe export and a source-grounded interpretation are committed
+under evidence/phone-startup-interrupted-20260918.json and VERIFICATION.md. This
+review changes evidence/documentation only. The earlier prompt-repair checks and
+CPU execution remain valid; the phone startup/endurance gate remains open. The
+next concrete investigation is GPU startup with the CPU still resident, before
+any retrieval or response generation. No OOM or driver cause has been established.
