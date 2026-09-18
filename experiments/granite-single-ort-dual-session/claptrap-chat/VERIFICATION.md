@@ -738,3 +738,88 @@ evidence, not completion of the 100-turn experiment. No runtime code was changed
 as part of reviewing this export. The next investigation concerns the boundary
 around the GPU-start checkpoint, its acknowledgement and GPU-session readiness while
 the CPU session remains resident.
+
+
+## Phone generation and CSV-read failure — 2026-09-18
+
+The 01:58:02 export identifies the same 08acbb8 build as the interrupted startup
+above. This later run passed startup: both q4 sessions and the tokenizer became
+resident in one worker. Installed mode, persistent storage, cross-origin
+isolation and SharedArrayBuffer are true; CPU requested/resolved four WASM
+threads. CPU load took 52.599 seconds and GPU load 9.647 seconds. The GPU loss
+observer attached to the existing device. No device-loss event was recorded.
+
+Actual executed calls:
+
+| Turn | Seat | Retrieval call | Response call |
+| --- | --- | --- | --- |
+| 1 | GPU/WebGPU | 29 tokens; native call closed; 23-word query; no rows matched. | 100 tokens, 10.542 seconds; repeated `Clap!`. |
+| 2 | CPU/WASM | 7 tokens; ended with token 100257 without the native close; no search executed. | 100 tokens, 92.928 seconds; response completed despite malformed retrieval. |
+| 3 | GPU/WebGPU | 19 tokens; native call closed; 15-word query; retrieved turn 2's exact CSV row. | 100 tokens, 16.037 seconds; same text as the preceding CPU reply. |
+| 4 | CPU/WASM | 37 tokens; native call closed; search request emitted. | Never started in this record. |
+
+This is seven completed generation calls: four GPU and three CPU, including the
+fourth turn's retrieval. Three completed replies are in diagnostics, two GPU and
+one CPU, with the seed excluded. These calls ran serially with both sessions
+resident. Per-call durations above include the recorded call/checkpoint path;
+these are not isolated kernel benchmarks.
+
+The phone exercised the repaired malformed-retrieval branch for real. Turn 2
+saved retrieval-call-invalid, skipped search, supplied zero retrieved rows, then
+ran and completed the separate response. This upgrades the previous synthetic
+coverage of that branch to an actual device observation. Retrieval still does
+not reliably select three words; the two completed searches used 23 and 15.
+
+For all three completed turns, inspection verified exact equality between the
+second call's output/token IDs and the actor record, 100 response tokens, the
+preceding reply as the next incoming text, and rendered response prompts made
+only from the response system, actual returned rows, timestamp and incoming
+message. There is no query or failed-call diagnostic inserted into those response
+prompts. The repetitive answers are actual second-call model output.
+
+### Recorded stop and source-grounded diagnosis
+
+Last event: turn 4 CPU search-request, received 01:57:28.606 UTC. Its generation
+had returned and tensor-cleanup-complete had been checkpointed. There is no
+corresponding search-result or fourth-turn response. The top-level error is:
+
+`NotFoundError: A requested file or directory could not be found at the time an operation was processed.`
+
+The export reports failed, not interrupted or operator-stopped: 164 received and
+164 committed events, zero pending writes, committedAt 01:57:28.718 UTC and
+saveFailure null. Diagnostic JSON saving succeeded after the error; saveFailure
+tracks evidence-file writes and does not certify conversation-file availability.
+
+In this exact main.js, receive(search-request) first saves the event, then calls
+readRows(), which calls conversationHandle.getFile() and File.text(), before
+searchRows() and the search-result record. This sequence and the DOMException
+identify the conversation-file read as the strongly supported failure path.
+The export does not record a stack or separate getFile/text operation labels,
+so it cannot establish which API rejected or why the file became inaccessible.
+It does not establish deletion, eviction, a stale handle, or a browser defect.
+The receiver's catch calls failRuntime(), which terminates the worker; losing
+both resident sessions after this error is the harness's explicit error handling,
+not evidence of a GPU device-loss event. The generic status text then claims
+saved CSV remains available without verifying that claim, which this case exposes
+as misleading.
+
+No companion CSV was attached. The three turn records are added by the controller
+only after appendRow() closes, and later turns follow successful CSV reads; that
+establishes the completed write path, not present file availability or successful
+CSV export after the failure. The JSON is not substituted for authoritative CSV.
+
+The next concrete investigation is the conversation-file read/handle lifecycle:
+record the exact failing storage operation and inspect the existing file by name
+without creating or clearing it. Preserve current files and errors. The current
+export narrows the failure location but does not supply a demonstrated repair.
+This later run clears startup for this attempt; it does not explain the earlier
+startup interruption or establish full 100-turn endurance.
+
+Exact original upload: granite-claptrap-evidence-2026-09-18T01-58-02.518Z.json.
+Preserved without normalization in
+[phone-csv-read-failure-20260918.json](./evidence/phone-csv-read-failure-20260918.json).
+SHA-256: f1e0ec7cfb8c9b92349720a603b18ee261c32f7c7647efc072a020d719b18b75.
+Publication review found only the public experiment URL, routine capability
+metadata/timestamps and model prompts/outputs derived from the experiment seed
+and preceding generated replies; no personal identifiers. This review changes
+evidence and documentation only.

@@ -2,7 +2,7 @@
 
 proposal_id: 20260917-claptrap-separate-system-prompts
 status: COMPLETE
-remaining_gate: phone startup interrupted at the GPU-start checkpoint; full 100-reply run still outstanding
+remaining_gate: later phone run reached seven generations, then CSV read failed during turn 4 retrieval; full 100-reply run still outstanding
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 code_commit: 08acbb86b444c477563ae92f07b24b257e36055a
@@ -59,19 +59,19 @@ No personal identifiers were found in publication review. Original phone exports
 remain byte-identical. The blueprint still matches its locked blob
 5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945; main and the lock were not changed.
 
-## Remaining limit
+## Limit at completion of CPU verification
 
 The final build's initial offline-shell installation failed; retrying after the
 explicit failure recovered it and permitted the final CPU run. The exact cause
 of that temporary installation failure was not established.
 
-No new real GPU execution or full 100-turn endurance is claimed. The smallest
+At that point, no new real GPU execution or full 100-turn endurance was claimed. The smallest
 next operation is the final 08acbb8 phone run using the verified entry-point link
 in VERIFICATION.md. Preserve the prior phone exports before clearing them. The
 raw export of the original reported marker failure was not supplied, so the
 CPU reproduction does not prove that phone call's exact stopping condition.
 
-## Latest phone evidence — 2026-09-18
+## Earlier phone evidence — 2026-09-18 00:29 UTC
 
 The new 00:29:52 export identifies 08acbb8 and confirms installed mode, isolation,
 shared memory, persistent storage and four WASM threads. CPU loaded successfully.
@@ -87,3 +87,34 @@ review changes evidence/documentation only. The earlier prompt-repair checks and
 CPU execution remain valid; the phone startup/endurance gate remains open. The
 next concrete investigation is GPU startup with the CPU still resident, before
 any retrieval or response generation. No OOM or driver cause has been established.
+
+
+## Latest phone evidence — 2026-09-18 01:58 UTC
+
+The later export from the same 08acbb8 build passed startup with both sessions
+resident, isolation/shared memory and four CPU threads. Seven real generations
+returned: GPU four, CPU three. Three second-call replies completed (GPU two, CPU
+one); CPU turn 4 finished retrieval generation before the run stopped.
+
+Turn 2 reproduced a malformed native retrieval close, then successfully continued
+to its 100-token response. The phone therefore exercised the repaired failure
+branch. Turn 3 retrieved the exact prior CSV row. All three completed actor
+records exactly match call 2 output and token IDs, and actual response prompts
+contain only system, returned rows, timestamp and incoming text. Query selection
+remains unreliable: the two completed searches used 23 and 15 words.
+
+The final search-request has no search-result. The saved NotFoundError and the
+source sequence point to readRows() on the conversation CSV. All 164 events were
+committed with no evidence-save failure. The exception has no operation label or
+stack, so whether getFile() or File.text() failed, and why, remain unproven.
+The receiver deliberately terminates the worker on this error. Its subsequent
+"Saved CSV remains available" status is not verified. No companion CSV was
+attached; current file availability cannot be certified from the JSON alone.
+
+The exact public-safe export is preserved as
+experiments/granite-single-ort-dual-session/claptrap-chat/evidence/phone-csv-read-failure-20260918.json,
+with findings in VERIFICATION.md. Main, runtime code and the architecture lock
+remain unchanged. Next operation: inspect the existing conversation file and
+identify the exact failing storage operation without creating, clearing, or
+reconstructing the CSV. Full 100-turn endurance remains unproven. The successful
+startup in this attempt does not explain the previous attempt's interruption.
