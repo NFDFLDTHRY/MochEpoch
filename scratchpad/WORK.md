@@ -1,108 +1,72 @@
-# Claptrap: separate retrieval and response system prompts
+# Claptrap: separate prompts and recover from malformed retrieval
 
 proposal_id: 20260917-claptrap-separate-system-prompts
-status: IN_PROGRESS
+status: COMPLETE
+remaining_gate: full 100-reply CPU/GPU phone run
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
-base_commit: 9d9562d62da62fe9455f42ff5b8530b52a9ebccc
-code_commit: 513117267504e2702bddf0d26eb86d5fa1d5da90
+code_commit: 08acbb86b444c477563ae92f07b24b257e36055a
 
-## Authorization and observed failure
+## Authorization and changes
 
-The user proposed a retrieval-only system instruction to choose three words from
-the incoming text, followed by a separate Claptrap response system instruction.
-Work described this exact prompt split. The user now says, "Yeah let's fix it
-because this happens on last creation." This actively approves that specific
-repair. Publish this proposal before implementing it; no repeated approval gate
-is needed. This is an experiment-local prompt change, not a game architecture
-revision. Current main's blueprint blob still matches the lock:
-5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945.
+The user's "Yeah let's fix it because this happens on last creation" approved
+the proposed separate retrieval and response systems. The proposal and subsequent
+executed findings were committed before the corresponding edits. The reproduced
+failure justified correcting local malformed-retrieval handling and isolating
+the response inputs within the requested repair.
 
-The screenshot shows one saved CPU reply and then a retrieval call missing its
-native closing marker. No raw export of that failed call accompanied it. The
-worker termination and "not resident" labels follow the harness error; they do
-not establish a GPU/device-loss or memory failure. The earlier real CPU probe
-also produced a one-word query and responses fixated on timestamps.
+- Call 1 system tells Granite to select three words from the incoming message
+  and call search_conversation. It receives that message alone. The native tool
+  schema, markers and JSON instructions remain; the generic assistant preface
+  that an executed query copied is omitted.
+- Call 2 system is `You are Claptrap. Respond to the incoming message.` Its input
+  contains only actual retrieved CSV rows, the original timestamp and incoming
+  message. Query prose, native call history and diagnostics stay in evidence.
+- Malformed retrieval records a durable failed attempt with no search executed
+  and no retrieved rows, then runs the independent response call. It does not
+  rewrite a query, invent matches or retry. Actual runtime/storage errors still
+  stop. The UI labels skipped searches accurately.
+- Only the second 100-token response is conversation/CSV/next-seat input. Both
+  resident models, one runtime/tokenizer, fresh inputs, 50/50 alternation, seed
+  exclusion, shared memory, persistence and original legacy replay are retained.
 
-## Exact operation
+## Executed results
 
-1. Retrieval system: `Select three words from the supplied message. Call
-   search_conversation with those words separated by spaces. Do not compose a
-   conversational reply.` Give this call the original incoming text, the native
-   tool schema and existing explicit assistant prefix. Timestamp metadata is not
-   part of the message from which it selects search words.
-2. Response system: `You are Claptrap. Respond to the incoming message.` Keep the
-   original incoming text and timestamp, the native tool request, and the exact
-   deterministic CSV result. Only call 2 becomes displayed/saved speech.
-3. Preserve both resident models, shared runtime/tokenizer, fresh inputs, native
-   serialization, 96-token retrieval allowance, 100-token response, two calls per
-   completed turn, 50/50 alternation, CSV authority and existing checkpoints.
-   Keep the at-least-three-word search validation; do not fabricate, rewrite or
-   retry a malformed query. Retain the previous exact prompt for legacy replay.
-4. Make missing-marker failures identify the observed output length and last
-   token. Preserve the raw output. Do not silently append a marker or count a
-   failed retrieval as a response. Record both system prompts in evidence and
-   show the changed response prompt on the page.
+All 34 synthetic checks pass, including malformed-query recovery, checkpoint
+failure stopping before reply generation, first-pass exclusion from response
+input, CSV persistence, 50-per-seat counts and installed runtime requirements.
 
-## Files and verification
+Three real CPU trials established:
+- 5131172: two turns/four generations completed, but 23-word and 29-word queries
+  echoed the generic assistant preface and contaminated both replies.
+- 2b0e72f: one reply saved; CPU turn 2 retrieval consumed all 96 tokens while
+  repeating prose, ending at token 2650 without the native closing marker. This
+  reproduced the screenshot's error category without loading or running GPU.
+- 08acbb8: the final repair completed two turns/four calls, two 100-token replies
+  and 69 saved events with no pending writes/error. Exact second-call outputs
+  alone became CSV and next input. The second query retrieved the first CSV row.
+  Actual response prompts contain only the stated system/rows/timestamp/message.
+  Reload restored both replies and all 69 saved events.
 
-Within experiments/granite-single-ort-dual-session/claptrap-chat:
-- runtime-worker.js: split prompts, preserve legacy replay, boundary diagnostics.
-- main.js and index.html: accurate prompt metadata and visible conditions.
-- checks.mjs: actual message boundaries and malformed-retrieval assertions.
-- sw.js: shell cache version for changed installed code.
-- VERIFICATION.md and evidence/separate-prompts-20260917.json: executed checks,
-  public-safe real generation export, source hashes, and remaining limitations.
-Also amend GRANITE_CLAPTRAP_CONVERSATION_EXPERIMENT_PLAN.md to record the user's
-new prompt instruction and update this scratchpad with the outcome.
+The final run's queries had 25 and 5 words; three-word compliance is not proven.
+The replies were identical requests for context already supplied. This model
+behavior is preserved. Both final native calls closed, so recovery from a bad
+marker is verified synthetically, not claimed as an executed final-run branch.
 
-Run existing synthetic checks with assertions on both actual system prompts,
-input separation, exact tool result, and failure preservation. Run the existing
-real two-turn CPU diagnostic through the same worker and record its actual
-queries, closure, responses, CSV and reload behavior. Inspect the installed-app
-entry point. The full alternating CPU/GPU run needs the phone if this browser
-still lacks a WebGPU adapter. Prompt compliance and phone endurance are not
-guaranteed by a CPU-only probe; the screenshot alone cannot establish why that
-particular retrieval omitted its closing marker.
+Exact exports, hashes, source hashes and check results are saved in
+experiments/granite-single-ort-dual-session/claptrap-chat/evidence/separate-prompts-20260917.json.
+No personal identifiers were found in publication review. Original phone exports
+remain byte-identical. The blueprint still matches its locked blob
+5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945; main and the lock were not changed.
 
-## Executed prompt correction within this repair
+## Remaining limit
 
-The first real run of 5131172 completed both turns, but the retrieval query copied
-the native template's generic assistant preface (23 words), and its response
-echoed that text. The next query had 29 words. Both native calls closed, so this
-is different from the phone's missing-marker failure. The rendered prompt proves
-that supplying the dedicated system still appends a competing generic assistant
-role through the native tools template.
+The final build's initial offline-shell installation failed; retrying after the
+explicit failure recovered it and permitted the final CPU run. The exact cause
+of that temporary installation failure was not established.
 
-Continue this same approved prompt repair by omitting only those two generic
-assistant-role sentences from the retrieval call's template. Retain all native
-role markers, tools/schema, JSON instructions, call prefix and result formatting.
-Use the pinned template with an explicit per-call override, record the adjustment,
-and preserve the untouched template for legacy replay. This adds no inference,
-query repair, behavior filtering, schema change, model, service or dependency.
-Retain both real exports and distinguish what each run established.
-
-The next real run still generated self-description as its first query. The
-response repeated that query text, which the prior implementation explicitly
-supplied as an assistant tool call and again inside its result metadata. Complete
-the user's proposed independent response input: supply retrieved CSV rows and any
-factual retrieval error, plus the original timestamp/incoming message. Keep the
-first query/native call and full result in evidence only. This is a scoped fresh
-response generation rather than a continuation of the retrieval conversation.
-The native tool schema and calling format remain in call 1. This supersedes the
-proposal's earlier inclusion of the native request in call 2, which the executed
-case showed continued to carry first-pass language into the response context.
-
-The second real trial reproduced the phone error on CPU turn 2: retrieval emitted
-96/96 tokens of repetitive prose without the native closing marker. This is now
-an executed harness failure, not an inferred GPU failure. As part of the requested
-repair, retain that malformed output as a failed retrieval attempt with no search
-executed and zero retrieved rows, then run the independent response call. Do not
-repair the query, retry generation, fabricate matches, or terminate both resident
-models merely because call 1 returned unusable syntax. Actual runtime/storage
-errors still stop. This explicitly supersedes the prior malformed-retrieval abort
-policy; the first call writes no conversational row, and only valid second-call
-speech is committed. Label a failed attempt accurately in the retrieval UI.
-
-The existing stability.js completion label also changes so it describes retrieval
-attempts accurately when a malformed request caused no search.
+No new real GPU execution or full 100-turn endurance is claimed. The smallest
+next operation is the final 08acbb8 phone run using the verified entry-point link
+in VERIFICATION.md. Preserve the prior phone exports before clearing them. The
+raw export of the original reported marker failure was not supplied, so the
+CPU reproduction does not prove that phone call's exact stopping condition.

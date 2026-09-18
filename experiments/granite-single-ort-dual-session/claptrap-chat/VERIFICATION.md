@@ -607,3 +607,87 @@ still needs 100 replies, 50 CPU plus 50 GPU, from 200 generation calls.
 [Open the two-call conversation](https://raw.githack.com/NFDFLDTHRY/MochEpoch/b0a5007ed0f9f5c8a763e75e6c6b1e9094abdb65/experiments/granite-single-ort-dual-session/claptrap-chat/index.html).
 Exact public-reviewed evidence, original export, source hashes and per-turn checks
 are in [two-call-turn-20260917.json](./evidence/two-call-turn-20260917.json).
+
+
+## Separate system prompts — 2026-09-17
+
+The next phone screenshot showed one CPU reply saved and a later retrieval call
+missing its native closing marker. No raw JSON export accompanied that screenshot,
+so it does not establish whether the call hit its token limit, emitted EOS, or
+otherwise failed to close. The main thread deliberately terminates its worker on
+this error; the resulting nonresident labels are not evidence of a device crash.
+
+The user approved separate system instructions for retrieval and response. Code
+[5131172](https://github.com/NFDFLDTHRY/MochEpoch/commit/513117267504e2702bddf0d26eb86d5fa1d5da90)
+moves the three-word selection task into the retrieval system prompt and supplies
+only the incoming text as that call's user message. The response system is now
+`You are Claptrap. Respond to the incoming message.` Its timestamp, incoming text,
+native tool request and actual search result are retained. Neither first-call
+output nor query instructions become conversational speech.
+
+All 33 synthetic checks pass, including the actual prompt separation, preservation
+of invalid-query results, missing-marker and token-limit diagnostics, second-call
+recording, CSV persistence, 50/50 turn counts, installed shell isolation, and the
+legacy replay's original prompt. They do not establish model compliance.
+
+### Executed cause and final repair
+
+The first split-prompt trial completed two CPU turns but produced 23-word and
+29-word queries repeating the tokenizer's generic assistant preface. The response
+then echoed that query text. Code 2b0e72f removed only the two generic role
+sentences from the retrieval template, preserving native tool syntax/schema.
+Its real second CPU retrieval reproduced the reported marker error: 96 generated
+tokens, ending in token 2650, with repetitive text and no closing marker. The
+first response had completed and saved; no second reply was generated. This
+establishes a reproducible model-output/parser failure without any GPU execution.
+It does not establish that the unseen phone export ended for the same reason.
+
+Code [08acbb8](https://github.com/NFDFLDTHRY/MochEpoch/commit/08acbb86b444c477563ae92f07b24b257e36055a)
+finishes the independent-response boundary. Call 2 gets its own system prompt,
+actual CSV rows, timestamp and incoming message. Native requests, query text,
+word lists and errors stay in diagnostic evidence. Failed native parsing records
+`retrieval-call-invalid`, performs no search and supplies zero rows; only the
+separately generated second reply can enter CSV. The failed attempt must save
+before that reply begins. There is no query repair, fabricated match or retry.
+Runtime and persistence errors still stop. The UI labels skipped searches as
+failed attempts rather than executed tool calls.
+
+All 34 synthetic checks pass, including failed-retrieval checkpoint failure,
+separate second-call output, exact matched rows, no first-pass expression in
+response input, and the existing runtime/persistence/50-per-seat requirements.
+
+### Real verification of the final repair
+
+The first offline-shell installation stalled and then failed before model load.
+A retry after the explicit failure recovered the shell, isolation and shared
+memory. The final 08acbb8 CPU diagnostic then completed two real turns from four
+model calls. Both responses contain exactly 100 generated tokens, exactly match
+their CSV rows, and are the only text passed to the next turn. All 69 events were
+saved, with zero pending writes and no run error. Reload restored both replies
+and all 69 events. The exact rendered response
+inputs contain only the new system, actual returned CSV rows, timestamp and
+original incoming message. No query/native-call/word-list diagnostics are inserted.
+
+The first query had 25 words and no matching rows. The second query was
+`current timestamp or conversation context` (five words), and retrieved the
+first saved CSV row. Both pass the existing at-least-three-word search rule;
+neither demonstrates compliance with the requested exact three-word selection.
+Both native calls closed, so malformed-retrieval recovery is covered by the
+synthetic checks, not claimed as an executed branch of this final real trial.
+The earlier real trial remains the evidence for the reproduced marker failure.
+
+The final replies were identical and asked for context/timestamps already
+supplied. This is preserved model output. Fixing the input/recording boundary
+does not establish that Granite understands the task or reliably chooses three
+words. No output filtering, query rewriting or personality coaching was added.
+
+[Open the repaired conversation](https://raw.githack.com/NFDFLDTHRY/MochEpoch/08acbb86b444c477563ae92f07b24b257e36055a/experiments/granite-single-ort-dual-session/claptrap-chat/index.html).
+Preserve/export the prior phone run, close its app window, then use this revised
+entry point. Clear the previous conversation and reload before starting a fresh
+run. A pinned installed app retains its earlier entry point. The full 100-reply
+dual-session phone run is still outstanding; the CPU diagnostic does not test
+GPU residency or phone endurance.
+
+All three exact public-safe exports, their hashes, source hashes, the reproduced
+failure and 34 check results are in
+[separate-prompts-20260917.json](./evidence/separate-prompts-20260917.json).
