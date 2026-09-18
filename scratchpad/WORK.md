@@ -103,3 +103,6 @@ models merely because call 1 returned unusable syntax. Actual runtime/storage
 errors still stop. This explicitly supersedes the prior malformed-retrieval abort
 policy; the first call writes no conversational row, and only valid second-call
 speech is committed. Label a failed attempt accurately in the retrieval UI.
+
+The existing stability.js completion label also changes so it describes retrieval
+attempts accurately when a malformed request caused no search.

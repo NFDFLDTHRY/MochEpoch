@@ -8,8 +8,9 @@ only the second output. This supersedes the original optional-retrieval flow for
 the current Claptrap experiment. Earlier raw exports remain historical evidence.
 It does not establish a mandatory two-stage architecture for MochEpoch generally.
 
-Each completed turn now consists of one retrieval generation, one deterministic
-CSV search, and one response generation on the same resident seat. The retrieval
+Each completed turn now consists of one retrieval generation and one independent
+response generation on the same resident seat. An executable retrieval request
+runs the deterministic CSV search between them. The retrieval
 call retains Granite's native tool template. Following the user's later prompt
 refinement, its system is exactly `Select three words from the supplied message.
 Call search_conversation with those words separated by spaces. Do not compose a
@@ -23,19 +24,26 @@ The harness may prefill the native call for the sole required search function;
 the model supplies the query itself, and the exact prefill is recorded separately
 from generated tokens. Its existing finite tool allowance is 96 generated tokens.
 There is no `NO_SEARCH` path or empty-CSV exception. A parseable invalid query
-returns the existing deterministic search error without adding words.
+returns the existing deterministic search error without adding words. A malformed
+or truncated request is recorded as a failed attempt with no search executed and
+zero retrieved rows. This prevents bad tool syntax from shutting down both models.
 
 The response call receives the user-approved actor system `You are Claptrap.
 Respond to the incoming message.`, the original timestamp and incoming message,
-the native tool request, and the actual CSV result.
-It does not receive the retrieval-task instruction or first-call narration, and
-it does not advertise a further tool call. Exactly 100 newly generated tokens from
+and only the actual retrieved CSV rows. Query text, native call history, errors
+and word lists stay in machine evidence; they are not response input. Executed
+trials showed that carrying the native request into call 2 propagated first-pass
+self-description into the reply. Call 2 is a fresh response, not a continuation
+of call 1's tooling conversation, and advertises no further tool. Exactly 100 newly generated tokens from
 this second call are the response. Only that response is displayed as speech,
 appended to the authoritative conversation CSV, and sent to the other seat.
 Both calls and the search result remain in separate diagnostic evidence.
 
-A malformed/truncated retrieval call or another tool request during the response
-fails visibly and creates no conversation row. No automatic retries, query
+A malformed/truncated retrieval call creates no search or conversational row of
+its own. The independent response still receives the actual incoming message and
+zero retrieved rows; only its successfully generated speech may be saved. Another
+tool request during the response, or a runtime/storage error, stops the turn.
+No automatic retries, query
 rewriting, output sanitization, personality coaching, or third call is added.
 A complete run is 100 replies from 200 generations, 50 replies per seat. The seed
 is excluded. Both q4 sessions remain resident; generation remains sequential.

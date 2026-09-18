@@ -36,6 +36,8 @@ function freshEvidence() {
       actorSystemPrompt: "You are Claptrap. Respond to the incoming message.", seedText: SEED_TEXT,
       retrievalSystemPrompt: "Select three words from the supplied message. Call search_conversation with those words separated by spaces. Do not compose a conversational reply.",
       retrievalTemplateAdjustment: "Native tool schema and serialization retained; generic assistant preface omitted.",
+      responseContext: "Retrieved CSV rows, timestamp and incoming message only. Queries and failed retrievals remain diagnostics.",
+      malformedRetrieval: "Record failed attempt; execute no search; respond with zero retrieved rows.",
       totalTurns: 100, turnsPerSeat: 50, conversationalTokensPerTurn: 100,
       cpuBackend: "wasm", gpuBackend: "webgpu", dtype: "q4",
       turnProtocol: "retrieval-then-response-v1",
@@ -195,7 +197,8 @@ function renderMessage(row, retrievals) {
   if (retrievals) {
     const details = document.createElement("details");
     const summary = document.createElement("summary");
-    summary.textContent = `CSV retrieval: ${retrievals.length} tool call(s)`;
+    const skipped = retrievals.filter((item) => item.executed === false).length;
+    summary.textContent = skipped ? `CSV retrieval: ${skipped} failed attempt(s); no search executed` : `CSV retrieval: ${retrievals.length} tool call(s)`;
     const pre = document.createElement("pre");
     pre.textContent = JSON.stringify(retrievals, null, 2);
     details.append(summary, pre);

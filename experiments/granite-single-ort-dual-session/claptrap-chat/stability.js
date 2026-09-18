@@ -258,7 +258,7 @@ async function startTrial(trial) {
     evidence.status = "complete";
     await persist();
     status.textContent = twoCall
-      ? "COMPLETE: two CPU replies from four calls. Each query searched the diagnostic CSV; only second-call responses were saved and passed on. Export the evidence."
+      ? "COMPLETE: two CPU replies from four calls. Retrieval attempts are in evidence; only independent second-call responses were saved and passed on. Export the evidence."
       : `COMPLETE: ${trial}. Recorded input matched; each response reached 100 conversational tokens and completed tensor cleanup. Export, then reload for the next trial.`;
   } catch (error) {
     evidence.status = "failed"; evidence.error = errorText(error);

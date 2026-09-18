@@ -107,7 +107,7 @@ async function workerFixture(scripts, searchResult = { query: 'alpha beta gamma'
     throw new Error('Worker fixture did not finish');
   }
   if (!diagnostics?.skipInitialize) {
-    assert.equal((await send({command:'initialize',requestId:'init',...(diagnostics ? {diagnostic:true,lanes:['cpu']} : {})}, 'runtime-ready')).type, 'runtime-ready');
+    assert.equal((await send({command:'initialize',requestId:'init',...(diagnostics ? {diagnostic:true,lanes:['cpu'],turnProtocol:diagnostics.turnProtocol} : {})}, 'runtime-ready')).type, 'runtime-ready');
   }
   return { events, prompts, options, disposals, loads, send };
 }
@@ -136,43 +136,49 @@ await check('Every turn retrieves then responds; only second output is speech an
   assert.equal(f.prompts[2].messages[1].content, 'only latest text');
   const response = f.prompts[1];
   assert.equal(response.messages[0].content, 'You are Claptrap. Respond to the incoming message.');
-  assert.equal(response.messages[1].content, 'Current timestamp: now\nMessage from the other speaker:\nWelcome to the Zoo');
+  assert.equal(response.messages[1].content, 'Retrieved conversation rows:\n' + JSON.stringify([row(1, 'alpha beta gamma')]) + '\n\nCurrent timestamp: now\nMessage from the other speaker:\nWelcome to the Zoo');
   assert.equal(Object.hasOwn(response.config, 'tools'), false);
   assert.equal(Object.hasOwn(response.config, 'chat_template'), false);
-  assert.equal(response.messages[2].content, '');
-  assert.equal(response.messages[2].tool_calls[0].function.arguments.query, 'alpha beta gamma');
-  assert.deepEqual(JSON.parse(response.messages[3].content).rows, [row(1, 'alpha beta gamma')]);
+  assert.equal(response.messages.length, 2);
   assert.deepEqual(f.disposals, ['output','input','output','input','output','input','output','input']);
 });
-await check('Zero matches and invalid three-word queries reach the response unchanged without repair', async () => {
+await check('Zero matches and invalid queries remain diagnostics; only retrieved rows reach the response', async () => {
   for (const query of ['missing robot words', 'two words']) {
     const retrieval = searchRows([], 'search_conversation', query);
     const f = await workerFixture([queryIds(query), Array(100).fill(66)], retrieval);
     const result = await f.send({command:'generate-turn',requestId:'query',lane:'cpu',turn:1,timestamp:'now',incomingText:'seed'}, 'turn-result');
     assert.equal(result.type, 'turn-result', result.error);
     assert.equal(f.events.find(e => e.type === 'search-request').query, query);
-    assert.deepEqual(JSON.parse(f.prompts[1].messages[3].content), retrieval);
+    assert.deepEqual(result.retrievals[0], retrieval);
+    assert.equal(f.prompts[1].messages[1].content, 'Retrieved conversation rows:\n[]\n\nCurrent timestamp: now\nMessage from the other speaker:\nseed');
+    assert.equal(JSON.stringify(f.prompts[1]).includes(query), false);
     assert.equal(result.outputText, 'B'.repeat(100));
     assert.equal(result.calls.length, 2);
   }
 });
-await check('First-pass narration or truncation cannot become speech or trigger a blind second call', async () => {
-  const f = await workerFixture([textIds('I am a helpful assistant with tools.')]);
+await check('Malformed retrieval is recorded without search and cannot become response context or speech', async () => {
+  const f = await workerFixture([textIds('I am a helpful assistant with tools.'), Array(100).fill(66)]);
   const result = await f.send({command:'generate-turn',requestId:'bad',lane:'cpu',turn:1,timestamp:'now',incomingText:'seed'}, 'turn-result');
-  assert.equal(result.type, 'command-error');
-  assert.match(result.error, /36\/96 generated tokens; last token 46/);
-  assert.equal(f.options.length, 1);
-  assert.equal(f.events.some(e => e.type === 'turn-result'), false);
+  assert.equal(result.type, 'turn-result', result.error);
+  assert.match(result.retrievals[0].error, /36\/96 generated tokens; last token 46/);
+  assert.equal(result.retrievals[0].executed, false);
+  assert.equal(result.outputText, 'B'.repeat(100));
+  assert.equal(f.options.length, 2);
+  assert.equal(f.events.some(e => e.type === 'search-request'), false);
+  assert.equal(JSON.stringify(f.prompts[1]).includes('helpful assistant'), false);
   assert.equal(f.events.some(e => e.type === 'generation-output' && e.phase === 'retrieval'), true);
 });
-await check('Retrieval output limit is reported without manufacturing a closing marker or a reply', async () => {
-  const f = await workerFixture([Array(120).fill(65)]);
+await check('Retrieval limit records a failed attempt; only a separately generated second response completes the turn', async () => {
+  const f = await workerFixture([Array(120).fill(65), Array(100).fill(66)]);
   const result = await f.send({command:'generate-turn',requestId:'limit',lane:'cpu',turn:1,timestamp:'now',incomingText:'seed'}, 'turn-result');
-  assert.equal(result.type, 'command-error');
-  assert.match(result.error, /96\/96 generated tokens; last token 65/);
+  assert.equal(result.type, 'turn-result', result.error);
+  assert.match(result.retrievals[0].error, /96\/96 generated tokens; last token 65/);
+  assert.deepEqual(result.retrievals[0].rows, []);
   assert.equal(f.events.find(e => e.type === 'generation-output').rawText, 'A'.repeat(96));
-  assert.equal(f.events.some(e => e.type === 'search-request' || e.type === 'turn-result'), false);
-  assert.equal(f.options.length, 1);
+  assert.equal(f.events.some(e => e.type === 'search-request'), false);
+  assert.equal(f.options.length, 2);
+  assert.equal(result.outputText, 'B'.repeat(100));
+  assert.equal(f.events.filter(e => e.type === 'retrieval-call-invalid').length, 1);
 });
 await check('A second-pass tool call fails visibly instead of being counted as a reply or making a third call', async () => {
   const f = await workerFixture([queryIds('alpha beta gamma'), [open, ...textIds('{}'), close]]);
@@ -181,12 +187,25 @@ await check('A second-pass tool call fails visibly instead of being counted as a
   assert.equal(f.options.length, 2);
   assert.equal(f.events.some(e => e.type === 'turn-result'), false);
 });
-await check('Malformed native output remains evidence and produces no completed turn', async () => {
-  const f = await workerFixture([[open, ...textIds('{broken'), close]]);
-  const result = await f.send({ command:'generate-turn', requestId:'bad', lane:'cpu', turn:1, timestamp:'now', incomingText:'seed' }, 'turn-result');
+await check('Failed retrieval must be saved before the independent response can start', async () => {
+  const f = await workerFixture([Array(120).fill(65)], null, {
+    turnProtocol: 'retrieval-then-response-v1',
+    checkpoint(entry, ack) { ack(entry.type === 'retrieval-call-invalid' ? 'Simulated disk failure' : null); },
+  });
+  const result = await f.send({command:'generate-turn',requestId:'save-fail',lane:'cpu',turn:1,timestamp:'now',incomingText:'seed'}, 'turn-result');
   assert.equal(result.type, 'command-error');
+  assert.match(result.error, /Checkpoint save failed/);
+  assert.equal(f.options.length, 1);
+  assert.equal(f.events.some(e => e.type === 'turn-result' || e.type === 'search-request'), false);
+});
+await check('Malformed JSON remains evidence while the response uses only the actual incoming message and empty rows', async () => {
+  const f = await workerFixture([[open, ...textIds('{broken'), close], Array(100).fill(66)]);
+  const result = await f.send({ command:'generate-turn', requestId:'bad', lane:'cpu', turn:1, timestamp:'now', incomingText:'seed' }, 'turn-result');
+  assert.equal(result.type, 'turn-result', result.error);
+  assert.match(result.retrievals[0].error, /not JSON/);
   assert.equal(f.events.some((entry) => entry.type === 'generation-output' && entry.rawText.includes('{broken')), true);
-  assert.equal(f.events.some((entry) => entry.type === 'turn-result'), false);
+  assert.equal(f.events.some((entry) => entry.type === 'search-request'), false);
+  assert.equal(f.prompts[1].messages[1].content, 'Retrieved conversation rows:\n[]\n\nCurrent timestamp: now\nMessage from the other speaker:\nseed');
 });
 
 const mainSource = (await readFile(new URL('./main.js', import.meta.url), 'utf8'))

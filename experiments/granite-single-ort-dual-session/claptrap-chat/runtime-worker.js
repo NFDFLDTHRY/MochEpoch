@@ -372,26 +372,34 @@ async function generateTurn(message) {
   ];
   const queryCall = await generatePiece(lane, queryMessages, 0, requestId, turn, 1, null, "retrieval");
   const serializedCall = queryCall.assistantPrefix + queryCall.rawText;
+  let nativeCall = null, rawTool = null, retrievalError = null;
   if (queryCall.generatedIds.at(-1) !== toolCloseToken || !serializedCall.endsWith("</tool_call>")) {
-    throw new Error(`Retrieval call ended without its native closing marker (${queryCall.generatedIds.length}/${queryCall.rawTokenLimit} generated tokens; last token ${queryCall.generatedIds.at(-1) ?? "none"}). Raw output saved; no conversation row produced.`);
+    retrievalError = `Retrieval call ended without its native closing marker (${queryCall.generatedIds.length}/${queryCall.rawTokenLimit} generated tokens; last token ${queryCall.generatedIds.at(-1) ?? "none"}). No search executed.`;
+  } else {
+    rawTool = serializedCall.slice("<tool_call>".length, -"</tool_call>".length).trim();
+    try { nativeCall = JSON.parse(rawTool); }
+    catch { retrievalError = "Retrieval call is not JSON. No search executed."; }
+    if (!retrievalError && (nativeCall?.name !== "search_conversation" || typeof nativeCall.arguments?.query !== "string")) {
+      retrievalError = "Retrieval call must name search_conversation and contain a string query. No search executed.";
+    }
   }
-  const rawTool = serializedCall.slice("<tool_call>".length, -"</tool_call>".length).trim();
-  let nativeCall;
-  try { nativeCall = JSON.parse(rawTool); }
-  catch { throw new Error("Retrieval call is not JSON. Raw output saved; no query repair or conversation row produced."); }
-  if (nativeCall.name !== "search_conversation" || typeof nativeCall.arguments?.query !== "string") {
-    throw new Error("Retrieval call must name search_conversation and contain a string query. Raw output saved.");
+  let retrieval;
+  if (retrievalError) {
+    // A malformed model return is evidence, not a runtime/device failure.
+    // The response still has the real incoming message, with no retrieved rows.
+    retrieval = { query: null, words: [], valid: false, error: retrievalError, rows: [], executed: false };
+    await checkpoint("retrieval-call-invalid", { requestId, lane, turn, call: 1, phase: "retrieval", result: retrieval });
+  } else {
+    retrieval = await new Promise((resolve, reject) => {
+      waitingForSearch = { requestId, call: 1, resolve, reject };
+      post("search-request", { requestId, call: 1, phase: "retrieval", lane, turn,
+        name: nativeCall.name, query: nativeCall.arguments.query, rawTool });
+    });
   }
-  const retrieval = await new Promise((resolve, reject) => {
-    waitingForSearch = { requestId, call: 1, resolve, reject };
-    post("search-request", { requestId, call: 1, phase: "retrieval", lane, turn,
-      name: nativeCall.name, query: nativeCall.arguments.query, rawTool });
-  });
-  // The query task and any first-call narration are not the actor's utterance.
-  // Keep the original input, native tool request and actual CSV result only.
-  const responseMessages = [system, incoming,
-    { role: "assistant", content: "", tool_calls: [{ type: "function", function: nativeCall }] },
-    { role: "tool", content: JSON.stringify(retrieval) }];
+  // Independent response call: first-pass expression and diagnostic metadata
+  // remain in evidence. Only actual CSV rows and the original message enter.
+  const responseMessages = [system, { role: "user", content:
+    `Retrieved conversation rows:\n${JSON.stringify(retrieval.rows)}\n\n${incoming.content}` }];
   const response = await generatePiece(lane, responseMessages, FIXED_NEW_TOKENS, requestId, turn, 2, null, "response");
   const boundary = inspectTokens(response.generatedIds, FIXED_NEW_TOKENS, toolOpenToken, toolCloseToken);
   if (boundary.error || boundary.inTool || boundary.toolComplete || boundary.speech.length !== FIXED_NEW_TOKENS) {
