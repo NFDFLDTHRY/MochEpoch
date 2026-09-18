@@ -311,7 +311,19 @@ async function controllerFixture({ files = new Map(), markers = new Map(), failA
         return handle(name,handleId);
       }};
     }}},
-    document:{querySelector:get,createElement:()=>new Element(),body:new Element()},
+    document:{
+      querySelector:get,createElement:()=>new Element(),body:new Element(),
+      hidden:false,visibilityState:'visible',handlers:{},
+      addEventListener(name,fn){this.handlers[name]=fn;},
+      dispatchEvent(event){
+        if(event.type==='visibilitychange')this.handlers.visibilitychange?.();
+      },
+    },
+    window:{
+      handlers:{},
+      addEventListener(name,fn){this.handlers[name]=fn;},
+      dispatchEvent(event){this.handlers[event.type]?.(event);},
+    },
   });
   vm.runInContext(mainSource,context);
   for (let i=0;i<10;i++) await new Promise((resolve)=>setImmediate(resolve));
@@ -749,6 +761,112 @@ await check('Transient NotFoundError during search read retries once without a n
   assert.equal(f.requests.filter(r=>r.command==='search-result').length, 1);
   assert.equal(f.requests.some(r=>r.command==='generate-turn'), false);
   assert.equal(exportController(f).error, null);
+});
+await check('App-switch return drops cached handles and recovers a transient CSV NotFound without a new model call', async () => {
+  let failures = 0;
+  const beforeCsv = finishedFiles.get(conversationFile);
+  const f = await controllerFixture({files:new Map(finishedFiles), readFault:async e=>{
+    if (e.name===conversationFile && e.operation==='getFile' && failures++===0) throw readError('NotFoundError');
+  }});
+  // Simulate Android background → foreground before the next CSV search read.
+  f.context.document.hidden = true;
+  f.context.document.visibilityState = 'hidden';
+  f.context.document.dispatchEvent({type:'visibilitychange'});
+  f.context.document.hidden = false;
+  f.context.document.visibilityState = 'visible';
+  f.context.document.dispatchEvent({type:'visibilitychange'});
+  const lifecycle = vm.runInContext('pageLifecycle', f.context);
+  assert.ok(lifecycle.some(e=>e.kind==='page-hidden'));
+  assert.ok(lifecycle.some(e=>e.kind==='page-visible'));
+  assert.ok(lifecycle.some(e=>e.kind==='drop-cached-handles' && e.reason==='foreground-return-after-hidden'));
+  assert.equal(vm.runInContext('conversationHandle', f.context), null);
+  assert.equal(vm.runInContext('evidenceHandle', f.context), null);
+  await vm.runInContext('createRuntime(); receive({type:"search-request",requestId:"app-switch",turn:101,call:1,lane:"cpu",name:"search_conversation",query:"Synthetic speech absent"});', f.context);
+  assert.equal(f.requests.filter(r=>r.command==='search-result').length, 1);
+  assert.equal(f.requests.some(r=>r.command==='generate-turn'), false);
+  assert.equal(f.files.get(conversationFile), beforeCsv);
+  assert.equal(f.storageOps.some(e=>e.create), false);
+  const report = exportController(f);
+  assert.equal(report.error, null);
+  assert.ok(report.pageLifecycleDiagnostics.some(e=>e.kind==='drop-cached-handles'));
+  assert.ok(report.storageReadDiagnostics.some(e=>e.outcome==='read-recovered' || e.outcome==='retry-with-fresh-handle'));
+});
+
+function simulateAppSwitchReturn(f) {
+  f.context.document.hidden = true;
+  f.context.document.visibilityState = 'hidden';
+  f.context.document.dispatchEvent({type:'visibilitychange'});
+  f.context.document.hidden = false;
+  f.context.document.visibilityState = 'visible';
+  f.context.document.dispatchEvent({type:'visibilitychange'});
+}
+
+async function waitUntil(predicate, label, turns = 80) {
+  for (let i = 0; i < turns; i++) {
+    if (predicate()) return;
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  assert.fail(label);
+}
+
+
+await check('Checkpoint ack waits for evidence close after foreground clears cached handles mid-write', async () => {
+  let releaseClose, enteredClose = false;
+  const hold = new Promise((resolve) => { releaseClose = resolve; });
+  let f;
+  f = await controllerFixture({files:new Map(finishedFiles), beforeClose:async (name) => {
+    if (!name.endsWith('.json')) return;
+    enteredClose = true;
+    simulateAppSwitchReturn(f);
+    assert.equal(vm.runInContext('evidenceHandle', f.context), null);
+    assert.equal(vm.runInContext('conversationHandle', f.context), null);
+    assert.equal(f.requests.some(r => r.command === 'checkpoint-ack'), false);
+    await hold;
+  }});
+  await vm.runInContext('createRuntime();', f.context);
+  const done = vm.runInContext(
+    'receive({type:"generation-start",requestId:"cp-hold",turn:50,lane:"cpu",phase:"response",checkpointId:77,requiresSave:true})',
+    f.context
+  );
+  await waitUntil(() => enteredClose, 'evidence close did not start while checkpoint was held');
+  assert.equal(f.requests.some(r => r.command === 'checkpoint-ack'), false);
+  assert.ok(vm.runInContext('pendingWrites', f.context) >= 1);
+  releaseClose();
+  await done;
+  await waitUntil(() => f.requests.some(r => r.command === 'checkpoint-ack' && r.checkpointId === 77), 'checkpoint-ack missing after successful close');
+  assert.equal(f.storageOps.filter(e => e.name === evidenceFile && e.create === true).length, 0);
+  const saved = JSON.parse(f.files.get(evidenceFile));
+  assert.ok(saved.runtimeEvents.some(e => e.checkpointId === 77 && e.type === 'generation-start'));
+  assert.equal(vm.runInContext('saveFailure', f.context), null);
+});
+
+await check('Failed evidence close after foreground return sends no checkpoint ack and does not recreate files', async () => {
+  let enteredClose = false;
+  let f;
+  f = await controllerFixture({files:new Map(finishedFiles), beforeClose:async (name) => {
+    if (!name.endsWith('.json')) return;
+    enteredClose = true;
+    simulateAppSwitchReturn(f);
+    throw new Error('Injected evidence close failure after visibility return');
+  }});
+  const beforeCsv = f.files.get(conversationFile);
+  const beforeEvidenceKeys = Object.keys(JSON.parse(f.files.get(evidenceFile))).sort();
+  await vm.runInContext('createRuntime();', f.context);
+  await vm.runInContext(
+    'receive({type:"generation-start",requestId:"cp-fail",turn:50,lane:"cpu",phase:"response",checkpointId:88,requiresSave:true})',
+    f.context
+  );
+  await waitUntil(() => enteredClose, 'failure close did not run');
+  await waitUntil(() => vm.runInContext('saveFailure', f.context), 'saveFailure not set');
+  assert.equal(f.requests.some(r => r.command === 'checkpoint-ack'), false);
+  assert.equal(f.files.get(conversationFile), beforeCsv);
+  assert.equal(f.storageOps.some(e => e.create === true), false);
+  assert.match(vm.runInContext('saveFailure.error', f.context), /Injected evidence close failure after visibility return/);
+  assert.ok(f.files.has(evidenceFile));
+  // beforeClose throws before files.set, so the prior committed evidence bytes remain.
+  const after = JSON.parse(f.files.get(evidenceFile));
+  assert.deepEqual(Object.keys(after).sort(), beforeEvidenceKeys);
+  assert.equal(after.runtimeEvents.some(e => e.checkpointId === 88), false);
 });
 await check('Persistent CSV File.text failure preserves files and exports restored evidence with unknown counts', async () => {
   const files = new Map(finishedFiles), before = [...files];

@@ -1,99 +1,38 @@
-# Claptrap: preserve files and recover storage reads
+# Android app-switch → return → CSV access diagnostic
 
-proposal_id: 20260918-claptrap-storage-read-recovery
-status: COMPLETE
+proposal_id: 20260918-android-app-switch-csv-access
+status: PATCH_READY_FOR_CODEX — local complete patch vs 0ca6f802; Android unverified
 repository: NFDFLDTHRY/MochEpoch
-branch: experiment/granite-single-ort-dual-session
-base_commit: dccdf380d31968cffb4a4053826808dc854f0e17
+base_commit: 0ca6f802ee1d347eb5bacd3fab05717bd16121d7
+branch_intent: separate debug branch from experiment/granite-single-ort-dual-session tip
 
-## Authorization and observed need
+## Evidence
 
-The active conversation authorizes completing/stabilizing Claptrap and explicitly
-instructs putting the plan in the repo so the user can track it before proceeding.
-The new reload screenshot continues that repair: after the recorded turn-4 CSV
-NotFoundError, setup now reports InvalidStateError about cached interface state.
-The previous prompt repair is complete; its code is 08acbb8 and its subsequent
-phone evidence is preserved in the preceding commits. This operation changes
-only storage access/recovery and the associated display and evidence.
+Phone export phone-csv-read-failure-20260918.json: NotFoundError on conversation CSV
+read during turn-4 search-request. Reload InvalidStateError (14034.png). Prior
+57896a2 fresh-read recovery remains phone-unverified. App-switch causation unproven.
 
-The screenshot shows neither model loaded. Setup currently reads CSV before
-saved diagnostics, creates handles with create:true before inspecting existing
-history, and leaves the initial 0/100 and "checking OPFS" display after failure.
-This does not establish that the three recorded replies were deleted or which
-specific storage API rejected. The earlier JSON has no operation-level stack.
+## Beyond existing recovery (synthetic baseline on unpatched tip)
 
-## Exact operation
+- Transient NotFound during search already recovers via readStoredFile after a no-op
+  visibility switch.
+- Unpatched recordEvent skips persist when evidenceHandle is null, so requiresSave
+  checkpoint ack can fire without durable close after handle invalidation.
 
-1. Read existing evidence and CSV independently, by name with create:false.
-   Restore readable evidence even if CSV fails, and display readable CSV even
-   if evidence fails. Initialize only a confirmed empty new store; never
-   recreate a missing conversation or reconstruct it from diagnostic JSON.
-2. On InvalidStateError or NotFoundError during an existing-file read, retry
-   once with a fresh root, handle and File. Preserve exact error name, operation,
-   filename, attempt and stack in exportable diagnostics. Do not retry writes
-   or model calls, or treat a failed read as empty history.
-3. Use that read path during restore, retrieval, append preparation and CSV
-   export. Reuse the returned fresh handle for the subsequent append.
-4. Show unknown/unavailable counts on read failure, remove the unverified
-   "saved CSV remains available" claim, retain saved evidence exports, and add
-   a read-only "Retry saved storage" control that does not start models.
-5. Preserve experiment prompts, query handling, two calls per turn, 50/50 count,
-   both resident sessions, installed/isolation behavior and CSV authority.
+## Patch behavior
 
-## Exact files
+- Lifecycle diagnostics; drop cached handles on foreground return.
+- recordEvent persists when storageState.evidence === "readable"; fresh write
+  handles acquired inside evidenceWrites; ack after successful close only.
+- Missing files are not recreated on write.
+- Synthetic: 48/48 on patched checks.mjs including delayed-write visibility cases.
 
-- experiments/granite-single-ort-dual-session/claptrap-chat/main.js:
-  existing-file reads, bounded fresh-handle retry, independent recovery,
-  accurate failure/export state and retry control.
-- experiments/granite-single-ort-dual-session/claptrap-chat/index.html:
-  initial unknown count and retry control.
-- experiments/granite-single-ort-dual-session/claptrap-chat/sw.js:
-  shell cache revision so the repaired files install together.
-- experiments/granite-single-ort-dual-session/claptrap-chat/checks.mjs:
-  realistic missing-file behavior and focused storage-failure cases.
-- experiments/granite-single-ort-dual-session/claptrap-chat/VERIFICATION.md:
-  screenshot attribution, executed checks, browser outcome and remaining limit.
-- experiments/granite-single-ort-dual-session/claptrap-chat/evidence/storage-read-recovery-20260918.json:
-  actual check/browser results and screenshot text/hash, with no invented phone
-  recovery or duplicate normalized copy of the existing run.
-- scratchpad/WORK.md: this plan and completion/handoff.
+## Files
 
-## Verification and success
+- experiments/granite-single-ort-dual-session/claptrap-chat/main.js
+- experiments/granite-single-ort-dual-session/claptrap-chat/checks.mjs
+- experiments/granite-single-ort-dual-session/claptrap-chat/sw.js (shell v7)
+- experiments/granite-single-ort-dual-session/claptrap-chat/evidence/android-app-switch-csv-access-20260918.json
+- scratchpad/WORK.md
 
-Exercise transient and persistent read failures at handle/File/text boundaries;
-prove one retry, byte-preserved existing files, saved evidence retained when CSV
-is missing/unreadable, CSV export retained when evidence is unreadable, no
-inference or implicit history creation during recovery, and unchanged normal
-50/50 completion and write-failure behavior. Check the published page and
-reload/export using real browser OPFS. No synthetic test is phone evidence.
-
-Success is recoverable transient reads and truthful, exportable failure when the
-file remains unavailable. The phone's underlying storage cause and recovery
-cannot be claimed until the repaired build accesses that phone's existing files.
-No new service, dependency, hosting arrangement or architecture is introduced.
-Current main is be56f62590be8897f479f33b84877fb3a7f98f13; its blueprint blob matches
-locked 5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945. Neither locked file changes.
-
-## Progress
-
-Plan published at 259ec89c0a00dfd2751f725a3836d3bea229e84b before runtime edits.
-Storage recovery and truthful display changes implemented. All 45 synthetic
-checks pass, including the 11 added storage cases and existing 50/50 checks.
-Browser reload/export verification is in progress; phone recovery is not claimed.
-
-
-## Completion
-
-Code published at 57896a2d1e03d45e4eddb0157a00a5012017a0f5. All 45 checks pass.
-Real browser retry/reload recovered the prior saved run with byte-identical CSV
-and equal original JSON fields, 38 unchanged events and no new model calls.
-Both exports were received; JSON delivery required one standalone retry after
-its first post-repair click did not produce a received file. Exact artifacts,
-source hashes and limits are in evidence/storage-read-recovery-20260918.json.
-
-The screenshot's zero count is an initial display, not evidence of deleted rows.
-Phone recovery is the remaining gate. Open the repaired same-origin entry point
-without clearing saved files; its storage operation diagnostics now identify
-which call fails if a fresh read still cannot recover it. Underlying phone cause
-and full 100-response completion remain unverified. No inference code, query
-selection, architecture, main or locked file was changed by this repair.
+Unchanged: runtime-worker.js, turn-boundary.js, prompts, two-call protocol, dual residency, locked blueprint.

@@ -24,6 +24,60 @@ let conversationHandle, evidenceHandle;
 let storageReady = false, restoring = false, evidenceLoaded = false;
 const storageIssues = [];
 const storageState = { conversation: "unchecked", evidence: "unchecked", setupError: null };
+const pageLifecycle = [];
+let pageWasHidden = false;
+
+function recordPageLifecycle(kind, detail = {}) {
+  pageLifecycle.push({
+    at: new Date().toISOString(), kind,
+    hidden: document.hidden === true,
+    visibilityState: document.visibilityState ?? null,
+    ...detail,
+  });
+}
+
+// Cached OPFS handles are disposable across background/foreground. Drop them on
+// return so the next CSV/evidence access uses the fresh-read path. Do not retry
+// writes or model calls from lifecycle alone.
+function dropCachedStorageHandles(reason) {
+  conversationHandle = null;
+  evidenceHandle = null;
+  storageIssues.push({
+    at: new Date().toISOString(), file: null, operation: "drop-cached-handles",
+    attempt: 1, name: "Lifecycle", message: reason, stack: null, outcome: "handles-cleared",
+  });
+  recordPageLifecycle("drop-cached-handles", { reason });
+}
+
+function onPageVisibility() {
+  const hidden = document.hidden === true;
+  recordPageLifecycle(hidden ? "page-hidden" : "page-visible");
+  if (hidden) pageWasHidden = true;
+  else if (pageWasHidden) {
+    pageWasHidden = false;
+    dropCachedStorageHandles("foreground-return-after-hidden");
+  }
+}
+
+async function ensureEvidenceHandleForWrite() {
+  // create:false only. Missing files fail the write; they are never recreated here.
+  if (evidenceHandle) return evidenceHandle;
+  const stored = await readStoredFile(EVIDENCE_FILE);
+  if (!stored) throw new Error("Evidence file is missing; refusing to recreate it for a write.");
+  evidenceHandle = stored.handle;
+  storageState.evidence = "readable";
+  return evidenceHandle;
+}
+
+async function ensureConversationHandleForWrite() {
+  if (conversationHandle) return conversationHandle;
+  const stored = await readStoredFile(CONVERSATION_FILE);
+  if (!stored) throw new Error("Conversation CSV is missing; refusing to recreate it for a write.");
+  conversationHandle = stored.handle;
+  storageState.conversation = "readable";
+  return conversationHandle;
+}
+
 let runtimeReady = false, runtimeFailed = false, running = false;
 let loadingLane = null;
 let paused = false, stopRequested = false, requestSequence = 0;
@@ -34,7 +88,7 @@ let evidence = freshEvidence();
 
 function freshEvidence() {
   return {
-    experiment: EXPERIMENT, version: 6, createdAt: new Date().toISOString(),
+    experiment: EXPERIMENT, version: 7, createdAt: new Date().toISOString(),
     pageUrl: location.href, userAgent: navigator.userAgent,
     fixedConditions: {
       actorSystemPrompt: "You are Claptrap. Respond to the incoming message.", seedText: SEED_TEXT,
@@ -125,7 +179,7 @@ function persistEvidence() {
   pendingWrites++;
   evidenceWrites = evidenceWrites.then(async () => {
     if (saveFailure) throw new Error(saveFailure.error);
-    await writeText(evidenceHandle, text);
+    await writeText(await ensureEvidenceHandleForWrite(), text);
     committedEvents = eventCount; committedAt = new Date().toISOString();
   }).catch((error) => {
     if (!saveFailure) {
@@ -159,7 +213,10 @@ function recordEvent(entry) {
     machineLog.scrollTop = machineLog.scrollHeight;
   }
   // High-frequency download notices are covered by the next load checkpoint.
-  if (evidenceHandle && entry.type !== "load-progress") return persistEvidence();
+  // Persist whenever evidence is known readable, even if a lifecycle return cleared
+  // the cached handle. Fresh write handles are acquired inside the evidenceWrites queue.
+  if (entry.type === "load-progress") return Promise.resolve();
+  if (storageState.evidence === "readable") return persistEvidence();
   return Promise.resolve();
 }
 
@@ -221,7 +278,7 @@ async function receive(entry) {
     failRuntime(error);
     evidence.error = errorText(error); evidence.completed = false; evidence.running = false;
     status.textContent = `STOPPED: ${evidence.error}. Download the evidence report.`;
-    if (!saveFailure && evidenceHandle) await persistEvidence().catch(() => {});
+    if (!saveFailure && storageState.evidence === "readable") await persistEvidence().catch(() => {});
   }
 }
 
@@ -502,7 +559,7 @@ clearButton.addEventListener("click", async () => {
     evidenceWrites = Promise.resolve(); saveFailure = null; pendingWrites = 0; committedEvents = 0; committedAt = null;
     const initialization = runtimeReady ? evidence.runtimeEvents.filter((event) =>
       /^(runtime-start|tokenizer-load|session-load|runtime-ready|first-session)/.test(event.type)) : [];
-    await writeText(conversationHandle, CSV_HEADER + "\r\n");
+    await writeText(await ensureConversationHandleForWrite(), CSV_HEADER + "\r\n");
     evidence = freshEvidence(); evidence.runtimeEvents.push(...initialization);
     await persistEvidence();
     localStorage.removeItem(LEGACY_EVIDENCE_KEY);
@@ -531,10 +588,20 @@ document.querySelector("#download-csv").addEventListener("click", async () => {
 document.querySelector("#download-evidence").addEventListener("click", () => {
   const report = { ...evidence, storageRecovery: { ...storageState, evidenceLoaded, pageUrl: location.href },
     storageReadDiagnostics: storageDiagnostics(),
+    pageLifecycleDiagnostics: pageLifecycle,
     completed: evidence.completed && storageReady && !running && pendingWrites === 0 && !saveFailure,
     export: { at: new Date().toISOString(), source: evidenceLoaded ? "live received evidence" : "recovery diagnostics; saved evidence unavailable",
     outcome: storageState.setupError ? "storage-recovery-failed" : evidence.error ? "failed" : running || pendingWrites > 0 ? "running" : evidence.completed ? "complete" : evidence.interrupted ? "interrupted" : "stopped",
     committedEvents, receivedEvents: evidence.runtimeEvents.length, pendingWrites, committedAt, saveFailure } };
   downloadText(JSON.stringify(report, null, 2), "application/json", `granite-claptrap-evidence-${stamp()}.json`);
+});
+document.addEventListener("visibilitychange", onPageVisibility);
+window.addEventListener("pagehide", () => { recordPageLifecycle("pagehide"); pageWasHidden = true; });
+window.addEventListener("pageshow", (event) => {
+  recordPageLifecycle("pageshow", { persisted: event?.persisted === true });
+  if (pageWasHidden) {
+    pageWasHidden = false;
+    dropCachedStorageHandles("pageshow-after-hidden");
+  }
 });
 restore({ initializeEmpty: true });
