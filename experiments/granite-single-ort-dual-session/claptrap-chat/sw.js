@@ -1,6 +1,6 @@
 // The static development host cannot set application headers. A same-origin
 // service worker supplies them to the document and worker, including offline.
-const CACHE = `claptrap-shell-v6:${self.registration.scope}`;
+const CACHE = `claptrap-shell-v7:${self.registration.scope}`;
 const SHELL = ["./index.html", "./main.js", "./turn-boundary.js", "./runtime-worker.js",
   "./app-shell.js", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png",
   "./stability.html", "./stability.js", "./evidence/phone-precrash-20260917.json", "./evidence/phone-precrash-20260917.csv"];

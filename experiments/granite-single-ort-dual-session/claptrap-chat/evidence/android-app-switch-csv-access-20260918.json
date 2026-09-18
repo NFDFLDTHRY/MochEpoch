@@ -1,0 +1,87 @@
+{
+  "kind": "android-app-switch-csv-access-diagnostic",
+  "ticket": "Android app-switch \u2192 return \u2192 CSV access failure",
+  "againstCommit": "0ca6f802ee1d347eb5bacd3fab05717bd16121d7",
+  "priorStorageRecoveryCommit": "57896a2d1e03d45e4eddb0157a00a5012017a0f5",
+  "phoneBaseline": {
+    "evidence": "phone-csv-read-failure-20260918.json",
+    "error": "NotFoundError on conversation CSV read during turn-4 search-request",
+    "limit": "App-switch causation unproven; phone recovery of 57896a2 still unverified."
+  },
+  "whatChangesBeyondExistingRecovery": [
+    "Unpatched tip already retries transient NotFound/InvalidState on fresh CSV reads (readStoredFile), including after a visibility switch that does nothing on unpatched main.",
+    "Unpatched tip has no pageLifecycle diagnostics and does not drop cached OPFS handles on foreground return.",
+    "Unpatched recordEvent skips persistEvidence when evidenceHandle is null, so a checkpoint requiresSave can be acknowledged without a durable close after handle invalidation (BASELINE demonstrated).",
+    "This patch: lifecycle diagnostics; drop cached handles on foreground return; persist whenever storageState.evidence===\"readable\" with fresh write handles acquired inside evidenceWrites; ack only after successful close; never recreate missing files on write."
+  ],
+  "syntheticPatched": {
+    "kind": "node checks.mjs",
+    "realGraniteGeneration": false,
+    "androidExecution": false,
+    "command": "cd experiments/granite-single-ort-dual-session/claptrap-chat && node checks.mjs",
+    "passed": 48,
+    "total": 48,
+    "focus": [
+      {
+        "name": "App-switch return drops cached handles and recovers a transient CSV NotFound without a new model call",
+        "pass": true
+      },
+      {
+        "name": "Checkpoint ack waits for evidence close after foreground clears cached handles mid-write",
+        "pass": true
+      },
+      {
+        "name": "Failed evidence close after foreground return sends no checkpoint ack and does not recreate files",
+        "pass": true
+      }
+    ]
+  },
+  "syntheticUnpatchedBaseline": {
+    "kind": "node checks-baseline.mjs against pristine main.js at 0ca6f80",
+    "realGraniteGeneration": false,
+    "androidExecution": false,
+    "passed": 48,
+    "total": 48,
+    "focus": [
+      {
+        "name": "Transient NotFoundError during search read retries once without a new model call",
+        "pass": true
+      },
+      {
+        "name": "BASELINE: visibility switch alone does not exist on unpatched main (no pageLifecycle)",
+        "pass": true
+      },
+      {
+        "name": "BASELINE: unpatched main still recovers transient NotFound during search after a visibility switch",
+        "pass": true
+      },
+      {
+        "name": "BASELINE: unpatched recordEvent skips persist when evidenceHandle is cleared, so checkpoint ack can fire without a durable close",
+        "pass": true
+      }
+    ]
+  },
+  "sourceSha256": {
+    "main.js": "200ee75ab35a9f22a2bcef070b8ce2a9ab98116de90b2f6ab443bf065ad456dd",
+    "checks.mjs": "de4130d19ede622be2907bc121e47d2ffa418ba836a0e8a66fcc6e811143ce7f",
+    "sw.js": "d01f06fdf6dbd87695c682c1e4dc812803f89237fe44ea4fa95f1890640d534d",
+    "runtime-worker.js": "a7aead61d6f1c24bac5eab2354f89b38aafae0359eb4c7603c2ba51355c4fd57",
+    "turn-boundary.js": "c6037ecc9489f982b78cd96faaae0607946c5bcb39f410b26a2bf0901d3bd8a2"
+  },
+  "androidPhoneTest": {
+    "status": "not executed",
+    "protocol": [
+      "Close old claptrap windows; open same-origin installable entry without clearing OPFS",
+      "Complete \u22651 turn",
+      "App-switch away ~30s",
+      "Return; trigger CSV read (search or Retry)",
+      "Export CSV + evidence before Clear; inspect pageLifecycleDiagnostics and storageReadDiagnostics"
+    ]
+  },
+  "limits": [
+    "All check results above are synthetic plumbing checks, not Android/device runs and not real Granite generation.",
+    "A proposed lifecycle/storage fix is not a verified Android fix until the phone protocol export exists.",
+    "Underlying phone NotFound cause remains open."
+  ],
+  "recordedAt": "2026-09-18T03:25:09.038528+00:00"
+}
