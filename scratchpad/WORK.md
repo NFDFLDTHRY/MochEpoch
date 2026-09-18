@@ -81,3 +81,14 @@ Use the pinned template with an explicit per-call override, record the adjustmen
 and preserve the untouched template for legacy replay. This adds no inference,
 query repair, behavior filtering, schema change, model, service or dependency.
 Retain both real exports and distinguish what each run established.
+
+The next real run still generated self-description as its first query. The
+response repeated that query text, which the prior implementation explicitly
+supplied as an assistant tool call and again inside its result metadata. Complete
+the user's proposed independent response input: supply retrieved CSV rows and any
+factual retrieval error, plus the original timestamp/incoming message. Keep the
+first query/native call and full result in evidence only. This is a scoped fresh
+response generation rather than a continuation of the retrieval conversation.
+The native tool schema and calling format remain in call 1. This supersedes the
+proposal's earlier inclusion of the native request in call 2, which the executed
+case showed continued to carry first-pass language into the response context.
