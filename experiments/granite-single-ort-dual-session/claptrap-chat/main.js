@@ -35,6 +35,7 @@ function freshEvidence() {
     fixedConditions: {
       actorSystemPrompt: "You are Claptrap. Respond to the incoming message.", seedText: SEED_TEXT,
       retrievalSystemPrompt: "Select three words from the supplied message. Call search_conversation with those words separated by spaces. Do not compose a conversational reply.",
+      retrievalTemplateAdjustment: "Native tool schema and serialization retained; generic assistant preface omitted.",
       totalTurns: 100, turnsPerSeat: 50, conversationalTokensPerTurn: 100,
       cpuBackend: "wasm", gpuBackend: "webgpu", dtype: "q4",
       turnProtocol: "retrieval-then-response-v1",

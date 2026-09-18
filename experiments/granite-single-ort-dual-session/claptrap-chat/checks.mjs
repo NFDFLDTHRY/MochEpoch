@@ -51,6 +51,7 @@ async function workerFixture(scripts, searchResult = { query: 'alpha beta gamma'
     dims: [1, 3], tolist: () => [[1n, 2n, 3n]], dispose: () => disposals.push('input'),
   } });
   tokenizer.encode = (text) => [text === '<tool_call>' ? open : close];
+  tokenizer.chat_template = 'You are a helpful assistant with access to the following tools. You may call one or more tools to assist with the user query. Native tool fixture';
   tokenizer.apply_chat_template = (messages, config) => {
     prompts.push(structuredClone({ messages, config })); return JSON.stringify(messages);
   };
@@ -131,11 +132,13 @@ await check('Every turn retrieves then responds; only second output is speech an
   assert.equal(f.prompts[0].config.tools[0].function.name, 'search_conversation');
   assert.equal(f.prompts[0].messages[0].content, 'Select three words from the supplied message. Call search_conversation with those words separated by spaces. Do not compose a conversational reply.');
   assert.equal(f.prompts[0].messages[1].content, 'Welcome to the Zoo');
+  assert.equal(f.prompts[0].config.chat_template, ' Native tool fixture');
   assert.equal(f.prompts[2].messages[1].content, 'only latest text');
   const response = f.prompts[1];
   assert.equal(response.messages[0].content, 'You are Claptrap. Respond to the incoming message.');
   assert.equal(response.messages[1].content, 'Current timestamp: now\nMessage from the other speaker:\nWelcome to the Zoo');
   assert.equal(Object.hasOwn(response.config, 'tools'), false);
+  assert.equal(Object.hasOwn(response.config, 'chat_template'), false);
   assert.equal(response.messages[2].content, '');
   assert.equal(response.messages[2].tool_calls[0].function.arguments.query, 'alpha beta gamma');
   assert.deepEqual(JSON.parse(response.messages[3].content).rows, [row(1, 'alpha beta gamma')]);

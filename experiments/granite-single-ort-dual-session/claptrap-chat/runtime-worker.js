@@ -11,6 +11,7 @@ const TRANSFORMERS_VERSION = "4.3.0";
 const LEGACY_SYSTEM_PROMPT = "You are Claptrap.";
 const RETRIEVAL_SYSTEM_PROMPT = "Select three words from the supplied message. Call search_conversation with those words separated by spaces. Do not compose a conversational reply.";
 const ACTOR_SYSTEM_PROMPT = "You are Claptrap. Respond to the incoming message.";
+const GENERIC_TOOL_PREFACE = "You are a helpful assistant with access to the following tools. You may call one or more tools to assist with the user query.";
 const FIXED_NEW_TOKENS = 100;
 const TOOL_TOKEN_BUDGET = 96; // Existing fixture tool-output bound, separate from speech.
 const TURN_PROTOCOL = "retrieval-then-response-v1";
@@ -209,9 +210,20 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call,
   try {
     const retrieval = phase === "retrieval";
     const assistantPrefix = retrieval ? RETRIEVAL_PREFIX : "";
+    let retrievalTemplate;
+    if (retrieval) {
+      // The real split-prompt run copied this automatic role into its query.
+      // Keep native serialization/tool instructions; use the requested role.
+      const nativeTemplate = tokenizer.chat_template;
+      if (typeof nativeTemplate !== "string" || !nativeTemplate.includes(GENERIC_TOOL_PREFACE)) {
+        throw new Error("Pinned retrieval template does not contain the expected generic preface. No inference started.");
+      }
+      retrievalTemplate = nativeTemplate.replace(GENERIC_TOOL_PREFACE, "");
+    }
     const prompt = tokenizer.apply_chat_template(messages, {
       tokenize: false, add_generation_prompt: true,
       ...(phase === "response" ? {} : { tools: SEARCH_TOOL }),
+      ...(retrieval ? { chat_template: retrievalTemplate } : {}),
     }) + assistantPrefix;
     inputs = tokenizer(prompt);
     const inputTokenCount = inputs.input_ids.dims.at(-1);
@@ -233,6 +245,7 @@ async function generatePiece(lane, messages, speechLimit, requestId, turn, call,
       requestId, lane, turn, call, phase, startedAt, inputTokenCount, assistantPrefix,
       messages, renderedPrompt: prompt, speechTokensRemaining: speechLimit,
       rawTokenLimit: rawLimit, doSample: false,
+      ...(retrieval ? { genericToolPrefaceOmitted: true } : {}),
       pastKeyValuesSupplied: false, returnDictInGenerate: false,
       ...(legacyReplay ? { recordedFirstInputMatched: call === 1 } : {}),
     });

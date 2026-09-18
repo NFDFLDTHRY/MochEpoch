@@ -15,6 +15,10 @@ refinement, its system is exactly `Select three words from the supplied message.
 Call search_conversation with those words separated by spaces. Do not compose a
 conversational reply.` Its user message is the original incoming text alone;
 timestamp metadata is not supplied as text from which to select search words.
+The real first split-prompt run copied the template's generic assistant preface
+into its query. Omit those two generic role sentences from the retrieval-only
+template while retaining its native schema, tool-format instructions and markers.
+The actual rendered input and this adjustment are recorded in machine evidence.
 The harness may prefill the native call for the sole required search function;
 the model supplies the query itself, and the exact prefill is recorded separately
 from generated tokens. Its existing finite tool allowance is 96 generated tokens.

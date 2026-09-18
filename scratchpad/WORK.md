@@ -68,8 +68,8 @@ particular retrieval omitted its closing marker.
 ## Executed prompt correction within this repair
 
 The first real run of 5131172 completed both turns, but the retrieval query copied
-the native template's generic assistant preface (24 words), and its response
-echoed that text. The next query had 30 words. Both native calls closed, so this
+the native template's generic assistant preface (23 words), and its response
+echoed that text. The next query had 29 words. Both native calls closed, so this
 is different from the phone's missing-marker failure. The rendered prompt proves
 that supplying the dedicated system still appends a competing generic assistant
 role through the native tools template.
