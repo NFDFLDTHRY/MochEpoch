@@ -1,0 +1,262 @@
+{
+  "kind": "storage-read-recovery-verification",
+  "codeCommit": "57896a2d1e03d45e4eddb0157a00a5012017a0f5",
+  "planCommit": "259ec89c0a00dfd2751f725a3836d3bea229e84b",
+  "phoneObservation": {
+    "source": "User attachment 14034.png; user reports reload after prior failed run",
+    "sha256": "cb51dfe388db900a67dcd9df2ede98789461c12b1e7a34281d9efaf254f95442",
+    "status": "Setup error: InvalidStateError: An operation that depends on state cached in an interface object was made but the state had changed since it was read from disk.. Existing files have not been reset.",
+    "models": "CPU: not loaded; GPU: not loaded",
+    "count": "0/100 saved, the initial HTML value; not a verified recovered count",
+    "storage": "Conversation memory: checking OPFS...",
+    "limit": "Screenshot does not identify a specific storage API or code SHA and does not prove data deletion."
+  },
+  "checks": {
+    "kind": "synthetic-plumbing-and-installed-repair-checks",
+    "realGraniteGeneration": false,
+    "results": [
+      {
+        "name": "CSV preserves commas, quotes, CRLF, empty fields, and Unicode",
+        "pass": true
+      },
+      {
+        "name": "Malformed or nonsequential CSV stops instead of silently dropping history",
+        "pass": true
+      },
+      {
+        "name": "Retrieval requires three words, uses all terms, and preserves exact rows",
+        "pass": true
+      },
+      {
+        "name": "Native tool tokens do not count as conversational tokens",
+        "pass": true
+      },
+      {
+        "name": "Every turn retrieves then responds; only second output is speech and the next turn starts fresh",
+        "pass": true
+      },
+      {
+        "name": "Zero matches and invalid queries remain diagnostics; only retrieved rows reach the response",
+        "pass": true
+      },
+      {
+        "name": "Malformed retrieval is recorded without search and cannot become response context or speech",
+        "pass": true
+      },
+      {
+        "name": "Retrieval limit records a failed attempt; only a separately generated second response completes the turn",
+        "pass": true
+      },
+      {
+        "name": "A second-pass tool call fails visibly instead of being counted as a reply or making a third call",
+        "pass": true
+      },
+      {
+        "name": "Failed retrieval must be saved before the independent response can start",
+        "pass": true
+      },
+      {
+        "name": "Malformed JSON remains evidence while the response uses only the actual incoming message and empty rows",
+        "pass": true
+      },
+      {
+        "name": "100 synthetic replies alternate 50/50 and commit CSV before each next call",
+        "pass": true
+      },
+      {
+        "name": "GPU seed still produces 50/50 with the seed excluded",
+        "pass": true
+      },
+      {
+        "name": "Reload restores CSV and diagnostics without calling a model or resetting history",
+        "pass": true
+      },
+      {
+        "name": "A failed CSV append preserves prior rows and prevents the next actor call",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic model loading waits for the start checkpoint acknowledgement",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic generation waits for durable evidence, then reports first token, progress, and cleanup",
+        "pass": true
+      },
+      {
+        "name": "A rejected diagnostic checkpoint prevents model inference",
+        "pass": true
+      },
+      {
+        "name": "A changed replay prompt is preserved diagnostically and never reaches inference",
+        "pass": true
+      },
+      {
+        "name": "All three trials replay identical captured CPU input; GPU warmup speech stays outside it",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic reload exposes saved trials without a model call or a conversation write",
+        "pass": true
+      },
+      {
+        "name": "Diagnostic disk failure sends no successful acknowledgement and stops before generation",
+        "pass": true
+      },
+      {
+        "name": "Collector failure exports the unsaved error instead of the stale running file",
+        "pass": true
+      },
+      {
+        "name": "Final export waits for completion while live checkpoints remain available during a stalled save",
+        "pass": true
+      },
+      {
+        "name": "Collector failure during a turn retains the event and error without retrying inference",
+        "pass": true
+      },
+      {
+        "name": "Worker requires isolation before either model loads and requests four threads on eight processors",
+        "pass": true
+      },
+      {
+        "name": "Actual chat stops before CSV when saving a received result fails and restores its error marker",
+        "pass": true
+      },
+      {
+        "name": "CSV committed before a failed JSON close is reconciled from the exact durable prepared result",
+        "pass": true
+      },
+      {
+        "name": "Two actual controllers share one owner; the second cannot create a worker or overwrite files",
+        "pass": true
+      },
+      {
+        "name": "Interrupted chat reload exposes saved checkpoints without restarting a model",
+        "pass": true
+      },
+      {
+        "name": "Offline shell returns isolated document and worker, caches executable modules, and leaves weights to the runtime cache",
+        "pass": true
+      },
+      {
+        "name": "Actual chat does not export completion while the final evidence close is stalled",
+        "pass": true
+      },
+      {
+        "name": "Reload refuses stale completion when a clear was interrupted between the two files",
+        "pass": true
+      },
+      {
+        "name": "GPU startup failure releases both lanes and survives actual-controller reload",
+        "pass": true
+      },
+      {
+        "name": "Transient InvalidStateError at getFileHandle uses fresh handles and preserves saved history",
+        "pass": true
+      },
+      {
+        "name": "Transient InvalidStateError at getFile uses fresh handles and preserves saved history",
+        "pass": true
+      },
+      {
+        "name": "Transient InvalidStateError at File.text uses fresh handles and preserves saved history",
+        "pass": true
+      },
+      {
+        "name": "Transient NotFoundError during search read retries once without a new model call",
+        "pass": true
+      },
+      {
+        "name": "Persistent CSV File.text failure preserves files and exports restored evidence with unknown counts",
+        "pass": true
+      },
+      {
+        "name": "Missing CSV is not recreated from diagnostic turns",
+        "pass": true
+      },
+      {
+        "name": "Unreadable evidence does not hide or overwrite a readable CSV",
+        "pass": true
+      },
+      {
+        "name": "Read-only retry restores recovered storage without duplicate rows, writes or model load",
+        "pass": true
+      },
+      {
+        "name": "Read-only retry never initializes missing files even after a previously empty setup",
+        "pass": true
+      },
+      {
+        "name": "Nontransient read failure stops without retry or writes",
+        "pass": true
+      },
+      {
+        "name": "Persistent search read failure saves its operation and halts before a response",
+        "pass": true
+      }
+    ]
+  },
+  "browser": {
+    "verifiedUrl": "https://raw.githack.com/NFDFLDTHRY/MochEpoch/57896a2d1e03d45e4eddb0157a00a5012017a0f5/experiments/granite-single-ort-dual-session/claptrap-chat/index.html",
+    "actions": [
+      "Export existing files",
+      "Navigate to repair and recover prior run",
+      "Retry saved storage",
+      "Reload",
+      "Export CSV and evidence again"
+    ],
+    "observed": "App ready; offline shell saved; isolated; shared memory available. Original saved GPU-adapter error restored; CSV storage ready; neither model loaded.",
+    "csvByteIdentical": true,
+    "originalEvidenceFieldsIdentical": true,
+    "comparisonExcludes": [
+      "export",
+      "storageReadDiagnostics",
+      "storageRecovery"
+    ],
+    "runtimeEventsBefore": 38,
+    "runtimeEventsAfter": 38,
+    "newGenerationCalls": 0,
+    "downloadDelivery": "Notification waits timed out. CSV arrived. First post-repair JSON click did not yield a received file; one standalone retry delivered JSON. Exact received files are retained below; no application exception was observed.",
+    "exactExports": [
+      {
+        "filename": "granite-claptrap-conversation-2026-09-18T02-24-08.351Z.csv",
+        "byteLength": 41,
+        "sha256": "68101ca4788f38da49f39c5a4611d5c736a4708101aa2aad4875c473205f996a",
+        "originalText": "turn,timestamp,speaker,backend,response\r\n"
+      },
+      {
+        "filename": "granite-claptrap-evidence-2026-09-18T02-24-13.333Z.json",
+        "byteLength": 15821,
+        "sha256": "ac98fc736208e1dd909b1db5db384a8ea14df03bbe1ecdae53fae8705d582fbf",
+        "originalText": "{\n  \"experiment\": \"granite-claptrap-rag-chat\",\n  \"version\": 3,\n  \"createdAt\": \"2026-09-17T19:45:34.077Z\",\n  \"pageUrl\": \"https://raw.githack.com/NFDFLDTHRY/MochEpoch/bcf1060bde6091649efce6c1d61d270f102d23da/experiments/granite-single-ort-dual-session/claptrap-chat/index.html\",\n  \"userAgent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36\",\n  \"fixedConditions\": {\n    \"actorSystemPrompt\": \"You are Claptrap.\",\n    \"seedText\": \"Welcome to the Zoo\",\n    \"totalTurns\": 100,\n    \"turnsPerSeat\": 50,\n    \"conversationalTokensPerTurn\": 100,\n    \"cpuBackend\": \"wasm\",\n    \"gpuBackend\": \"webgpu\",\n    \"dtype\": \"q4\",\n    \"retrieval\": \"Native tool call within the actor turn; no preliminary planner.\"\n  },\n  \"seedSeat\": \"cpu\",\n  \"runtimeEvents\": [\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.146Z\",\n      \"type\": \"runtime-start\",\n      \"atMs\": 1789674334145.4448,\n      \"requestId\": \"request-1\",\n      \"transformersVersion\": \"4.3.0\",\n      \"modelId\": \"onnx-community/granite-4.0-350m-ONNX-web\",\n      \"modelRevision\": \"6c9a6f61601df51e76b1efff0974d8d26c2a25b5\",\n      \"actorSystemPrompt\": \"You are Claptrap.\",\n      \"fixedNewTokens\": 100,\n      \"oneWorker\": true,\n      \"oneTransformersModuleRealm\": true,\n      \"loadOrder\": [\n        \"cpu\",\n        \"gpu\"\n      ],\n      \"environment\": {\n        \"hardwareConcurrency\": 5,\n        \"crossOriginIsolated\": true,\n        \"sharedArrayBufferAvailable\": true,\n        \"requestedThreads\": 2,\n        \"resourcePathTemplate\": \"{model}/resolve/6c9a6f61601df51e76b1efff0974d8d26c2a25b5/\",\n        \"sharedWasmMemoryProbe\": true,\n        \"resolvedSimd\": \"fixed\",\n        \"resolvedThreads\": 2,\n        \"resolvedProxy\": false\n      },\n      \"checkpointId\": 1,\n      \"requiresSave\": true,\n      \"workerMemory\": {\n        \"source\": \"worker performance.memory; JS heap only, not total RAM or GPU memory\",\n        \"available\": false,\n        \"usedJSHeapSize\": null,\n        \"totalJSHeapSize\": null,\n        \"jsHeapSizeLimit\": null,\n        \"wasmMemoryBytes\": null,\n        \"gpuMemoryBytes\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.149Z\",\n      \"type\": \"tokenizer-load-start\",\n      \"atMs\": 1789674334149.015,\n      \"tokenizerStart\": 1789674334149,\n      \"checkpointId\": 2,\n      \"requiresSave\": true,\n      \"workerMemory\": {\n        \"source\": \"worker performance.memory; JS heap only, not total RAM or GPU memory\",\n        \"available\": false,\n        \"usedJSHeapSize\": null,\n        \"totalJSHeapSize\": null,\n        \"jsHeapSizeLimit\": null,\n        \"wasmMemoryBytes\": null,\n        \"gpuMemoryBytes\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.342Z\",\n      \"type\": \"tokenizer-load-complete\",\n      \"atMs\": 1789674334342.5798,\n      \"tokenizerStart\": 1789674334149,\n      \"tokenizerEnd\": 1789674334342.565,\n      \"durationMs\": 193.56494140625\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.344Z\",\n      \"type\": \"session-load-start\",\n      \"atMs\": 1789674334342.73,\n      \"lane\": \"cpu\",\n      \"device\": \"wasm\",\n      \"dtype\": \"q4\",\n      \"startedAt\": 1789674334342.71,\n      \"checkpointId\": 3,\n      \"requiresSave\": true,\n      \"workerMemory\": {\n        \"source\": \"worker performance.memory; JS heap only, not total RAM or GPU memory\",\n        \"available\": false,\n        \"usedJSHeapSize\": null,\n        \"totalJSHeapSize\": null,\n        \"jsHeapSizeLimit\": null,\n        \"wasmMemoryBytes\": null,\n        \"gpuMemoryBytes\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.369Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334369.7148,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.371Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334371.105,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.372Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334372.3198,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"progress\",\n        \"file\": \"config.json\",\n        \"loaded\": 2018,\n        \"total\": 2018,\n        \"progress\": 100\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.372Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334372.4548,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.375Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334374.96,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.375Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334375.415,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.375Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334375.52,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.377Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334376.51,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.377Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334377.46,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.379Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334379.27,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.379Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334379.7249,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.380Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334380.4648,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.872Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334872.395,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"progress_total\",\n        \"file\": null,\n        \"loaded\": 320090691,\n        \"total\": 575914563,\n        \"progress\": 55.57954453046189\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:35.228Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674335228.285,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.643Z\",\n      \"type\": \"session-load-complete\",\n      \"atMs\": 1789674338643.365,\n      \"lane\": \"cpu\",\n      \"device\": \"wasm\",\n      \"dtype\": \"q4\",\n      \"startedAt\": 1789674334342.71,\n      \"finishedAt\": 1789674338643.325,\n      \"durationMs\": 4300.614990234375,\n      \"observedModelFiles\": [\n        \"onnx/model_q4.onnx\",\n        \"onnx/model_q4.onnx_data\"\n      ],\n      \"runtimeThreads\": 2,\n      \"checkpointId\": 4,\n      \"requiresSave\": true,\n      \"workerMemory\": {\n        \"source\": \"worker performance.memory; JS heap only, not total RAM or GPU memory\",\n        \"available\": false,\n        \"usedJSHeapSize\": null,\n        \"totalJSHeapSize\": null,\n        \"jsHeapSizeLimit\": null,\n        \"wasmMemoryBytes\": null,\n        \"gpuMemoryBytes\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.648Z\",\n      \"type\": \"first-session-resident\",\n      \"atMs\": 1789674338648.895,\n      \"lane\": \"cpu\",\n      \"secondLane\": \"gpu\"\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.649Z\",\n      \"type\": \"session-load-start\",\n      \"atMs\": 1789674338648.95,\n      \"lane\": \"gpu\",\n      \"device\": \"webgpu\",\n      \"dtype\": \"q4\",\n      \"startedAt\": 1789674338648.9248,\n      \"checkpointId\": 5,\n      \"requiresSave\": true,\n      \"workerMemory\": {\n        \"source\": \"worker performance.memory; JS heap only, not total RAM or GPU memory\",\n        \"available\": false,\n        \"usedJSHeapSize\": null,\n        \"totalJSHeapSize\": null,\n        \"jsHeapSizeLimit\": null,\n        \"wasmMemoryBytes\": null,\n        \"gpuMemoryBytes\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.653Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338653.5598,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.654Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338654.88,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.655Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338655.605,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"progress\",\n        \"file\": \"config.json\",\n        \"loaded\": 2018,\n        \"total\": 2018,\n        \"progress\": 100\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.655Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338655.7249,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.656Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338656.1199,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.656Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338656.19,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.656Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338656.2148,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.657Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338657.275,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.658Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338657.6948,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.662Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338659.665,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.664Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338663.93,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.664Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338664.145,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:39.158Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674339158.415,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"progress_total\",\n        \"file\": null,\n        \"loaded\": 92549699,\n        \"total\": 575914563,\n        \"progress\": 16.070039715248527\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:39.666Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674339665.89,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"progress_total\",\n        \"file\": null,\n        \"loaded\": 423899715,\n        \"total\": 575914563,\n        \"progress\": 73.60461815583574\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:40.174Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674340174.4348,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"progress_total\",\n        \"file\": null,\n        \"loaded\": 518271555,\n        \"total\": 575914563,\n        \"progress\": 89.9910487243574\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:40.502Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674340502.325,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:40.504Z\",\n      \"type\": \"command-error\",\n      \"atMs\": 1789674340503.905,\n      \"requestId\": \"request-1\",\n      \"command\": \"initialize\",\n      \"lane\": null,\n      \"turn\": null,\n      \"error\": \"Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \\\"--enable-unsafe-webgpu\\\" if you are using Chrome.\"\n    }\n  ],\n  \"turns\": [],\n  \"completed\": false,\n  \"stoppedEarly\": false,\n  \"running\": false,\n  \"interrupted\": false,\n  \"pendingTurn\": null,\n  \"error\": \"Error: Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \\\"--enable-unsafe-webgpu\\\" if you are using Chrome.\",\n  \"appEnvironment\": {\n    \"crossOriginIsolated\": true,\n    \"sharedArrayBufferAvailable\": true,\n    \"installed\": false,\n    \"persistentStorage\": false,\n    \"serviceWorker\": \"https://raw.githack.com/NFDFLDTHRY/MochEpoch/bcf1060bde6091649efce6c1d61d270f102d23da/experiments/granite-single-ort-dual-session/claptrap-chat/sw.js\"\n  },\n  \"export\": {\n    \"at\": \"2026-09-18T02:24:13.333Z\",\n    \"source\": \"live received evidence\",\n    \"outcome\": \"failed\",\n    \"committedEvents\": 38,\n    \"receivedEvents\": 38,\n    \"pendingWrites\": 0,\n    \"committedAt\": null,\n    \"saveFailure\": null\n  }\n}"
+      },
+      {
+        "filename": "granite-claptrap-conversation-2026-09-18T02-27-05.192Z.csv",
+        "byteLength": 41,
+        "sha256": "68101ca4788f38da49f39c5a4611d5c736a4708101aa2aad4875c473205f996a",
+        "originalText": "turn,timestamp,speaker,backend,response\r\n"
+      },
+      {
+        "filename": "granite-claptrap-evidence-2026-09-18T02-29-22.312Z.json",
+        "byteLength": 16165,
+        "sha256": "a3ecaeb85e8eecd231ea5f92818488afc934ec4b11e11cce98e81e3aacbde152",
+        "originalText": "{\n  \"experiment\": \"granite-claptrap-rag-chat\",\n  \"version\": 3,\n  \"createdAt\": \"2026-09-17T19:45:34.077Z\",\n  \"pageUrl\": \"https://raw.githack.com/NFDFLDTHRY/MochEpoch/bcf1060bde6091649efce6c1d61d270f102d23da/experiments/granite-single-ort-dual-session/claptrap-chat/index.html\",\n  \"userAgent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36\",\n  \"fixedConditions\": {\n    \"actorSystemPrompt\": \"You are Claptrap.\",\n    \"seedText\": \"Welcome to the Zoo\",\n    \"totalTurns\": 100,\n    \"turnsPerSeat\": 50,\n    \"conversationalTokensPerTurn\": 100,\n    \"cpuBackend\": \"wasm\",\n    \"gpuBackend\": \"webgpu\",\n    \"dtype\": \"q4\",\n    \"retrieval\": \"Native tool call within the actor turn; no preliminary planner.\"\n  },\n  \"seedSeat\": \"cpu\",\n  \"runtimeEvents\": [\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.146Z\",\n      \"type\": \"runtime-start\",\n      \"atMs\": 1789674334145.4448,\n      \"requestId\": \"request-1\",\n      \"transformersVersion\": \"4.3.0\",\n      \"modelId\": \"onnx-community/granite-4.0-350m-ONNX-web\",\n      \"modelRevision\": \"6c9a6f61601df51e76b1efff0974d8d26c2a25b5\",\n      \"actorSystemPrompt\": \"You are Claptrap.\",\n      \"fixedNewTokens\": 100,\n      \"oneWorker\": true,\n      \"oneTransformersModuleRealm\": true,\n      \"loadOrder\": [\n        \"cpu\",\n        \"gpu\"\n      ],\n      \"environment\": {\n        \"hardwareConcurrency\": 5,\n        \"crossOriginIsolated\": true,\n        \"sharedArrayBufferAvailable\": true,\n        \"requestedThreads\": 2,\n        \"resourcePathTemplate\": \"{model}/resolve/6c9a6f61601df51e76b1efff0974d8d26c2a25b5/\",\n        \"sharedWasmMemoryProbe\": true,\n        \"resolvedSimd\": \"fixed\",\n        \"resolvedThreads\": 2,\n        \"resolvedProxy\": false\n      },\n      \"checkpointId\": 1,\n      \"requiresSave\": true,\n      \"workerMemory\": {\n        \"source\": \"worker performance.memory; JS heap only, not total RAM or GPU memory\",\n        \"available\": false,\n        \"usedJSHeapSize\": null,\n        \"totalJSHeapSize\": null,\n        \"jsHeapSizeLimit\": null,\n        \"wasmMemoryBytes\": null,\n        \"gpuMemoryBytes\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.149Z\",\n      \"type\": \"tokenizer-load-start\",\n      \"atMs\": 1789674334149.015,\n      \"tokenizerStart\": 1789674334149,\n      \"checkpointId\": 2,\n      \"requiresSave\": true,\n      \"workerMemory\": {\n        \"source\": \"worker performance.memory; JS heap only, not total RAM or GPU memory\",\n        \"available\": false,\n        \"usedJSHeapSize\": null,\n        \"totalJSHeapSize\": null,\n        \"jsHeapSizeLimit\": null,\n        \"wasmMemoryBytes\": null,\n        \"gpuMemoryBytes\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.342Z\",\n      \"type\": \"tokenizer-load-complete\",\n      \"atMs\": 1789674334342.5798,\n      \"tokenizerStart\": 1789674334149,\n      \"tokenizerEnd\": 1789674334342.565,\n      \"durationMs\": 193.56494140625\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.344Z\",\n      \"type\": \"session-load-start\",\n      \"atMs\": 1789674334342.73,\n      \"lane\": \"cpu\",\n      \"device\": \"wasm\",\n      \"dtype\": \"q4\",\n      \"startedAt\": 1789674334342.71,\n      \"checkpointId\": 3,\n      \"requiresSave\": true,\n      \"workerMemory\": {\n        \"source\": \"worker performance.memory; JS heap only, not total RAM or GPU memory\",\n        \"available\": false,\n        \"usedJSHeapSize\": null,\n        \"totalJSHeapSize\": null,\n        \"jsHeapSizeLimit\": null,\n        \"wasmMemoryBytes\": null,\n        \"gpuMemoryBytes\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.369Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334369.7148,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.371Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334371.105,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.372Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334372.3198,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"progress\",\n        \"file\": \"config.json\",\n        \"loaded\": 2018,\n        \"total\": 2018,\n        \"progress\": 100\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.372Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334372.4548,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.375Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334374.96,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.375Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334375.415,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.375Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334375.52,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.377Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334376.51,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.377Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334377.46,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.379Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334379.27,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.379Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334379.7249,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.380Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334380.4648,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:34.872Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674334872.395,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"progress_total\",\n        \"file\": null,\n        \"loaded\": 320090691,\n        \"total\": 575914563,\n        \"progress\": 55.57954453046189\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:35.228Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674335228.285,\n      \"lane\": \"cpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.643Z\",\n      \"type\": \"session-load-complete\",\n      \"atMs\": 1789674338643.365,\n      \"lane\": \"cpu\",\n      \"device\": \"wasm\",\n      \"dtype\": \"q4\",\n      \"startedAt\": 1789674334342.71,\n      \"finishedAt\": 1789674338643.325,\n      \"durationMs\": 4300.614990234375,\n      \"observedModelFiles\": [\n        \"onnx/model_q4.onnx\",\n        \"onnx/model_q4.onnx_data\"\n      ],\n      \"runtimeThreads\": 2,\n      \"checkpointId\": 4,\n      \"requiresSave\": true,\n      \"workerMemory\": {\n        \"source\": \"worker performance.memory; JS heap only, not total RAM or GPU memory\",\n        \"available\": false,\n        \"usedJSHeapSize\": null,\n        \"totalJSHeapSize\": null,\n        \"jsHeapSizeLimit\": null,\n        \"wasmMemoryBytes\": null,\n        \"gpuMemoryBytes\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.648Z\",\n      \"type\": \"first-session-resident\",\n      \"atMs\": 1789674338648.895,\n      \"lane\": \"cpu\",\n      \"secondLane\": \"gpu\"\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.649Z\",\n      \"type\": \"session-load-start\",\n      \"atMs\": 1789674338648.95,\n      \"lane\": \"gpu\",\n      \"device\": \"webgpu\",\n      \"dtype\": \"q4\",\n      \"startedAt\": 1789674338648.9248,\n      \"checkpointId\": 5,\n      \"requiresSave\": true,\n      \"workerMemory\": {\n        \"source\": \"worker performance.memory; JS heap only, not total RAM or GPU memory\",\n        \"available\": false,\n        \"usedJSHeapSize\": null,\n        \"totalJSHeapSize\": null,\n        \"jsHeapSizeLimit\": null,\n        \"wasmMemoryBytes\": null,\n        \"gpuMemoryBytes\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.653Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338653.5598,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.654Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338654.88,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.655Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338655.605,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"progress\",\n        \"file\": \"config.json\",\n        \"loaded\": 2018,\n        \"total\": 2018,\n        \"progress\": 100\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.655Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338655.7249,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.656Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338656.1199,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.656Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338656.19,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.656Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338656.2148,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"initiate\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.657Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338657.275,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.658Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338657.6948,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.662Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338659.665,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"download\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.664Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338663.93,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"onnx/model_q4.onnx\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:38.664Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674338664.145,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"generation_config.json\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:39.158Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674339158.415,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"progress_total\",\n        \"file\": null,\n        \"loaded\": 92549699,\n        \"total\": 575914563,\n        \"progress\": 16.070039715248527\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:39.666Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674339665.89,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"progress_total\",\n        \"file\": null,\n        \"loaded\": 423899715,\n        \"total\": 575914563,\n        \"progress\": 73.60461815583574\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:40.174Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674340174.4348,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"progress_total\",\n        \"file\": null,\n        \"loaded\": 518271555,\n        \"total\": 575914563,\n        \"progress\": 89.9910487243574\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:40.502Z\",\n      \"type\": \"load-progress\",\n      \"atMs\": 1789674340502.325,\n      \"lane\": \"gpu\",\n      \"progress\": {\n        \"status\": \"done\",\n        \"file\": \"onnx/model_q4.onnx_data\",\n        \"loaded\": null,\n        \"total\": null,\n        \"progress\": null\n      }\n    },\n    {\n      \"receivedAt\": \"2026-09-17T19:45:40.504Z\",\n      \"type\": \"command-error\",\n      \"atMs\": 1789674340503.905,\n      \"requestId\": \"request-1\",\n      \"command\": \"initialize\",\n      \"lane\": null,\n      \"turn\": null,\n      \"error\": \"Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \\\"--enable-unsafe-webgpu\\\" if you are using Chrome.\"\n    }\n  ],\n  \"turns\": [],\n  \"completed\": false,\n  \"stoppedEarly\": false,\n  \"running\": false,\n  \"interrupted\": false,\n  \"pendingTurn\": null,\n  \"error\": \"Error: Error: no available backend found. ERR: [webgpu] Error: Failed to get GPU adapter. You may need to enable flag \\\"--enable-unsafe-webgpu\\\" if you are using Chrome.\",\n  \"appEnvironment\": {\n    \"crossOriginIsolated\": true,\n    \"sharedArrayBufferAvailable\": true,\n    \"installed\": false,\n    \"persistentStorage\": false,\n    \"serviceWorker\": \"https://raw.githack.com/NFDFLDTHRY/MochEpoch/bcf1060bde6091649efce6c1d61d270f102d23da/experiments/granite-single-ort-dual-session/claptrap-chat/sw.js\"\n  },\n  \"storageRecovery\": {\n    \"conversation\": \"readable\",\n    \"evidence\": \"readable\",\n    \"setupError\": null,\n    \"evidenceLoaded\": true,\n    \"pageUrl\": \"https://raw.githack.com/NFDFLDTHRY/MochEpoch/57896a2d1e03d45e4eddb0157a00a5012017a0f5/experiments/granite-single-ort-dual-session/claptrap-chat/index.html\"\n  },\n  \"storageReadDiagnostics\": [],\n  \"export\": {\n    \"at\": \"2026-09-18T02:29:22.312Z\",\n    \"source\": \"live received evidence\",\n    \"outcome\": \"failed\",\n    \"committedEvents\": 38,\n    \"receivedEvents\": 38,\n    \"pendingWrites\": 0,\n    \"committedAt\": null,\n    \"saveFailure\": null\n  }\n}"
+      }
+    ]
+  },
+  "sourceSha256": {
+    "main.js": "1fb7dc7eaaee3746adb166171ef35ed24b14b5ca438ba00ec87f337ae4de4dba",
+    "index.html": "773e0ae6576862a0524869335fa9ff0f584d6e67dfbde2c14aa7a900a9cf8282",
+    "sw.js": "bcce6a4eb49dc24e254168a9ae11876a58c09ffa636cdfea3e40629f43245fcc",
+    "checks.mjs": "6d2a7ba4cbf65a42569fd29cba058918d6cbff4bbf5cf493e32ae859a3bef238",
+    "runtime-worker.js": "a7aead61d6f1c24bac5eab2354f89b38aafae0359eb4c7603c2ba51355c4fd57",
+    "turn-boundary.js": "c6037ecc9489f982b78cd96faaae0607946c5bcb39f410b26a2bf0901d3bd8a2"
+  },
+  "limits": [
+    "Read failures were injected in synthetic checks; they do not establish the phone cause.",
+    "Real browser recovery used a header-only CSV and existing startup-error evidence, not the phone files.",
+    "Phone recovery and full 100-reply endurance remain unverified."
+  ],
+  "publicationReview": "Public experiment URLs, routine capability metadata/errors, prior public experiment content and synthetic results only; no personal identifiers found."
+}

@@ -1,7 +1,7 @@
 # Claptrap: preserve files and recover storage reads
 
 proposal_id: 20260918-claptrap-storage-read-recovery
-status: IN_PROGRESS
+status: COMPLETE
 repository: NFDFLDTHRY/MochEpoch
 branch: experiment/granite-single-ort-dual-session
 base_commit: dccdf380d31968cffb4a4053826808dc854f0e17
@@ -80,3 +80,20 @@ Plan published at 259ec89c0a00dfd2751f725a3836d3bea229e84b before runtime edits.
 Storage recovery and truthful display changes implemented. All 45 synthetic
 checks pass, including the 11 added storage cases and existing 50/50 checks.
 Browser reload/export verification is in progress; phone recovery is not claimed.
+
+
+## Completion
+
+Code published at 57896a2d1e03d45e4eddb0157a00a5012017a0f5. All 45 checks pass.
+Real browser retry/reload recovered the prior saved run with byte-identical CSV
+and equal original JSON fields, 38 unchanged events and no new model calls.
+Both exports were received; JSON delivery required one standalone retry after
+its first post-repair click did not produce a received file. Exact artifacts,
+source hashes and limits are in evidence/storage-read-recovery-20260918.json.
+
+The screenshot's zero count is an initial display, not evidence of deleted rows.
+Phone recovery is the remaining gate. Open the repaired same-origin entry point
+without clearing saved files; its storage operation diagnostics now identify
+which call fails if a fresh read still cannot recover it. Underlying phone cause
+and full 100-response completion remain unverified. No inference code, query
+selection, architecture, main or locked file was changed by this repair.

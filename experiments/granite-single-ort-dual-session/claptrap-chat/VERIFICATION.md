@@ -823,3 +823,63 @@ Publication review found only the public experiment URL, routine capability
 metadata/timestamps and model prompts/outputs derived from the experiment seed
 and preceding generated replies; no personal identifiers. This review changes
 evidence and documentation only.
+
+
+## Storage-read and reload recovery repair — 2026-09-18
+
+The user's subsequent 14034.png screenshot reports an InvalidStateError during
+setup after reload, with text about cached interface state changing on disk.
+Neither model is loaded. The old screen's 0/100 and checking-OPFS text are initial
+HTML values, not successful reads proving an empty CSV. The screenshot does not
+identify the specific API or establish deletion; the prior JSON independently
+records three completed replies and a NotFoundError at the CSV search boundary.
+
+Plan 259ec89 was published before implementation under the user's active
+stabilization instruction and instruction to record the plan before proceeding.
+Code 57896a2 changes storage reads and recovery only:
+
+- Every existing-file read obtains a fresh root, create:false handle and File
+  snapshot. InvalidStateError/NotFoundError gets one recorded retry. No write or
+  inference retry is added. Errors include file, operation, attempt, name,
+  message and stack, and successful second attempts are recorded.
+- Evidence and CSV are read independently, with evidence first. Either readable
+  file remains exportable when the other fails. Recovery never reconstructs CSV
+  from JSON. Initialization is allowed only for a confirmed empty new store;
+  missing one file or a failed read does not trigger recreation.
+- Unavailable CSV counts are explicitly unverified. The unsupported claim that
+  saved CSV remains available after a storage error is removed. Retry saved
+  storage is read-only, retains the existing owner lock, does not load models,
+  and cannot clear or create files. Clear/start stay blocked on partial recovery.
+- Retrieval, append preparation and CSV export use the same fresh-read path.
+  Prompts, model worker, query handling, dual residency and two-call protocol
+  are unchanged. The shell cache is v6; new run metadata is version 6.
+
+All 45 synthetic checks pass: the existing 34 plus 11 focused storage cases.
+They exercise transient failures at handle/File/text stages, persistent missing
+or unreadable CSV, independently readable CSV/evidence, read-only retries,
+no duplicate rendering or implicit history creation, nontransient failures,
+and failure during an actual-controller search request. Existing 50/50 and
+write-failure checks still pass. These are injected cases, not the phone fault.
+
+Real Chrome verification opened the published build, restored its existing
+startup-error run, retried saved storage and reloaded. The browser retained
+isolation/shared memory. CSV export was byte-identical before/after, and all
+original JSON fields were equal after excluding export metadata and new storage
+status/diagnostics. Both exports contained the same 38 runtime events and zero
+turns; no generation was initiated. This browser's CSV was header-only, so this
+is not proof of recovering the phone's three turns or its fault. Download-event
+notifications timed out; CSV and JSON files actually arrived and were compared.
+The first repaired JSON click did not produce a received file; one standalone
+retry delivered it. No application exception explained that delivery behavior.
+
+[Open the storage-recovery build](https://raw.githack.com/NFDFLDTHRY/MochEpoch/57896a2d1e03d45e4eddb0157a00a5012017a0f5/experiments/granite-single-ort-dual-session/claptrap-chat/index.html).
+Close the old app window before opening this same-origin build so its owner lock
+can be acquired. Preserve existing data. Recovery runs before model load; export
+CSV and evidence if available, or export recovery diagnostics if a file remains
+unreadable. The old installed launcher may still open its pinned earlier build.
+
+Exact browser exports, source/screenshot hashes and check results are in
+[storage-read-recovery-20260918.json](./evidence/storage-read-recovery-20260918.json).
+Publication review found no personal identifiers. The phone's original storage
+cause, recovery and full 100-reply run remain unverified. Main and the locked
+blueprint are unchanged.
