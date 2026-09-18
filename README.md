@@ -2,6 +2,15 @@
 
 Tiny Model Civilizations Browser Game.
 
+## Required team control prompts
+
+Read [AGENTS.md](AGENTS.md) before repository work. Opus must read
+[Opus_readme.md](Opus_readme.md); Grok Bot must read
+[GrokBot_readme.md](GrokBot_readme.md), using current `main` even when their task
+branch is older. These files define development roles and handoffs. Codex handles
+implementation and integration; Opus reviews read-only; Grok builds assigned
+runtime-debugging patches and regression checks.
+
 ## Question
 
 Can a civilization-like first-person game emerge from CSV-backed world truth, scoped JSON transformations, human/NPC behavior, and deterministic consequences without explicitly programming social abstractions such as trust, morality, friendship, loyalty, or civilization?

@@ -1,5 +1,26 @@
 # MochEpoch agent rules
 
+## Required team control prompts
+
+Before substantive work, each named team member must read its complete control
+prompt from current `main`, together with this file:
+
+- **Opus:** [Opus_readme.md](Opus_readme.md) — independent read-only consultant.
+- **Grok Bot / GrokBot / Grok:** [GrokBot_readme.md](GrokBot_readme.md) — scoped
+  runtime debugging and regression-test coding.
+- **Codex:** read both when assigning, reviewing, or integrating their work;
+  Codex owns implementation and integration within the user's authorization.
+
+This requirement also applies when a task branch predates the control files.
+Read the control prompt at session start, after a handoff or context loss, and
+when the assignment or governing instructions change. Identify the current main
+and task commits; report missing access rather than inventing the prompt.
+
+These are development-team instructions, not Granite's in-game prompts, a new
+runtime architecture, or a technical access-control mechanism. Role files remain
+subject to the user's instructions, this file, the architecture lock, and the
+existing scratchpad protocol. A role assignment does not expand write authority.
+
 ## Architecture lock
 
 `docs/GAME_BLUEPRINT.md` is locked by `docs/ARCHITECTURE_LOCK.json`.

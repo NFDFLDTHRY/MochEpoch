@@ -1,116 +1,67 @@
-# Claptrap diagnostic result and installable-app boundary
+# Team control prompts on main
 
-proposal_id: 20260917-claptrap-crash-isolation
+proposal_id: 20260918-opus-grok-control-prompts
 status: COMPLETE
 repository: NFDFLDTHRY/MochEpoch
-branch: experiment/granite-single-ort-dual-session
-code_commit: a21b07a2a454bff6db3dc457547e88330f4c6466
-remaining_gate: installable-app integration, isolation/thread configuration, actual-chat persistence defects, original Chrome crash cause, and full conversation endurance unresolved
+branch: main
+base_commit: f269aad341cf7d55919b017294e3811453d9a186
 
-## Product boundary reaffirmed by the user
+## Authorization
 
-MochEpoch is an installable, offline-capable WebApp game. GitHack is a
-development/browser-test delivery surface. The development URL is not the
-product architecture. Granite resources must be obtained automatically and
-persisted for later launches; the player must not repeat file-picker,
-download/open-file/load-model steps. The service-worker installation must not
-depend on completing the entire model download.
+The user explicitly requested Opus_readme.md and GrokBot_readme.md on main,
+required reading of each bot's control prompt, and ASCII diagram prompting
+according to the established template and policies. This is the authorized
+operation; it needs no additional permission to execute.
 
-This operation built and audited the standalone Claptrap conversation and
-diagnostic pages under experiments/granite-single-ort-dual-session/claptrap-chat.
-It did not implement or validate the installable app's manifest, service
-worker, offline launch, model-cache recovery, or update lifecycle. COMPLETE
-above refers to this diagnostic operation, not to that product or its stability.
+## Exact operation and files
 
-The user supplied separate StrawDummy machine-surface evidence from Screechrac.
-It records successful independent JavaScript worker scaling and a working
-CPU-worker/WebGPU pipeline while shared memory was unavailable. The observed
-ONNX WASM threading and Transformers.js serialization restrictions must not be
-generalized into a claim that the phone or installable WebApps cannot use
-parallel workers or CPU/GPU pipelines. StrawDummy is device capability evidence,
-not MochEpoch architecture; its full export has not been copied into this repo.
+- Opus_readme.md: independent read-only consultant control prompt.
+- GrokBot_readme.md: scoped runtime debugging and regression-test coding prompt.
+- AGENTS.md: require the named role to read its control file from current main
+  before work, including when its task checkout predates those files.
+- README.md: visible links to the required team control prompts.
+- scratchpad/WORK.md: this scoped proposal and its completion record.
 
-## Operator correction
+Use the recovered Prompt Construction Law from
+WASD_OS_Project_System_Prompt_v2.md: title; ASCII proposed mechanism; explicit
+proposal-not-result statement; one determination sentence; minimum structural
+constraints; Let the required experiments determine the machinery.
+Only prompting form and evidence discipline transfer. No WASD/Foundry runtime
+architecture, ledger, admission engine, or universal contract is imported.
 
-The user reported that the evidence collector stopped before the tasks completed.
-The three prior phone exports are not three reported Chrome crashes. Their exact
-bytes and the user's correction are retained in the existing evidence file.
+The files define development-team roles, not the in-game Granite prompt or a new
+runtime subsystem. Preserve main's game code, experiment code, historical raw
+evidence, and the locked blueprint and lock file byte-for-byte. The existing
+experiment branch is not modified. Its 0ca6f802 snapshot remains the current
+Claptrap repair reference; a reported local Grok draft is not integrated evidence.
 
-## Reproduced and repaired
+## Verification
 
-Synthetic execution of the published collector reproduced two defects: a save
-failure exported the stale running file without its error, and a pending final
-write allowed an older running snapshot to be exported after a response existed.
+Review the permission boundaries: Opus reads/reviews only; Grok changes only
+assigned files on an isolated branch or supplies a complete patch; Codex owns
+integration within user authorization. No role grants itself wider authority.
+Verify exact filenames, readable ASCII diagrams, required-read links, source
+version distinctions, and evidence/proposal/unknown separation. Check the
+changed-file list, whitespace, and unchanged locked blobs. No runtime test is
+needed for documentation-only changes. Publish a non-forced commit to current
+main and verify the remote commit and file contents.
 
-Repaired stability.js and stability.html within the approved diagnostic scope:
-final export waits until the trial completes or fails and queued saves settle;
-a separate live checkpoint remains downloadable during a storage stall; a failed
-save provides an explicitly unsaved report containing the error and received
-events. Saved-event and pending-write counts are visible. Exports identify time,
-source, outcome, and save status. No storage retry or inference continuation after
-a rejected checkpoint is added. Existing files remain readable.
+## Completion
 
-Worker/runtime code, prompts, sampling, token budget, model precision, dual
-residency, and the normal conversation are unchanged by this collector repair.
-Main and the locked architecture remain unchanged.
+Created both ASCII control prompts and required-read routing in AGENTS.md and
+README.md. Opus remains a read-only consultant. Grok owns assigned runtime
+patches and regression checks on an isolated branch; Codex owns integration.
+The initial tickets reference the existing experiment snapshot and distinguish
+reported phone behavior, unverified causes, and patches not yet received.
 
-## Executed checks
+Verified both prompts follow the recovered construction form and stay below
+6,000 characters. Local Markdown targets resolve; the startup documents link
+both exact filenames. The reviewed/staged change set contains only the five
+planned documentation files; whitespace checks pass. No app/runtime test was
+run because executable files are unchanged. The blueprint still matches blob
+5a3e9ae1a5e0d3bcc058ffab599c7cb8d65f0945; both locked files are byte-identical.
 
-Twenty-one synthetic checks pass. They cover rejected writes before inference,
-a write failure during a turn, and a stalled final write with a live export.
-Syntax and whitespace checks pass.
-
-A real cloud CPU-only replay with the repaired collector completed the identical
-351-token input and 100-token response in 79,877.60 ms. A live export at 23 events
-was labeled unfinished; collection continued after download. The final export
-contained all 36 events, zero pending writes, and a complete result. The live
-23-event record exactly matched its prefix. Both downloaded files were verified,
-and reload restored the exact full event list and output. The browser's download
-event notifications timed out, although the actual files arrived.
-
-Reproduction results, source hashes, and real browser exports are retained in
-experiments/granite-single-ort-dual-session/claptrap-chat/evidence/stability-checks-20260917.json.
-
-## Completed phone evidence
-
-All three subsequent phone trials at the repaired code commit completed and
-exported fully committed final snapshots, with no recorded error or pending
-write. Their exact bytes and hashes are retained in the existing evidence file.
-The collector-on-phone gate is now satisfied for these trials.
-
-CPU alone generated 100 tokens in 164.95 seconds; CPU with the GPU loaded and
-idle took 169.87 seconds. In the third trial, the WebGPU session generated 100
-tokens in 27.60 seconds, followed by CPU generation in 172.12 seconds. Every CPU
-input and output token sequence matched across conditions. GPU output matched
-the original phone's first turn. The two sessions generated sequentially.
-
-The CPU configuration explicitly forces one WASM inference thread. The phone
-reports eight logical processors, no cross-origin isolation, and no shared
-array buffer. Multicore performance has not been tested. GPU and CPU inputs
-differ, and diagnostic writes affect timing, so these are not controlled
-CPU/GPU speed comparisons. No runtime or hosting configuration was changed
-while recording these results.
-
-## Smallest next operation
-
-The original Chrome crash remains unexplained; all short replays succeeded.
-The follow-up actual-controller audit reproduced two distinct defects:
-an evidence write failure leaves saved CSV ahead of diagnostics and loses the
-error on reload; two controllers sharing the fixed storage filenames can
-overwrite each other's results. Exact synthetic outcomes are in the existing
-evidence file. Neither reproduction establishes the phone crash cause.
-
-Isolation and CPU thread configuration are separate changes: the code always
-forces one thread even if headers are supplied. Concurrent CPU/GPU execution
-also encounters both the application's busy guard and Transformers.js 4.3.0's
-browser inference chain. The original chat used sequential generation too;
-concurrency has not been established as its crash trigger.
-
-The next implementation proposal must fit the installable-app boundary above:
-identify the app origin and service-worker/cache lifecycle, then specify the
-minimum integration and execution checks needed there. Any isolation/thread
-change needs verification in that actual lifecycle. Full chat execution must
-include its real CSV writes, rendering, and evidence collection. A concurrent
-load experiment is distinct from the plan's alternating conversation. No new
-hosting, runtime, app shell, or chat-controller implementation is included in
-this completed audit.
+Result branch: main. Publication uses a non-forced update from the recorded
+base; the resulting commit is identifiable in this file's Git history. These
+instructions do not implement the pending lifecycle or resumability repairs,
+and do not establish receipt or verification of Grok's reported local patch.
