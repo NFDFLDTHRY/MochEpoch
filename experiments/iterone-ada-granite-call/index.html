@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IterOne Pass 1 — Ada / Granite call</title>
+    <style>
+      :root { color-scheme: dark; font: 16px/1.45 system-ui, sans-serif; background: #141821; color: #f0f1f4; }
+      body { max-width: 56rem; margin: 2rem auto; padding: 0 1rem; }
+      h1 { line-height: 1.15; }
+      p { color: #c5cad3; }
+      .controls { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; margin: 1.5rem 0; }
+      label { display: grid; gap: .35rem; }
+      button, select { font: inherit; border-radius: .4rem; border: 1px solid #7584a1; padding: .5rem .75rem; color: inherit; background: #243147; }
+      button:disabled { opacity: .5; cursor: wait; }
+      button:not(:disabled) { cursor: pointer; }
+      .panel { border: 1px solid #4b5870; border-radius: .5rem; padding: 1rem; margin: 1rem 0; }
+      .panel h2 { margin-top: 0; font-size: 1.1rem; }
+      pre { overflow: auto; max-height: 24rem; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 0; }
+      #status { font-weight: 650; }
+      .note { font-size: .9rem; }
+    </style>
+    <script type="module" src="./main.js"></script>
+  </head>
+  <body>
+    <h1>IterOne Pass 1: Ada / Granite call</h1>
+    <p>Run one literal stone request through Granite 4.0 350M. This page records the result; it does not change the game world.</p>
+    <div class="controls">
+      <label>Backend
+        <select id="backend">
+          <option value="webgpu">WebGPU q4</option>
+          <option value="wasm">WASM q4, one thread</option>
+        </select>
+      </label>
+      <button id="run">Run one call</button>
+      <button id="download">Download evidence</button>
+    </div>
+    <p class="note">Select each backend explicitly. If one fails, save its attempt before trying the other. Reload this page and repeat the working configuration once.</p>
+    <div class="panel" aria-live="polite">
+      <h2>Current attempt</h2>
+      <div id="status">Ready.</div>
+      <pre id="progress"></pre>
+    </div>
+    <div class="panel">
+      <h2>Recorded attempts</h2>
+      <pre id="history">No attempts yet.</pre>
+    </div>
+  </body>
+</html>
